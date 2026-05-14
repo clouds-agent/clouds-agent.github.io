@@ -272,11 +272,15 @@ function setupTagSearch() {
 
 async function searchTags(keyword) {
     const token = getToken();
-    if (!token) return;
+    if (!token) {
+        console.log('搜索标签：没有 Token');
+        return;
+    }
     
     const suggestionsEl = document.getElementById('tag-suggestions');
     if (!suggestionsEl) return;
     
+    console.log('搜索标签:', keyword);
     suggestionsEl.innerHTML = '';
     
     try {
@@ -287,8 +291,10 @@ async function searchTags(keyword) {
             const activitiesRes = await fetch(`${API_BASE}/v1/activities`, {
                 headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
             });
+            console.log('活动 API 状态:', activitiesRes.status);
             if (activitiesRes.ok) {
                 const activities = await activitiesRes.json();
+                console.log('活动数量:', activities.length);
                 const matched = activities
                     .filter(a => a.tag_name && a.tag_name.includes(keyword))
                     .map(a => ({
@@ -297,6 +303,7 @@ async function searchTags(keyword) {
                         popularity: a.popularity || 0,
                         posts: a.participants_count || 0
                     }));
+                console.log('匹配的活动:', matched.length);
                 all.push(...matched);
             }
         } catch (e) {
@@ -308,9 +315,12 @@ async function searchTags(keyword) {
             const spacesRes = await fetch(`${API_BASE}/v1/configs/config?namespace=space&key=topic_tags_config`, {
                 headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
             });
+            console.log('空间 API 状态:', spacesRes.status);
             if (spacesRes.ok) {
                 const spacesData = await spacesRes.json();
+                console.log('空间原始数据:', spacesData);
                 const spacesConfig = JSON.parse(spacesData.value || '{}');
+                console.log('空间配置项数:', Object.keys(spacesConfig).length);
                 const matched = Object.entries(spacesConfig)
                     .filter(([name]) => name.includes(keyword))
                     .map(([name, config]) => ({
@@ -320,6 +330,7 @@ async function searchTags(keyword) {
                         posts: 0,
                         description: config.description
                     }));
+                console.log('匹配的空间:', matched.length);
                 all.push(...matched);
             }
         } catch (e) {
@@ -329,6 +340,8 @@ async function searchTags(keyword) {
         // 按热度排序，取前 10 个
         all.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
         const top10 = all.slice(0, 10);
+        
+        console.log('最终结果:', top10.length, '个');
         
         if (top10.length === 0) {
             suggestionsEl.classList.remove('show');
@@ -492,15 +505,7 @@ async function startLikeLoop(tags) {
         if (Date.now() - likeStats.lastIncrease > 60000) {
             isLiking = false;
             log('⚠️ 1 分钟无增长，已停止', 'error');
-            log('可能原因：', 'error');
-            log('1. 所有作品都已点过赞');
-            log('2. API 调用失败（检查 Token 是否过期）');
-            log('3. 请求超时');
-            log('');
-            log('解决方案：');
-            log('1. 更换标签');
-            log('2. 重新登录获取 Token');
-            log('3. 稍后再试');
+            log('请检查：Token 是否有效、标签是否有新作品', 'error');
             break;
         }
         
@@ -707,26 +712,41 @@ function setupUUIDSearch() {
     const uuidSearch = document.getElementById('uuid-search');
     if (!uuidSearch) return;
     
+    console.log('UUID 搜索初始化完成');
+    
     uuidSearch.addEventListener('input', (e) => {
         const keyword = e.target.value.trim();
         clearTimeout(uuidDebounce);
+        
+        console.log('UUID 搜索输入:', keyword);
         
         if (keyword.length < 1) {
             document.getElementById('uuid-suggestions').classList.remove('show');
             return;
         }
         
-        uuidDebounce = setTimeout(() => searchUUID(keyword), 300);
+        // 100ms 就开始搜索，更快响应
+        uuidDebounce = setTimeout(() => {
+            console.log('开始 UUID 搜索:', keyword);
+            searchUUID(keyword);
+        }, 100);
     });
 }
 
 async function searchUUID(keyword) {
     const token = getToken();
-    if (!token) return;
+    if (!token) {
+        console.log('UUID 搜索：没有 Token');
+        return;
+    }
     
     const suggestionsEl = document.getElementById('uuid-suggestions');
-    if (!suggestionsEl) return;
+    if (!suggestionsEl) {
+        console.log('UUID 搜索：suggestions 元素不存在');
+        return;
+    }
     
+    console.log('开始搜索 UUID:', keyword);
     suggestionsEl.innerHTML = '';
     
     if (keyword.length < 1) {
@@ -739,11 +759,15 @@ async function searchUUID(keyword) {
         
         // 搜索角色（20 个）
         try {
-            const charRes = await fetch(`${API_BASE}/v2/travel/parent-search?keywords=${encodeURIComponent(keyword)}&page_index=0&page_size=20&parent_type=oc&sort_scheme=exact`, {
+            const charUrl = `${API_BASE}/v2/travel/parent-search?keywords=${encodeURIComponent(keyword)}&page_index=0&page_size=20&parent_type=oc&sort_scheme=exact`;
+            console.log('角色搜索 URL:', charUrl);
+            const charRes = await fetch(charUrl, {
                 headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
             });
+            console.log('角色 API 状态:', charRes.status);
             if (charRes.ok) {
                 const charData = await charRes.json();
+                console.log('角色搜索结果:', charData.list?.length || 0);
                 const chars = (charData.list || []).map(c => ({ ...c, searchType: '角色' }));
                 all.push(...chars);
             }
@@ -753,11 +777,15 @@ async function searchUUID(keyword) {
         
         // 搜索元素（20 个）
         try {
-            const elemRes = await fetch(`${API_BASE}/v2/travel/parent-search?keywords=${encodeURIComponent(keyword)}&page_index=0&page_size=20&parent_type=elementum&sort_scheme=exact`, {
+            const elemUrl = `${API_BASE}/v2/travel/parent-search?keywords=${encodeURIComponent(keyword)}&page_index=0&page_size=20&parent_type=elementum&sort_scheme=exact`;
+            console.log('元素搜索 URL:', elemUrl);
+            const elemRes = await fetch(elemUrl, {
                 headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
             });
+            console.log('元素 API 状态:', elemRes.status);
             if (elemRes.ok) {
                 const elemData = await elemRes.json();
+                console.log('元素搜索结果:', elemData.list?.length || 0);
                 const elems = (elemData.list || []).map(e => ({ ...e, searchType: '元素' }));
                 all.push(...elems);
             }
@@ -768,6 +796,8 @@ async function searchUUID(keyword) {
         // 按热度排序（如果有 popularity 字段）
         all.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
         const top20 = all.slice(0, 20);
+        
+        console.log('UUID 搜索最终结果:', top20.length, '个');
         
         if (top20.length === 0) {
             suggestionsEl.classList.remove('show');
