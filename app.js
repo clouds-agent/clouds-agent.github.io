@@ -94,6 +94,8 @@ document.getElementById('login-btn').addEventListener('click', async () => {
             followers: data.total_fans || 0,
             energy: data.ap_info?.ap || 0
         };
+        
+        console.log('用户信息:', userProfile);
         updateProfileUI();
         
         // 关闭登录窗口
@@ -154,30 +156,42 @@ async function loadUserProfile() {
 function updateProfileUI() {
     if (!userProfile) return;
     
+    console.log('更新用户界面:', userProfile);
+    
     // 更新右上角头像和用户名
     const headerAvatar = document.getElementById('header-avatar');
     const headerName = document.getElementById('header-name');
-    if (userProfile.avatar) {
+    const userProfileBtn = document.getElementById('user-profile');
+    
+    if (headerAvatar && userProfile.avatar) {
         headerAvatar.src = userProfile.avatar;
         headerAvatar.style.display = 'block';
-    } else {
-        headerAvatar.style.display = 'none';
     }
-    headerName.textContent = userProfile.name || '-';
+    if (headerName) {
+        headerName.textContent = userProfile.name || '-';
+    }
+    if (userProfileBtn) {
+        userProfileBtn.style.display = 'flex';
+    }
     
     // 更新个人主页悬浮窗
     const avatarImg = document.getElementById('profile-avatar-img');
-    if (userProfile.avatar) {
+    if (avatarImg && userProfile.avatar) {
         avatarImg.src = userProfile.avatar;
         avatarImg.style.display = 'block';
-    } else {
-        avatarImg.style.display = 'none';
     }
     
-    document.getElementById('profile-name').textContent = userProfile.name || '-';
-    document.getElementById('profile-following').textContent = userProfile.following || 0;
-    document.getElementById('profile-followers').textContent = userProfile.followers || 0;
-    document.getElementById('profile-energy').textContent = (userProfile.energy !== undefined ? userProfile.energy : '-');
+    const nameEl = document.getElementById('profile-name');
+    if (nameEl) nameEl.textContent = userProfile.name || '-';
+    
+    const followingEl = document.getElementById('profile-following');
+    if (followingEl) followingEl.textContent = userProfile.following || 0;
+    
+    const followersEl = document.getElementById('profile-followers');
+    if (followersEl) followersEl.textContent = userProfile.followers || 0;
+    
+    const energyEl = document.getElementById('profile-energy');
+    if (energyEl) energyEl.textContent = (userProfile.energy !== undefined ? userProfile.energy : '-');
 }
 
 function closeProfile() {
@@ -654,9 +668,18 @@ async function searchUUID(keyword) {
 renderTags();
 
 // 检查登录状态
-if (getToken()) {
-    document.getElementById('login-modal').classList.remove('show');
-    loadUserProfile();
+function init() {
+    const token = getToken();
+    if (token) {
+        // 已登录，加载用户信息
+        loadUserProfile().then(() => {
+            document.getElementById('login-modal').classList.remove('show');
+        });
+    } else {
+        // 未登录，显示登录窗口
+        document.getElementById('login-modal').classList.add('show');
+    }
 }
 
+init();
 console.log('Neta Tools loaded');
