@@ -537,16 +537,20 @@ async function likeStory(uuid) {
         return { success: false, error: '未登录' };
     }
     
+    console.log('点赞故事:', uuid);
+    
     try {
-        const res = await fetch(`${API_BASE}/v1/interactive/like`, {
+        const res = await fetch(`${API_BASE}/v1/story/story-like`, {
             method: 'POST',
             headers: {
                 'x-token': token,
                 'x-platform': 'nieta-app/web',
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ target_type: 'story', target_uuid: uuid })
+            body: JSON.stringify({ story_id: uuid })
         });
+        
+        console.log('点赞响应状态:', res.status);
         
         if (res.ok) {
             return { success: true };
@@ -557,12 +561,14 @@ async function likeStory(uuid) {
         try {
             const errorData = await res.json();
             errorText = errorData.message || errorData.detail || errorText;
+            console.log('点赞错误详情:', errorText);
         } catch (e) {
-            // 无法解析 JSON
+            console.log('无法解析错误响应');
         }
         
         return { success: false, error: errorText, status: res.status };
     } catch (error) {
+        console.error('点赞异常:', error);
         return { success: false, error: error.message || '网络错误' };
     }
 }
