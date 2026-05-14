@@ -784,4 +784,19 @@ input[type="password"]:focus {
     .profile-stats {
         gap: 1rem;
     }
+    
+    /* 手机端头像缩小 */
+    .profile-btn {
+        padding: 0.3rem 0.6rem;
+        gap: 0.5rem;
+    }
+    
+    .header-avatar {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .header-name {
+        font-size: 0.85rem;
+    }
 }
