@@ -541,7 +541,7 @@ async function startLikeLoop(tags) {
                 }
                 
                 let successCount = 0;
-                for (const story of stories.slice(0, 10)) {
+                for (const story of stories) {
                     if (!isLiking || isPaused) break;
                     
                     const result = await likeStory(story.storyId);
@@ -589,7 +589,7 @@ async function startLikeLoop(tags) {
     }
 }
 
-async function getStories(hashtag, page = 0, size = 20) {
+async function getStories(hashtag, page = 0, size = 10) {
     const token = getToken();
     const res = await fetch(`${API_BASE}/v1/hashtag/${encodeURIComponent(hashtag)}/stories?page_index=${page}&page_size=${size}`, {
         headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
