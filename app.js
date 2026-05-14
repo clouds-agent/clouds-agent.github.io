@@ -12,11 +12,15 @@ let tagPageMap = {}; // 每个标签的当前页码
 // ============ 工具函数 ============
 
 function getToken() {
-    return localStorage.getItem('neta_token');
+    const token = localStorage.getItem('neta_token');
+    console.log('getToken:', token ? '有 Token，长度' + token.length : '无 Token');
+    return token;
 }
 
 function saveToken(token) {
+    console.log('saveToken:', '保存 Token，长度', token.length);
     localStorage.setItem('neta_token', token);
+    console.log('验证读取:', localStorage.getItem('neta_token') ? '成功' : '失败');
 }
 
 function clearToken() {
