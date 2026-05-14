@@ -115,7 +115,7 @@ document.getElementById('logout-btn').addEventListener('click', () => {
 
 // ============ 个人主页 ============
 
-document.getElementById('user-avatar').addEventListener('click', async () => {
+document.getElementById('user-profile').addEventListener('click', async () => {
     if (!getToken()) {
         alert('请先登录');
         return;
@@ -154,6 +154,18 @@ async function loadUserProfile() {
 function updateProfileUI() {
     if (!userProfile) return;
     
+    // 更新右上角头像和用户名
+    const headerAvatar = document.getElementById('header-avatar');
+    const headerName = document.getElementById('header-name');
+    if (userProfile.avatar) {
+        headerAvatar.src = userProfile.avatar;
+        headerAvatar.style.display = 'block';
+    } else {
+        headerAvatar.style.display = 'none';
+    }
+    headerName.textContent = userProfile.name || '-';
+    
+    // 更新个人主页悬浮窗
     const avatarImg = document.getElementById('profile-avatar-img');
     if (userProfile.avatar) {
         avatarImg.src = userProfile.avatar;
