@@ -167,6 +167,16 @@ function setupLogin() {
     const logoutBtn = document.getElementById('logout-btn');
     const userProfileBtn = document.getElementById('user-profile');
     
+    // 检查是否已登录，未登录则显示登录窗口
+    if (!getToken()) {
+        setTimeout(() => {
+            const loginModal = document.getElementById('login-modal');
+            if (loginModal) {
+                loginModal.classList.add('show');
+            }
+        }, 500);
+    }
+    
     if (loginBtn) {
         loginBtn.addEventListener('click', handleLogin);
     }
@@ -175,7 +185,10 @@ function setupLogin() {
         logoutBtn.addEventListener('click', () => {
             clearToken();
             closeProfile();
-            document.getElementById('login-modal').classList.add('show');
+            const loginModal = document.getElementById('login-modal');
+            if (loginModal) {
+                loginModal.classList.add('show');
+            }
             document.getElementById('token-input').value = '';
             showStatus('login-status', '', '');
             // 隐藏右上角用户信息
@@ -189,11 +202,41 @@ function setupLogin() {
     if (userProfileBtn) {
         userProfileBtn.addEventListener('click', () => {
             if (!getToken()) {
-                alert('请先登录');
+                const loginModal = document.getElementById('login-modal');
+                if (loginModal) {
+                    loginModal.classList.add('show');
+                }
                 return;
             }
             openProfile();
         });
+    }
+    
+    // 拦截需要登录的功能
+    setupLoginInterceptor();
+}
+
+function setupLoginInterceptor() {
+    // 拦截点赞按钮
+    const startBtn = document.getElementById('start-like');
+    if (startBtn) {
+        startBtn.addEventListener('click', (e) => {
+            if (!getToken()) {
+                e.preventDefault();
+                const loginModal = document.getElementById('login-modal');
+                if (loginModal) {
+                    loginModal.classList.add('show');
+                }
+                alert('请先登录');
+            }
+        }, true);
+    }
+}
+
+function closeLoginModal() {
+    const loginModal = document.getElementById('login-modal');
+    if (loginModal) {
+        loginModal.classList.remove('show');
     }
 }
 
@@ -223,7 +266,7 @@ async function handleLogin() {
                 const errorData = await res.json();
                 errorText = errorData.message || errorData.detail || errorText;
             } catch (e) {}
-            showStatus('login-status', `Token 无效或已过期：${errorText}`, 'error');
+            showStatus('login-status', `登录失败：${errorText}`, 'error');
             return;
         }
         
