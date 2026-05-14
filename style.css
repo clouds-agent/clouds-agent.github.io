@@ -201,6 +201,28 @@ input[type="password"]:focus {
 /* 搜索框 */
 .search-box {
     position: relative;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.search-box input {
+    flex: 1;
+}
+
+.btn-add {
+    padding: 0.75rem 1.5rem;
+    background: #0071e3;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+}
+
+.btn-add:hover {
+    background: #0077ed;
 }
 
 .suggestions {

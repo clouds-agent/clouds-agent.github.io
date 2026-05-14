@@ -252,24 +252,6 @@ async function handleLogin() {
 
 // ============ 标签搜索联想 ============
 
-let searchDebounce = null;
-function setupTagSearch() {
-    const tagSearch = document.getElementById('tag-search');
-    if (!tagSearch) return;
-    
-    tagSearch.addEventListener('input', (e) => {
-        const keyword = e.target.value.trim();
-        clearTimeout(searchDebounce);
-        
-        if (keyword.length < 1) {
-            document.getElementById('tag-suggestions').classList.remove('show');
-            return;
-        }
-        
-        searchDebounce = setTimeout(() => searchTags(keyword), 300);
-    });
-}
-
 async function searchTags(keyword) {
     const token = getToken();
     if (!token) {
@@ -401,6 +383,62 @@ function addTag(tag) {
     document.getElementById('tag-suggestions').classList.remove('show');
 }
 
+// 手动添加标签（支持任意标签名）
+function addTagManual(tagName) {
+    const name = tagName.trim().replace(/^#/, ''); // 去掉 # 前缀
+    if (!name) return;
+    
+    addTag({
+        name: name,
+        type: 'custom',
+        popularity: 0,
+        posts: 0
+    });
+}
+
+function setupTagSearch() {
+    const tagSearch = document.getElementById('tag-search');
+    const addTagBtn = document.getElementById('add-tag-btn');
+    
+    if (!tagSearch) return;
+    
+    let tagDebounce = null;
+    
+    // 回车添加标签
+    tagSearch.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const keyword = tagSearch.value.trim();
+            if (keyword) {
+                addTagManual(keyword);
+            }
+        }
+    });
+    
+    // 点击添加按钮
+    if (addTagBtn) {
+        addTagBtn.addEventListener('click', () => {
+            const keyword = tagSearch.value.trim();
+            if (keyword) {
+                addTagManual(keyword);
+            }
+        });
+    }
+    
+    // 输入时搜索联想
+    tagSearch.addEventListener('input', (e) => {
+        const keyword = e.target.value.trim();
+        clearTimeout(tagDebounce);
+        
+        if (keyword.length < 1) {
+            document.getElementById('tag-suggestions').classList.remove('show');
+            return;
+        }
+        
+        tagDebounce = setTimeout(() => searchTags(keyword), 300);
+    });
+}
+
 function removeTag(name) {
     const tags = getSavedTags().filter(t => t.name !== name);
     saveTags(tags);
@@ -415,7 +453,7 @@ function renderTags() {
     container.innerHTML = tags.map(tag => `
         <div class="tag-item">
             <span>${tag.name}</span>
-            <span class="tag-info">${tag.type === 'activity' ? '🔥' : '📍'} ${tag.popularity ? tag.popularity.toLocaleString() : ''}</span>
+            <span class="tag-info">${tag.type === 'activity' ? '🔥' : tag.type === 'space' ? '📍' : '🏷️'} ${tag.popularity ? tag.popularity.toLocaleString() : ''}</span>
             <button onclick="removeTag('${tag.name}')">×</button>
         </div>
     `).join('');
