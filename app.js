@@ -7,6 +7,7 @@ let isPaused = false;
 let likeStats = { total: 0, byTag: {}, startTime: null, lastIncrease: null };
 let chartData = { labels: [], total: [], byTag: {} };
 let userProfile = null;
+let tagPageMap = {}; // 每个标签的当前页码
 
 // ============ 工具函数 ============
 
@@ -517,18 +518,30 @@ function startLiking() {
 }
 
 async function startLikeLoop(tags) {
+    // 初始化页码
+    tags.forEach(tag => {
+        if (tagPageMap[tag.name] === undefined) {
+            tagPageMap[tag.name] = 0;
+        }
+    });
+    
     while (isLiking && !isPaused) {
         for (const tag of tags) {
             if (!isLiking || isPaused) break;
             
             try {
-                const stories = await getStories(tag.name);
+                const currentPage = tagPageMap[tag.name] || 0;
+                const stories = await getStories(tag.name, currentPage, 20);
+                
                 if (stories.length === 0) {
-                    log(`#${tag.name} 没有更多作品`, 'error');
+                    // 当前页没有作品，尝试下一页
+                    tagPageMap[tag.name] = currentPage + 1;
+                    log(`#${tag.name} 第${currentPage + 1}页没有作品，尝试第${currentPage + 2}页`, 'error');
                     continue;
                 }
                 
-                for (const story of stories.slice(0, 5)) {
+                let successCount = 0;
+                for (const story of stories.slice(0, 10)) {
                     if (!isLiking || isPaused) break;
                     
                     const result = await likeStory(story.storyId);
@@ -537,12 +550,19 @@ async function startLikeLoop(tags) {
                         likeStats.byTag[tag.name]++;
                         likeStats.lastIncrease = Date.now();
                         log(`✓ ${tag.name}: ${story.title || '无题'}`, 'success');
+                        successCount++;
                     } else {
                         log(`✗ ${tag.name}: ${result.error}`, 'error');
                     }
                     
                     updateProgress();
-                    await new Promise(r => setTimeout(r, 300));
+                    await new Promise(r => setTimeout(r, 200));
+                }
+                
+                // 如果这一轮有成功点赞，继续当前页；如果都失败了，可能是都点过了，翻到下一页
+                if (successCount === 0 && stories.length >= 10) {
+                    tagPageMap[tag.name] = currentPage + 1;
+                    log(`#${tag.name} 第${currentPage + 1}页可能都已点赞，翻到第${currentPage + 2}页`);
                 }
             } catch (error) {
                 log(`#${tag.name}: ${error.message}`, 'error');
@@ -574,10 +594,13 @@ async function getStories(hashtag, page = 0, size = 20) {
     const res = await fetch(`${API_BASE}/v1/hashtag/${encodeURIComponent(hashtag)}/stories?page_index=${page}&page_size=${size}`, {
         headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
     });
-    if (!res.ok) throw new Error('获取作品失败');
+    if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP ${res.status}`);
+    }
     const data = await res.json();
     const list = data.list || [];
-    console.log('获取作品:', hashtag, '返回', list.length, '个');
+    console.log('获取作品:', hashtag, '页码', page, '返回', list.length, '个');
     // 返回 storyId 字段
     return list.map(item => ({
         storyId: item.storyId,
@@ -738,17 +761,42 @@ async function loadRanking() {
         });
         const spacesData = await spacesRes.json();
         const spacesConfig = JSON.parse(spacesData.value || '{}');
-        const spaces = Object.entries(spacesConfig).map(([name, config]) => ({
-            tag_name: name,
-            popularity: 0,
-            participants_count: 0,
-            type: 'space'
-        }));
+        
+        // 获取每个空间的帖子数量作为热度
+        const spacesWithPosts = await Promise.all(
+            Object.entries(spacesConfig).map(async ([name, config]) => {
+                try {
+                    const res = await fetch(`${API_BASE}/v1/hashtag/${encodeURIComponent(name)}/stories?page_index=0&page_size=1`, {
+                        headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        const total = data.total || 0;
+                        return {
+                            tag_name: name,
+                            popularity: total,
+                            participants_count: total,
+                            type: 'space',
+                            description: config.description
+                        };
+                    }
+                } catch (e) {
+                    console.error('获取空间热度失败:', name, e);
+                }
+                return {
+                    tag_name: name,
+                    popularity: 0,
+                    participants_count: 0,
+                    type: 'space',
+                    description: config.description
+                };
+            })
+        );
         
         // 合并排序
         const all = [
             ...activities.map(a => ({ ...a, type: 'activity' })),
-            ...spaces
+            ...spacesWithPosts
         ].sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
         
         const top20 = all.slice(0, 20);
