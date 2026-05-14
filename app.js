@@ -2,8 +2,8 @@
 const API_BASE = 'https://api.talesofai.cn';
 
 // 状态
-let isLiking = false;
-let isPaused = false;
+let isRunning = false; // 是否正在运行
+let isPaused = false; // 是否暂停
 let likeStats = { total: 0, byTag: {}, startTime: null, lastIncrease: null };
 let chartData = { labels: [], total: [], byTag: {} };
 let userProfile = null;
@@ -536,7 +536,6 @@ function startLiking() {
     const pauseBtn = document.getElementById('pause-like');
     if (startBtn) {
         startBtn.textContent = '终止';
-        startBtn.disabled = false;
     }
     if (pauseBtn) pauseBtn.disabled = false;
     
@@ -573,31 +572,25 @@ async function startLikeLoop(tags) {
         }
     });
     
-    while (isLiking && !isPaused) {
+    while (isRunning && !isPaused) {
         for (const tag of tags) {
-            if (!isLiking || isPaused) break;
+            if (!isRunning || isPaused) break;
             
             try {
                 const currentPage = tagPageMap[tag.name] || 0;
                 const stories = await getStories(tag.name, currentPage, 10);
                 
                 if (stories.length === 0) {
-                    // 当前页没有作品，说明没有更多了，直接暂停
-                    isLiking = false;
+                    // 当前页没有作品，说明没有更多了，直接停止
+                    isRunning = false;
                     log(`#${tag.name} 第${currentPage + 1}页没有作品，已停止`, 'error');
-                    const startBtn = document.getElementById('start-like');
-                    const pauseBtn = document.getElementById('pause-like');
-                    if (startBtn) startBtn.disabled = false;
-                    if (pauseBtn) {
-                        pauseBtn.disabled = true;
-                        pauseBtn.textContent = '暂停';
-                    }
+                    stopLiking();
                     return;
                 }
                 
                 let successCount = 0;
                 for (const story of stories) {
-                    if (!isLiking || isPaused) break;
+                    if (!isRunning || isPaused) break;
                     
                     const result = await likeStory(story.storyId);
                     if (result.success) {
@@ -626,9 +619,10 @@ async function startLikeLoop(tags) {
         
         // 检查是否 1 分钟无增长
         if (Date.now() - likeStats.lastIncrease > 60000) {
-            isLiking = false;
+            isRunning = false;
             log('⚠️ 1 分钟无增长，已停止', 'error');
             log('请检查：Token 是否有效、标签是否有新作品', 'error');
+            stopLiking();
             break;
         }
         
