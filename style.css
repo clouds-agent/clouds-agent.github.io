@@ -11,11 +11,14 @@ body {
     color: #1d1d1f;
 }
 
-/* 顶部签名 */
+/* 顶部 */
 .header {
     padding: 1rem 1.5rem;
     background: #fff;
     border-bottom: 1px solid #e5e5e5;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .signature {
@@ -23,6 +26,23 @@ body {
     font-size: 1.2rem;
     color: #86868b;
     font-style: italic;
+}
+
+.avatar-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #f5f5f7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: background 0.2s;
+}
+
+.avatar-btn:hover {
+    background: #e8e8ed;
 }
 
 /* 导航栏 */
@@ -134,6 +154,11 @@ input[type="password"]:focus {
     background: #e8e8ed;
 }
 
+.btn-full {
+    width: 100%;
+    margin-right: 0;
+}
+
 .btn-group {
     margin-top: 1rem;
 }
@@ -154,19 +179,6 @@ input[type="password"]:focus {
 .status.error {
     background: #ffebee;
     color: #c62828;
-}
-
-/* 链接 */
-.link {
-    display: inline-block;
-    margin-top: 0.75rem;
-    color: #0071e3;
-    text-decoration: none;
-    font-size: 0.9rem;
-}
-
-.link:hover {
-    text-decoration: underline;
 }
 
 /* 搜索框 */
@@ -407,6 +419,129 @@ input[type="password"]:focus {
     word-break: break-all;
 }
 
+/* 悬浮窗 */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.modal.show {
+    display: flex;
+}
+
+.modal-content {
+    background: #fff;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 400px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal-login {
+    max-width: 350px;
+}
+
+.modal-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e5e5e5;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #86868b;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: #1d1d1f;
+}
+
+.login-body {
+    padding: 1.5rem;
+}
+
+.login-tip {
+    font-size: 0.85rem;
+    color: #86868b;
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+/* 个人主页 */
+.profile-body {
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.profile-avatar {
+    margin-bottom: 1rem;
+}
+
+.profile-avatar img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #f5f5f7;
+}
+
+.profile-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: #1d1d1f;
+}
+
+.profile-stats {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 1.5rem;
+}
+
+.stat {
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #0071e3;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: #86868b;
+    margin-top: 0.25rem;
+}
+
+.profile-footer {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e5e5e5;
+}
+
 /* 响应式 */
 @media (max-width: 768px) {
     .header {
@@ -440,5 +575,9 @@ input[type="password"]:focus {
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
+    }
+
+    .profile-stats {
+        gap: 1rem;
     }
 }

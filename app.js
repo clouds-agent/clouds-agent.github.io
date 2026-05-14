@@ -5,8 +5,8 @@ const API_BASE = 'https://api.talesofai.cn';
 let isLiking = false;
 let isPaused = false;
 let likeStats = { total: 0, byTag: {}, startTime: null, lastIncrease: null };
-let likeTimer = null;
 let chartData = { labels: [], total: [], byTag: {} };
+let userProfile = null;
 
 // ============ 工具函数 ============
 
@@ -20,6 +20,7 @@ function saveToken(token) {
 
 function clearToken() {
     localStorage.removeItem('neta_token');
+    userProfile = null;
 }
 
 function getSavedTags() {
@@ -39,15 +40,6 @@ function showStatus(elementId, message, type) {
     }
 }
 
-function checkToken() {
-    if (!getToken()) {
-        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-        document.getElementById('token').classList.add('active');
-        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-        document.querySelector('[href="#token"]').classList.add('active');
-    }
-}
-
 // ============ 导航 ============
 
 document.querySelectorAll('.nav-link').forEach(link => {
@@ -63,26 +55,135 @@ document.querySelectorAll('.nav-link').forEach(link => {
     });
 });
 
-// ============ Token 管理 ============
+// ============ 登录/登出 ============
 
-document.getElementById('save-token').addEventListener('click', () => {
+document.getElementById('login-btn').addEventListener('click', async () => {
     const token = document.getElementById('token-input').value.trim();
-    if (token) {
+    if (!token) {
+        showStatus('login-status', '请输入 Token', 'error');
+        return;
+    }
+    
+    // 验证 Token
+    try {
+        const res = await fetch(`${API_BASE}/v1/activities`, {
+            headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
+        });
+        if (!res.ok) {
+            showStatus('login-status', 'Token 无效', 'error');
+            return;
+        }
+        
         saveToken(token);
-        showStatus('token-status', '已保存', 'success');
-        document.getElementById('token-input').value = '';
+        showStatus('login-status', '登录成功', 'success');
+        
+        // 加载用户信息
+        await loadUserProfile();
+        
+        // 关闭登录窗口
         setTimeout(() => {
-            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-            document.getElementById('like').classList.add('active');
-            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-            document.querySelector('[href="#like"]').classList.add('active');
+            document.getElementById('login-modal').classList.remove('show');
         }, 500);
+    } catch (error) {
+        showStatus('login-status', '登录失败：' + error.message, 'error');
     }
 });
 
-document.getElementById('clear-token').addEventListener('click', () => {
+document.getElementById('logout-btn').addEventListener('click', () => {
     clearToken();
-    showStatus('token-status', '已清除', 'success');
+    closeProfile();
+    document.getElementById('login-modal').classList.add('show');
+    document.getElementById('token-input').value = '';
+    showStatus('login-status', '', '');
+});
+
+// ============ 个人主页 ============
+
+document.getElementById('user-avatar').addEventListener('click', async () => {
+    if (!getToken()) {
+        alert('请先登录');
+        return;
+    }
+    
+    await loadUserProfile();
+    document.getElementById('profile-modal').classList.add('show');
+});
+
+async function loadUserProfile() {
+    const token = getToken();
+    if (!token) return;
+    
+    try {
+        // 获取用户信息（通过点赞等 API 间接获取）
+        const res = await fetch(`${API_BASE}/v1/activities`, {
+            headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
+        });
+        
+        if (res.ok) {
+            // 暂时显示基本信息
+            userProfile = {
+                name: '用户',
+                avatar: '',
+                following: 0,
+                followers: 0,
+                energy: 0
+            };
+            
+            updateProfileUI();
+        }
+    } catch (error) {
+        console.error('加载用户信息失败:', error);
+    }
+}
+
+function updateProfileUI() {
+    if (!userProfile) return;
+    
+    const avatarImg = document.getElementById('profile-avatar-img');
+    if (userProfile.avatar) {
+        avatarImg.src = userProfile.avatar;
+        avatarImg.style.display = 'block';
+    } else {
+        avatarImg.style.display = 'none';
+    }
+    
+    document.getElementById('profile-name').textContent = userProfile.name || '-';
+    document.getElementById('profile-following').textContent = userProfile.following || 0;
+    document.getElementById('profile-followers').textContent = userProfile.followers || 0;
+    document.getElementById('profile-energy').textContent = (userProfile.energy !== undefined ? userProfile.energy : '-');
+}
+
+function closeProfile() {
+    document.getElementById('profile-modal').classList.remove('show');
+}
+
+// ============ 签到 ============
+
+document.getElementById('checkin-btn').addEventListener('click', async () => {
+    const token = getToken();
+    if (!token) {
+        showStatus('checkin-status', '请先登录', 'error');
+        return;
+    }
+    
+    try {
+        const res = await fetch(`${API_BASE}/v1/checkin/manual`, {
+            method: 'POST',
+            headers: {
+                'x-token': token,
+                'x-platform': 'nieta-app/web'
+            }
+        });
+        
+        if (res.ok) {
+            showStatus('checkin-status', '✓ 签到成功', 'success');
+        } else {
+            const data = await res.json();
+            showStatus('checkin-status', '签到失败：' + (data.message || '未知错误'), 'error');
+        }
+    } catch (error) {
+        showStatus('checkin-status', '签到失败：' + error.message, 'error');
+    }
 });
 
 // ============ 标签搜索联想 ============
@@ -216,7 +317,7 @@ document.getElementById('start-like').addEventListener('click', () => {
     }
     
     if (!getToken()) {
-        alert('请先保存 Token');
+        alert('请先登录');
         return;
     }
     
@@ -292,7 +393,7 @@ async function startLikeLoop(tags) {
             log('');
             log('解决方案：');
             log('1. 更换标签');
-            log('2. 重新获取 Token');
+            log('2. 重新登录获取 Token');
             log('3. 稍后再试');
             break;
         }
@@ -400,7 +501,7 @@ function renderChart() {
 document.getElementById('load-ranking').addEventListener('click', async () => {
     const token = getToken();
     if (!token) {
-        alert('请先保存 Token');
+        alert('请先登录');
         return;
     }
     
@@ -524,6 +625,11 @@ async function searchUUID(keyword) {
 // ============ 初始化 ============
 
 renderTags();
-checkToken();
+
+// 检查登录状态
+if (getToken()) {
+    document.getElementById('login-modal').classList.remove('show');
+    loadUserProfile();
+}
 
 console.log('Neta Tools loaded');

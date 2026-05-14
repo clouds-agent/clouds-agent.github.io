@@ -9,26 +9,17 @@
 <body>
     <div class="header">
         <span class="signature">from CLOUDS</span>
+        <div id="user-avatar" class="avatar-btn" title="个人主页">
+            <span>👤</span>
+        </div>
     </div>
 
     <nav class="navbar">
         <a href="#like" class="nav-link active">点赞</a>
         <a href="#tools" class="nav-link">工具</a>
-        <a href="#token" class="nav-link">Token</a>
     </nav>
 
     <main class="container">
-        <!-- Token 页 -->
-        <section id="token" class="section">
-            <div class="card">
-                <input type="password" id="token-input" placeholder="输入 Neta Token" />
-                <button id="save-token" class="btn btn-primary">保存</button>
-                <button id="clear-token" class="btn btn-secondary">清除</button>
-                <div id="token-status" class="status"></div>
-                <a href="https://www.neta.art/open/" target="_blank" class="link">获取 Token →</a>
-            </div>
-        </section>
-
         <!-- 点赞页 -->
         <section id="like" class="section active">
             <div class="card">
@@ -63,6 +54,56 @@
             </div>
         </section>
     </main>
+
+    <!-- 个人主页悬浮窗 -->
+    <div id="profile-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>个人主页</h3>
+                <button class="modal-close" onclick="closeProfile()">×</button>
+            </div>
+            <div class="profile-body">
+                <div class="profile-avatar">
+                    <img id="profile-avatar-img" src="" alt="头像" />
+                </div>
+                <div class="profile-name" id="profile-name">-</div>
+                <div class="profile-stats">
+                    <div class="stat">
+                        <div class="stat-value" id="profile-following">-</div>
+                        <div class="stat-label">关注</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="profile-followers">-</div>
+                        <div class="stat-label">粉丝</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="profile-energy">-</div>
+                        <div class="stat-label">电量</div>
+                    </div>
+                </div>
+                <button id="checkin-btn" class="btn btn-primary btn-full">签到</button>
+                <div id="checkin-status" class="status"></div>
+                <div class="profile-footer">
+                    <button id="logout-btn" class="btn btn-secondary btn-full">退出登录</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Token 登录悬浮窗 -->
+    <div id="login-modal" class="modal show">
+        <div class="modal-content modal-login">
+            <div class="modal-header">
+                <h3>登录</h3>
+            </div>
+            <div class="login-body">
+                <p class="login-tip">打开网页版捏 ta - 个人主页左上角 - 隐私设置 - 获取 NETA TOKEN</p>
+                <input type="password" id="token-input" placeholder="输入 NETA TOKEN" />
+                <button id="login-btn" class="btn btn-primary btn-full">登录</button>
+                <div id="login-status" class="status"></div>
+            </div>
+        </div>
+    </div>
 
     <script src="app.js"></script>
 </body>
