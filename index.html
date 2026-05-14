@@ -3,155 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>云茗的茶馆 - Neta 工具箱</title>
+    <title>Neta Tools</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- 导航栏 -->
+    <div class="header">
+        <span class="signature">from CLOUDS</span>
+    </div>
+
     <nav class="navbar">
-        <div class="nav-brand">🍵 云茗的茶馆</div>
-        <div class="nav-links">
-            <a href="#home" class="nav-link active">首页</a>
-            <a href="#token" class="nav-link">Token</a>
-            <a href="#like" class="nav-link">点赞</a>
-            <a href="#tools" class="nav-link">工具</a>
-        </div>
+        <a href="#like" class="nav-link active">点赞</a>
+        <a href="#tools" class="nav-link">工具</a>
+        <a href="#token" class="nav-link">Token</a>
     </nav>
 
-    <!-- 首页 -->
-    <section id="home" class="section active">
-        <div class="hero">
-            <h1>欢迎来到云茗的茶馆</h1>
-            <p class="subtitle">— 听，下雨了。—</p>
-            <div class="hero-content">
-                <p>Neta 创作工具箱 · 点赞助手 · 角色管理</p>
-                <p>在这里，每一滴雨落都反射着独特的光芒</p>
-            </div>
-        </div>
-        
-        <div class="features">
-            <div class="feature-card">
-                <div class="feature-icon">👍</div>
-                <h3>批量点赞</h3>
-                <p>快速为捏捏作品点赞，支持多标签批量操作</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">🎭</div>
-                <h3>角色管理</h3>
-                <p>查询角色 UUID，管理你的捏捏角色</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">🎨</div>
-                <h3>创作工具</h3>
-                <p>GIF 制作、标签生成、图像创作</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">⏰</div>
-                <h3>定时任务</h3>
-                <p>配置自动点赞，每天准时执行</p>
-            </div>
-        </div>
-    </section>
-
-    <!-- Token 管理 -->
-    <section id="token" class="section">
-        <h2>🔑 Token 管理</h2>
-        <div class="card">
-            <p class="help-text">输入你的 Neta Token 以使用各项功能</p>
-            <div class="form-group">
-                <label for="token-input">Neta Token</label>
-                <input type="password" id="token-input" placeholder="eyJhbGci..." />
-                <button id="save-token" class="btn btn-primary">保存 Token</button>
+    <main class="container">
+        <!-- Token 页 -->
+        <section id="token" class="section">
+            <div class="card">
+                <input type="password" id="token-input" placeholder="输入 Neta Token" />
+                <button id="save-token" class="btn btn-primary">保存</button>
                 <button id="clear-token" class="btn btn-secondary">清除</button>
+                <div id="token-status" class="status"></div>
+                <a href="https://www.neta.art/open/" target="_blank" class="link">获取 Token →</a>
             </div>
-            <div id="token-status" class="status"></div>
-        </div>
-        
-        <div class="card">
-            <h3>📖 如何获取 Token</h3>
-            <ol>
-                <li>打开 <a href="https://www.talesofai.cn" target="_blank">捏捏官网</a></li>
-                <li>登录你的账号</li>
-                <li>按 F12 打开开发者工具</li>
-                <li>切换到 Network（网络）标签</li>
-                <li>刷新页面，找到任意 API 请求</li>
-                <li>复制请求头中的 <code>x-token</code> 值</li>
-            </ol>
-        </div>
-    </section>
+        </section>
 
-    <!-- 点赞工具 -->
-    <section id="like" class="section">
-        <h2>👍 点赞工具</h2>
-        
-        <div class="card">
-            <h3>快速点赞</h3>
-            <div class="form-group">
-                <label for="like-hashtag">标签名称</label>
-                <input type="text" id="like-hashtag" placeholder="如：捏捏、OC" />
-                <label for="like-count">点赞数量</label>
-                <input type="number" id="like-count" value="100" min="1" max="1000" />
-                <button id="start-like" class="btn btn-primary">开始点赞</button>
-                <button id="stop-like" class="btn btn-danger">停止</button>
+        <!-- 点赞页 -->
+        <section id="like" class="section active">
+            <div class="card">
+                <div class="search-box">
+                    <input type="text" id="tag-search" placeholder="搜索标签（输入关键词自动联想）" autocomplete="off" />
+                    <div id="tag-suggestions" class="suggestions"></div>
+                </div>
+                <div id="selected-tags" class="tag-list"></div>
+                <div class="btn-group">
+                    <button id="start-like" class="btn btn-primary">开始</button>
+                    <button id="pause-like" class="btn btn-secondary" disabled>暂停</button>
+                </div>
+                <div id="like-progress" class="progress"></div>
+                <div id="like-chart" class="chart"></div>
+                <div id="like-log" class="log"></div>
             </div>
-            <div id="like-progress" class="progress"></div>
-            <div id="like-log" class="log"></div>
-        </div>
-
-        <div class="card">
-            <h3>常用标签</h3>
-            <div class="tag-group">
-                <button class="tag-btn" data-hashtag="捏捏">捏捏</button>
-                <button class="tag-btn" data-hashtag="捏捏新手村">捏捏新手村</button>
-                <button class="tag-btn" data-hashtag="OC">OC</button>
-                <button class="tag-btn" data-hashtag="千面计划">千面计划</button>
-                <button class="tag-btn" data-hashtag="捏捏开荒团">捏捏开荒团</button>
-                <button class="tag-btn" data-hashtag="捏捏茶馆">捏捏茶馆</button>
+            <div class="card">
+                <button id="load-ranking" class="btn btn-secondary">加载热度排行 TOP20</button>
+                <div id="ranking-list" class="ranking-list"></div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <!-- 工具箱 -->
-    <section id="tools" class="section">
-        <h2>🛠️ 工具箱</h2>
-        
-        <div class="card">
-            <h3>🎭 角色 UUID 查询</h3>
-            <div class="form-group">
-                <label for="char-name">角色名称</label>
-                <input type="text" id="char-name" placeholder="如：叶茗" />
-                <button id="search-char" class="btn btn-primary">查询</button>
+        <!-- 工具页 -->
+        <section id="tools" class="section">
+            <div class="card">
+                <h3>UUID 查询</h3>
+                <div class="search-box">
+                    <input type="text" id="uuid-search" placeholder="搜索角色或元素（输入关键词自动联想）" autocomplete="off" />
+                    <div id="uuid-suggestions" class="suggestions"></div>
+                </div>
+                <div id="uuid-result" class="result"></div>
             </div>
-            <div id="char-result" class="result"></div>
-        </div>
-
-        <div class="card">
-            <h3>🏷️ 标签生成器</h3>
-            <div class="form-group">
-                <label for="tag-role">角色</label>
-                <input type="text" id="tag-role" placeholder="@角色名" />
-                <label for="tag-quality">质量词</label>
-                <input type="text" id="tag-quality" value="masterpiece, best quality, 8k" />
-                <label for="tag-style">画风</label>
-                <input type="text" id="tag-style" placeholder="(huke:1.2), (redjuice:0.9)" />
-                <label for="tag-content">画面内容</label>
-                <textarea id="tag-content" placeholder="描述画面内容..."></textarea>
-                <button id="generate-tag" class="btn btn-primary">生成提示词</button>
-            </div>
-            <div id="tag-result" class="result"></div>
-        </div>
-
-        <div class="card">
-            <h3>📊 活动热度排行</h3>
-            <button id="load-activities" class="btn btn-primary">加载排行榜</button>
-            <div id="activities-list" class="list"></div>
-        </div>
-    </section>
-
-    <footer>
-        <p>🍵 云茗的茶馆 | 由 OpenClaw 驱动</p>
-        <p>有任何问题请勿找雨落</p>
-    </footer>
+        </section>
+    </main>
 
     <script src="app.js"></script>
 </body>
