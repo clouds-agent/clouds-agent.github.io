@@ -167,14 +167,21 @@ function setupLogin() {
     const logoutBtn = document.getElementById('logout-btn');
     const userProfileBtn = document.getElementById('user-profile');
     
-    // 检查是否已登录，未登录则显示登录窗口
+    console.log('setupLogin 执行，getToken:', getToken());
+    
+    // 检查是否已登录，未登录则立即显示登录窗口
     if (!getToken()) {
-        setTimeout(() => {
-            const loginModal = document.getElementById('login-modal');
-            if (loginModal) {
-                loginModal.classList.add('show');
-            }
-        }, 500);
+        console.log('未登录，显示登录窗口');
+        const loginModal = document.getElementById('login-modal');
+        if (loginModal) {
+            loginModal.classList.add('show');
+            console.log('登录窗口已显示');
+        } else {
+            console.error('登录窗口元素不存在！');
+        }
+    } else {
+        console.log('已登录，不显示登录窗口');
+        updateProfileUI();
     }
     
     if (loginBtn) {
@@ -234,11 +241,16 @@ function setupLoginInterceptor() {
 }
 
 function closeLoginModal() {
+    console.log('closeLoginModal 被调用');
     const loginModal = document.getElementById('login-modal');
     if (loginModal) {
         loginModal.classList.remove('show');
+        console.log('登录窗口已关闭');
     }
 }
+
+// 暴露到全局作用域
+window.closeLoginModal = closeLoginModal;
 
 async function handleLogin() {
     const tokenInput = document.getElementById('token-input');
