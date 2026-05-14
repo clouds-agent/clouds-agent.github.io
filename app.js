@@ -200,18 +200,26 @@ async function handleLogin() {
     const token = tokenInput.value.trim();
     if (!token) {
         showStatus('login-status', '请输入 Token', 'error');
+        console.log('登录失败：Token 为空');
         return;
     }
     
-    console.log('尝试登录...');
+    console.log('尝试登录，Token 长度:', token.length);
     
     try {
         const res = await fetch(`${API_BASE}/v1/user/`, {
             headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
         });
         
+        console.log('API 响应状态:', res.status);
+        
         if (!res.ok) {
-            showStatus('login-status', 'Token 无效或已过期', 'error');
+            let errorText = `HTTP ${res.status}`;
+            try {
+                const errorData = await res.json();
+                errorText = errorData.message || errorData.detail || errorText;
+            } catch (e) {}
+            showStatus('login-status', `Token 无效或已过期：${errorText}`, 'error');
             return;
         }
         
