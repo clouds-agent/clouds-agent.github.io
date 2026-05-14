@@ -483,7 +483,7 @@ async function startLikeLoop(tags) {
                 for (const story of stories.slice(0, 5)) {
                     if (!isLiking || isPaused) break;
                     
-                    const result = await likeStory(story.uuid);
+                    const result = await likeStory(story.storyId);
                     if (result.success) {
                         likeStats.total++;
                         likeStats.byTag[tag.name]++;
@@ -528,7 +528,15 @@ async function getStories(hashtag, page = 0, size = 20) {
     });
     if (!res.ok) throw new Error('获取作品失败');
     const data = await res.json();
-    return data.list || [];
+    const list = data.list || [];
+    console.log('获取作品:', hashtag, '返回', list.length, '个');
+    // 返回 storyId 字段
+    return list.map(item => ({
+        storyId: item.storyId,
+        title: item.name,
+        likeCount: item.likeCount,
+        user_nick_name: item.user_nick_name
+    }));
 }
 
 async function likeStory(uuid) {
@@ -537,17 +545,21 @@ async function likeStory(uuid) {
         return { success: false, error: '未登录' };
     }
     
+    if (!uuid) {
+        return { success: false, error: '作品 ID 为空' };
+    }
+    
     console.log('点赞故事:', uuid);
     
     try {
         const res = await fetch(`${API_BASE}/v1/story/story-like`, {
-            method: 'POST',
+            method: 'PUT',
             headers: {
                 'x-token': token,
                 'x-platform': 'nieta-app/web',
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ story_id: uuid })
+            body: JSON.stringify({ storyId: uuid, is_cancel: false })
         });
         
         console.log('点赞响应状态:', res.status);
