@@ -1,0 +1,43 @@
+name: 自动点赞任务
+
+on:
+  schedule:
+    # 每天 12:00 UTC (20:00 中国时区) 执行
+    - cron: '0 12 * * *'
+  workflow_dispatch:
+    # 允许手动触发
+
+jobs:
+  auto-like:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v3
+      
+      - name: 设置 Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: 安装依赖
+        run: |
+          cd neta-skills
+          npm install
+      
+      - name: 运行点赞脚本
+        env:
+          NETA_TOKEN: ${{ secrets.NETA_TOKEN }}
+          LIKE_HASHTAGS: ${{ secrets.LIKE_HASHTAGS }}
+          LIKE_COUNT: ${{ secrets.LIKE_COUNT || '100' }}
+        run: |
+          cd neta-skills
+          # 运行批量点赞脚本
+          bash auto_like_all_hashtags.sh 60
+      
+      - name: 上传日志
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: like-logs
+          path: /home/runner/work/clouds-agent.github.io/clouds-agent.github.io/neta-skills/logs/
