@@ -64,21 +64,37 @@ document.getElementById('login-btn').addEventListener('click', async () => {
         return;
     }
     
-    // 验证 Token
+    // 验证 Token - 先获取用户信息
     try {
-        const res = await fetch(`${API_BASE}/v1/activities`, {
+        const res = await fetch(`${API_BASE}/v1/user/`, {
             headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
         });
+        
         if (!res.ok) {
-            showStatus('login-status', 'Token 无效', 'error');
+            showStatus('login-status', 'Token 无效或已过期', 'error');
+            return;
+        }
+        
+        const data = await res.json();
+        
+        // 验证返回数据是否完整
+        if (!data.id || !data.uuid) {
+            showStatus('login-status', 'Token 验证失败：数据不完整', 'error');
             return;
         }
         
         saveToken(token);
         showStatus('login-status', '登录成功', 'success');
         
-        // 加载用户信息
-        await loadUserProfile();
+        // 设置用户信息
+        userProfile = {
+            name: data.nick_name || data.name || '用户',
+            avatar: data.avatar_url || '',
+            following: data.total_subscribes || 0,
+            followers: data.total_fans || 0,
+            energy: data.ap_info?.ap || 0
+        };
+        updateProfileUI();
         
         // 关闭登录窗口
         setTimeout(() => {
