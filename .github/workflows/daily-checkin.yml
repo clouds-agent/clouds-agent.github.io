@@ -1,0 +1,31 @@
+name: 每日签到
+
+on:
+  schedule:
+    # 每天 0:01 中国时区 (UTC 16:01)
+    - cron: '1 16 * * *'
+  workflow_dispatch:
+
+jobs:
+  checkin:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 签到
+        run: |
+          echo "开始签到..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://api.talesofai.cn/v1/checkin/manual" \
+            -H "x-token: ${{ secrets.NETA_TOKEN }}" \
+            -H "x-platform: nieta-app/web")
+          
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n-1)
+          
+          echo "HTTP 状态码：$HTTP_CODE"
+          echo "响应内容：$BODY"
+          
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✓ 签到成功"
+          else
+            echo "✗ 签到失败"
+            exit 1
+          fi

@@ -507,55 +507,167 @@ input[type="password"]:focus {
 }
 
 /* 个人主页 */
-.profile-body {
-    padding: 1.5rem;
-    text-align: center;
+.profile-modal .modal-content {
+    max-width: 400px;
 }
 
-.profile-avatar {
+.profile-body {
+    padding: 0;
+}
+
+.profile-header-section {
+    padding: 2rem 1.5rem 1rem;
+    text-align: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    border-radius: 12px 12px 0 0;
+}
+
+.profile-avatar-large {
     margin-bottom: 1rem;
 }
 
-.profile-avatar img {
-    width: 80px;
-    height: 80px;
+.profile-avatar-large img {
+    width: 100px;
+    height: 100px;
     border-radius: 50%;
     object-fit: cover;
-    border: 3px solid #f5f5f7;
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-.profile-name {
-    font-size: 1.1rem;
+.profile-name-large {
+    font-size: 1.5rem;
     font-weight: 600;
-    margin-bottom: 1.5rem;
-    color: #1d1d1f;
+    color: #fff;
 }
 
-.profile-stats {
+.profile-stats-large {
     display: flex;
     justify-content: space-around;
-    margin-bottom: 1.5rem;
+    align-items: center;
+    padding: 1.5rem;
+    background: #fff;
+    border-bottom: 1px solid #f5f5f7;
 }
 
-.stat {
+.stat-large {
     text-align: center;
+    flex: 1;
 }
 
-.stat-value {
-    font-size: 1.2rem;
-    font-weight: 600;
+.stat-value-large {
+    font-size: 1.5rem;
+    font-weight: 700;
     color: #0071e3;
 }
 
-.stat-label {
+.stat-label-large {
     font-size: 0.85rem;
     color: #86868b;
     margin-top: 0.25rem;
 }
 
+.stat-divider {
+    width: 1px;
+    height: 40px;
+    background: #e5e5e5;
+}
+
+.profile-actions {
+    padding: 1.5rem;
+    background: #fff;
+}
+
+.btn-lg {
+    padding: 1rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+
+.profile-settings {
+    padding: 0 1.5rem 1.5rem;
+    background: #fff;
+}
+
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    border-bottom: 1px solid #f5f5f7;
+}
+
+.setting-item:last-child {
+    border-bottom: none;
+}
+
+.setting-info {
+    flex: 1;
+}
+
+.setting-title {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #1d1d1f;
+    margin-bottom: 0.25rem;
+}
+
+.setting-desc {
+    font-size: 0.85rem;
+    color: #86868b;
+}
+
+/* 开关按钮 */
+.toggle {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 28px;
+}
+
+.toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #d2d2d7;
+    transition: 0.3s;
+    border-radius: 28px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 22px;
+    width: 22px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle input:checked + .toggle-slider {
+    background-color: #0071e3;
+}
+
+.toggle input:checked + .toggle-slider:before {
+    transform: translateX(22px);
+}
+
 .profile-footer {
-    margin-top: 1.5rem;
-    padding-top: 1.5rem;
+    padding: 1.5rem;
+    background: #fff;
     border-top: 1px solid #e5e5e5;
 }
 

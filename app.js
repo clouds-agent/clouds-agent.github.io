@@ -744,6 +744,8 @@ async function searchUUID(keyword) {
 
 function setupCheckin() {
     const checkinBtn = document.getElementById('checkin-btn');
+    const autoCheckinToggle = document.getElementById('auto-checkin-toggle');
+    
     if (checkinBtn) {
         checkinBtn.addEventListener('click', async () => {
             const token = getToken();
@@ -751,6 +753,9 @@ function setupCheckin() {
                 showStatus('checkin-status', '请先登录', 'error');
                 return;
             }
+            
+            checkinBtn.disabled = true;
+            checkinBtn.textContent = '签到中...';
             
             try {
                 const res = await fetch(`${API_BASE}/v1/checkin/manual`, {
@@ -769,8 +774,107 @@ function setupCheckin() {
                 }
             } catch (error) {
                 showStatus('checkin-status', '签到失败：' + error.message, 'error');
+            } finally {
+                checkinBtn.disabled = false;
+                checkinBtn.textContent = '签到';
             }
         });
+    }
+    
+    // 定时签到开关
+    if (autoCheckinToggle) {
+        // 加载保存的状态
+        const saved = localStorage.getItem('auto_checkin');
+        if (saved === 'true') {
+            autoCheckinToggle.checked = true;
+        }
+        
+        autoCheckinToggle.addEventListener('change', async () => {
+            const enabled = autoCheckinToggle.checked;
+            localStorage.setItem('auto_checkin', enabled);
+            
+            if (enabled) {
+                // 开启定时签到 - 需要配置 GitHub Actions
+                const token = getToken();
+                if (!token) {
+                    alert('请先登录');
+                    autoCheckinToggle.checked = false;
+                    return;
+                }
+                
+                // 提示用户去配置
+                const confirmed = confirm(
+                    '开启定时签到需要配置 GitHub Actions。\n\n' +
+                    '是否跳转到配置页面？'
+                );
+                
+                if (confirmed) {
+                    // 创建/更新 workflow 文件
+                    await setupGitHubActions(token);
+                } else {
+                    autoCheckinToggle.checked = false;
+                    localStorage.setItem('auto_checkin', 'false');
+                }
+            } else {
+                // 关闭定时签到
+                showStatus('checkin-status', '已关闭定时签到', 'success');
+            }
+        });
+    }
+}
+
+async function setupGitHubActions(token) {
+    const repo = 'clouds-agent/clouds-agent.github.io';
+    
+    // 检查 workflow 是否存在
+    try {
+        // 这里需要调用 GitHub API 来创建/更新 workflow
+        // 由于需要额外的 GitHub Token，我们改为指导用户手动配置
+        
+        const workflowContent = `name: 每日签到
+
+on:
+  schedule:
+    # 每天 0:01 中国时区 (UTC 16:01)
+    - cron: '1 16 * * *'
+  workflow_dispatch:
+
+jobs:
+  checkin:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 签到
+        run: |
+          curl -X POST "https://api.talesofai.cn/v1/checkin/manual" \\
+            -H "x-token: \${{ secrets.NETA_TOKEN }}" \\
+            -H "x-platform: nieta-app/web"
+`;
+        
+        // 显示配置说明
+        alert(
+            '请按以下步骤配置定时签到：\n\n' +
+            '1. 打开仓库：https://github.com/' + repo + '/settings/secrets/actions\n' +
+            '2. 点击 "New repository secret"\n' +
+            '3. 添加 Secret：\n' +
+            '   Name: NETA_TOKEN\n' +
+            '   Value: 你的 Token（已自动复制）\n\n' +
+            '4. 打开：https://github.com/' + repo + '/actions/new-workflow\n' +
+            '5. 选择 "set up a workflow yourself"\n' +
+            '6. 粘贴以下内容：\n\n' + workflowContent +
+            '\n7. 点击 "Commit changes"\n\n' +
+            '配置完成后，每天 0:01 会自动签到！'
+        );
+        
+        // 复制 Token 到剪贴板
+        try {
+            await navigator.clipboard.writeText(token);
+        } catch (e) {
+            console.log('无法自动复制 Token，请手动复制');
+        }
+        
+    } catch (error) {
+        console.error('配置失败:', error);
+        alert('配置失败：' + error.message);
     }
 }
 

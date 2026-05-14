@@ -58,32 +58,50 @@
 
     <!-- 个人主页悬浮窗 -->
     <div id="profile-modal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content profile-modal">
             <div class="modal-header">
                 <h3>个人主页</h3>
                 <button class="modal-close" onclick="closeProfile()">×</button>
             </div>
             <div class="profile-body">
-                <div class="profile-avatar">
-                    <img id="profile-avatar-img" src="" alt="头像" />
+                <div class="profile-header-section">
+                    <div class="profile-avatar-large">
+                        <img id="profile-avatar-img" src="" alt="头像" />
+                    </div>
+                    <div class="profile-name-large" id="profile-name">-</div>
                 </div>
-                <div class="profile-name" id="profile-name">-</div>
-                <div class="profile-stats">
-                    <div class="stat">
-                        <div class="stat-value" id="profile-following">-</div>
-                        <div class="stat-label">关注</div>
+                <div class="profile-stats-large">
+                    <div class="stat-large">
+                        <div class="stat-value-large" id="profile-following">-</div>
+                        <div class="stat-label-large">关注</div>
                     </div>
-                    <div class="stat">
-                        <div class="stat-value" id="profile-followers">-</div>
-                        <div class="stat-label">粉丝</div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-large">
+                        <div class="stat-value-large" id="profile-followers">-</div>
+                        <div class="stat-label-large">粉丝</div>
                     </div>
-                    <div class="stat">
-                        <div class="stat-value" id="profile-energy">-</div>
-                        <div class="stat-label">电量</div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-large">
+                        <div class="stat-value-large" id="profile-energy">-</div>
+                        <div class="stat-label-large">电量</div>
                     </div>
                 </div>
-                <button id="checkin-btn" class="btn btn-primary btn-full">签到</button>
-                <div id="checkin-status" class="status"></div>
+                <div class="profile-actions">
+                    <button id="checkin-btn" class="btn btn-primary btn-full btn-lg">签到</button>
+                    <div id="checkin-status" class="status"></div>
+                </div>
+                <div class="profile-settings">
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <div class="setting-title">定时签到</div>
+                            <div class="setting-desc">每天 0:01 自动签到</div>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" id="auto-checkin-toggle" />
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
                 <div class="profile-footer">
                     <button id="logout-btn" class="btn btn-secondary btn-full">退出登录</button>
                 </div>
