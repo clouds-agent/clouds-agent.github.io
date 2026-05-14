@@ -310,7 +310,7 @@ async function searchTags(keyword) {
             console.error('活动搜索失败:', e);
         }
         
-        // 搜索空间标签
+        // 搜索空间标签（宽松匹配：只要包含搜索词中的任意字）
         try {
             const spacesRes = await fetch(`${API_BASE}/v1/configs/config?namespace=space&key=topic_tags_config`, {
                 headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
@@ -318,11 +318,21 @@ async function searchTags(keyword) {
             console.log('空间 API 状态:', spacesRes.status);
             if (spacesRes.ok) {
                 const spacesData = await spacesRes.json();
-                console.log('空间原始数据:', spacesData);
                 const spacesConfig = JSON.parse(spacesData.value || '{}');
                 console.log('空间配置项数:', Object.keys(spacesConfig).length);
+                
+                // 宽松匹配：标签名包含搜索词，或搜索词的每个字都出现在标签名中
                 const matched = Object.entries(spacesConfig)
-                    .filter(([name]) => name.includes(keyword))
+                    .filter(([name]) => {
+                        // 精确包含
+                        if (name.includes(keyword)) return true;
+                        // 宽松匹配：搜索词的每个字都出现在标签名中（如"捏捏"匹配"捏 Ta 学院"）
+                        if (keyword.length >= 2) {
+                            const allCharsMatch = keyword.split('').every(char => name.includes(char));
+                            if (allCharsMatch) return true;
+                        }
+                        return false;
+                    })
                     .map(([name, config]) => ({
                         name: name,
                         type: 'space',
