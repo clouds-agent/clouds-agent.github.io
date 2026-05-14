@@ -114,19 +114,18 @@ async function loadUserProfile() {
     if (!token) return;
     
     try {
-        // 获取用户信息（通过点赞等 API 间接获取）
-        const res = await fetch(`${API_BASE}/v1/activities`, {
+        const res = await fetch(`${API_BASE}/v1/user/`, {
             headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
         });
         
         if (res.ok) {
-            // 暂时显示基本信息
+            const data = await res.json();
             userProfile = {
-                name: '用户',
-                avatar: '',
-                following: 0,
-                followers: 0,
-                energy: 0
+                name: data.nick_name || data.name || '用户',
+                avatar: data.avatar_url || '',
+                following: data.total_subscribes || 0,
+                followers: data.total_fans || 0,
+                energy: data.ap_info?.ap || 0
             };
             
             updateProfileUI();
