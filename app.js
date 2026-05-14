@@ -914,6 +914,60 @@ async function searchUUID(keyword) {
     }
 }
 
+// ============ 热门标签 ============
+
+async function loadHotTags() {
+    const token = getToken();
+    if (!token) return;
+    
+    const container = document.getElementById('hot-tags');
+    if (!container) return;
+    
+    try {
+        // 从活动列表获取热门标签
+        const activitiesRes = await fetch(`${API_BASE}/v1/activities`, {
+            headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
+        });
+        
+        if (!activitiesRes.ok) return;
+        
+        const activities = await activitiesRes.json();
+        
+        // 按热度排序，取前 15 个
+        const hotTags = activities
+            .filter(a => a.popularity && a.popularity > 10000)
+            .sort((a, b) => b.popularity - a.popularity)
+            .slice(0, 15);
+        
+        // 添加常用用户标签
+        const commonTags = [
+            { name: '捏捏', popularity: 999999 },
+            { name: '捏捏茶馆', popularity: 888888 },
+            { name: 'OC', popularity: 777777 },
+            { name: '原创', popularity: 666666 }
+        ];
+        
+        const allTags = [...commonTags, ...hotTags.map(a => ({ name: a.tag_name, popularity: a.popularity }))];
+        
+        container.innerHTML = allTags.map(tag => `
+            <div class="hot-tag-item" data-name="${tag.name}">
+                <span class="fire">🔥</span>
+                <span>${tag.name}</span>
+            </div>
+        `).join('');
+        
+        // 绑定点击事件
+        container.querySelectorAll('.hot-tag-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const name = item.getAttribute('data-name');
+                addTagManual(name);
+            });
+        });
+    } catch (error) {
+        console.error('加载热门标签失败:', error);
+    }
+}
+
 // ============ 签到 ============
 
 function setupCheckin() {
@@ -1066,6 +1120,7 @@ function init() {
     setupRanking();
     setupUUIDSearch();
     setupCheckin();
+    loadHotTags();
     
     // 渲染已保存的标签
     renderTags();

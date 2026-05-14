@@ -389,6 +389,34 @@ input[type="password"]:focus {
 }
 
 /* 排行列表 */
+.hot-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.hot-tag-item {
+    background: #f5f5f7;
+    padding: 0.5rem 1rem;
+    border-radius: 16px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.hot-tag-item:hover {
+    background: #e8e8ed;
+    transform: scale(1.05);
+}
+
+.hot-tag-item .fire {
+    font-size: 1rem;
+}
+
 .ranking-list {
     margin-top: 1rem;
 }
