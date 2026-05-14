@@ -203,10 +203,12 @@ input[type="password"]:focus {
     position: relative;
     display: flex;
     gap: 0.5rem;
+    flex-wrap: wrap;
 }
 
 .search-box input {
-    flex: 1;
+    flex: 1 1 100%;
+    min-width: 200px;
 }
 
 .btn-add {
@@ -219,6 +221,7 @@ input[type="password"]:focus {
     cursor: pointer;
     transition: background 0.2s;
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .btn-add:hover {

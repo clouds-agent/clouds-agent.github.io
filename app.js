@@ -470,19 +470,35 @@ function renderTags() {
 
 // ============ 点赞功能 ============
 
+let isRunning = false; // 是否正在运行
+
 function setupLikeButtons() {
     const startBtn = document.getElementById('start-like');
     const pauseBtn = document.getElementById('pause-like');
     
     if (startBtn) {
-        startBtn.addEventListener('click', startLiking);
+        startBtn.addEventListener('click', () => {
+            if (isRunning) {
+                // 正在运行，点击是"终止"
+                stopLiking();
+            } else {
+                // 未运行，点击是"开始"
+                startLiking();
+            }
+        });
     }
     
     if (pauseBtn) {
         pauseBtn.addEventListener('click', () => {
+            if (!isRunning) return;
+            
             isPaused = !isPaused;
             pauseBtn.textContent = isPaused ? '继续' : '暂停';
-            log(isPaused ? '已暂停' : '继续点赞');
+            if (isPaused) {
+                log('已暂停', 'error');
+            } else {
+                log('继续点赞', 'success');
+            }
         });
     }
 }
@@ -499,7 +515,7 @@ function startLiking() {
         return;
     }
     
-    isLiking = true;
+    isRunning = true;
     isPaused = false;
     likeStats = {
         total: 0,
@@ -507,22 +523,46 @@ function startLiking() {
         startTime: Date.now(),
         lastIncrease: Date.now()
     };
+    tagPageMap = {};
     tags.forEach(tag => {
         likeStats.byTag[tag.name] = 0;
-        chartData.byTag[tag.name] = [];
     });
     chartData = { labels: [], total: [], byTag: {} };
+    tags.forEach(tag => {
+        chartData.byTag[tag.name] = [];
+    });
     
     const startBtn = document.getElementById('start-like');
     const pauseBtn = document.getElementById('pause-like');
-    if (startBtn) startBtn.disabled = true;
+    if (startBtn) {
+        startBtn.textContent = '终止';
+        startBtn.disabled = false;
+    }
     if (pauseBtn) pauseBtn.disabled = false;
     
     const logEl = document.getElementById('like-log');
     if (logEl) logEl.innerHTML = '';
     
-    log('开始点赞');
+    log('开始点赞', 'success');
     startLikeLoop(tags);
+}
+
+function stopLiking() {
+    isRunning = false;
+    isPaused = false;
+    
+    const startBtn = document.getElementById('start-like');
+    const pauseBtn = document.getElementById('pause-like');
+    if (startBtn) {
+        startBtn.textContent = '开始';
+        startBtn.disabled = false;
+    }
+    if (pauseBtn) {
+        pauseBtn.disabled = true;
+        pauseBtn.textContent = '暂停';
+    }
+    
+    log('已终止', 'error');
 }
 
 async function startLikeLoop(tags) {
@@ -539,13 +579,20 @@ async function startLikeLoop(tags) {
             
             try {
                 const currentPage = tagPageMap[tag.name] || 0;
-                const stories = await getStories(tag.name, currentPage, 20);
+                const stories = await getStories(tag.name, currentPage, 10);
                 
                 if (stories.length === 0) {
-                    // 当前页没有作品，尝试下一页
-                    tagPageMap[tag.name] = currentPage + 1;
-                    log(`#${tag.name} 第${currentPage + 1}页没有作品，尝试第${currentPage + 2}页`, 'error');
-                    continue;
+                    // 当前页没有作品，说明没有更多了，直接暂停
+                    isLiking = false;
+                    log(`#${tag.name} 第${currentPage + 1}页没有作品，已停止`, 'error');
+                    const startBtn = document.getElementById('start-like');
+                    const pauseBtn = document.getElementById('pause-like');
+                    if (startBtn) startBtn.disabled = false;
+                    if (pauseBtn) {
+                        pauseBtn.disabled = true;
+                        pauseBtn.textContent = '暂停';
+                    }
+                    return;
                 }
                 
                 let successCount = 0;
@@ -588,9 +635,13 @@ async function startLikeLoop(tags) {
         await new Promise(r => setTimeout(r, 1000));
     }
     
+    isRunning = false;
     const startBtn = document.getElementById('start-like');
     const pauseBtn = document.getElementById('pause-like');
-    if (startBtn) startBtn.disabled = false;
+    if (startBtn) {
+        startBtn.textContent = '开始';
+        startBtn.disabled = false;
+    }
     if (pauseBtn) {
         pauseBtn.disabled = true;
         pauseBtn.textContent = '暂停';
