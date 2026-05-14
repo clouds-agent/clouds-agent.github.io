@@ -40,121 +40,27 @@ function showStatus(elementId, message, type) {
     }
 }
 
-// ============ 导航 ============
-
-document.querySelectorAll('.nav-link').forEach(link => {
-    link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const target = e.target.getAttribute('href').substring(1);
-        
-        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-        e.target.classList.add('active');
-        
-        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-        document.getElementById(target).classList.add('active');
-    });
-});
-
-// ============ 登录/登出 ============
-
-document.getElementById('login-btn').addEventListener('click', async () => {
-    const token = document.getElementById('token-input').value.trim();
-    if (!token) {
-        showStatus('login-status', '请输入 Token', 'error');
-        return;
-    }
-    
-    // 验证 Token - 先获取用户信息
-    try {
-        const res = await fetch(`${API_BASE}/v1/user/`, {
-            headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
-        });
-        
-        if (!res.ok) {
-            showStatus('login-status', 'Token 无效或已过期', 'error');
-            return;
-        }
-        
-        const data = await res.json();
-        
-        // 验证返回数据是否完整
-        if (!data.id || !data.uuid) {
-            showStatus('login-status', 'Token 验证失败：数据不完整', 'error');
-            return;
-        }
-        
-        saveToken(token);
-        showStatus('login-status', '登录成功', 'success');
-        
-        // 设置用户信息
-        userProfile = {
-            name: data.nick_name || data.name || '用户',
-            avatar: data.avatar_url || '',
-            following: data.total_subscribes || 0,
-            followers: data.total_fans || 0,
-            energy: data.ap_info?.ap || 0
-        };
-        
-        console.log('用户信息:', userProfile);
-        updateProfileUI();
-        
-        // 关闭登录窗口
-        setTimeout(() => {
-            document.getElementById('login-modal').classList.remove('show');
-        }, 500);
-    } catch (error) {
-        showStatus('login-status', '登录失败：' + error.message, 'error');
-    }
-});
-
-document.getElementById('logout-btn').addEventListener('click', () => {
-    clearToken();
-    closeProfile();
-    document.getElementById('login-modal').classList.add('show');
-    document.getElementById('token-input').value = '';
-    showStatus('login-status', '', '');
-});
-
 // ============ 个人主页 ============
 
-document.getElementById('user-profile').addEventListener('click', async () => {
-    if (!getToken()) {
-        alert('请先登录');
-        return;
+function openProfile() {
+    const modal = document.getElementById('profile-modal');
+    if (modal) {
+        modal.classList.add('show');
     }
-    
-    await loadUserProfile();
-    document.getElementById('profile-modal').classList.add('show');
-});
+}
 
-async function loadUserProfile() {
-    const token = getToken();
-    if (!token) return;
-    
-    try {
-        const res = await fetch(`${API_BASE}/v1/user/`, {
-            headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
-        });
-        
-        if (res.ok) {
-            const data = await res.json();
-            userProfile = {
-                name: data.nick_name || data.name || '用户',
-                avatar: data.avatar_url || '',
-                following: data.total_subscribes || 0,
-                followers: data.total_fans || 0,
-                energy: data.ap_info?.ap || 0
-            };
-            
-            updateProfileUI();
-        }
-    } catch (error) {
-        console.error('加载用户信息失败:', error);
+function closeProfile() {
+    const modal = document.getElementById('profile-modal');
+    if (modal) {
+        modal.classList.remove('show');
     }
 }
 
 function updateProfileUI() {
-    if (!userProfile) return;
+    if (!userProfile) {
+        console.log('没有用户信息，不更新 UI');
+        return;
+    }
     
     console.log('更新用户界面:', userProfile);
     
@@ -163,15 +69,17 @@ function updateProfileUI() {
     const headerName = document.getElementById('header-name');
     const userProfileBtn = document.getElementById('user-profile');
     
+    if (userProfileBtn) {
+        userProfileBtn.style.display = 'flex';
+    }
+    
     if (headerAvatar && userProfile.avatar) {
         headerAvatar.src = userProfile.avatar;
         headerAvatar.style.display = 'block';
     }
+    
     if (headerName) {
         headerName.textContent = userProfile.name || '-';
-    }
-    if (userProfileBtn) {
-        userProfileBtn.style.display = 'flex';
     }
     
     // 更新个人主页悬浮窗
@@ -194,59 +102,181 @@ function updateProfileUI() {
     if (energyEl) energyEl.textContent = (userProfile.energy !== undefined ? userProfile.energy : '-');
 }
 
-function closeProfile() {
-    document.getElementById('profile-modal').classList.remove('show');
-}
-
-// ============ 签到 ============
-
-document.getElementById('checkin-btn').addEventListener('click', async () => {
+async function loadUserProfile() {
     const token = getToken();
     if (!token) {
-        showStatus('checkin-status', '请先登录', 'error');
-        return;
+        console.log('没有 Token，无法加载用户信息');
+        return null;
     }
     
     try {
-        const res = await fetch(`${API_BASE}/v1/checkin/manual`, {
-            method: 'POST',
-            headers: {
-                'x-token': token,
-                'x-platform': 'nieta-app/web'
-            }
+        const res = await fetch(`${API_BASE}/v1/user/`, {
+            headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
         });
         
-        if (res.ok) {
-            showStatus('checkin-status', '✓ 签到成功', 'success');
-        } else {
-            const data = await res.json();
-            showStatus('checkin-status', '签到失败：' + (data.message || '未知错误'), 'error');
+        if (!res.ok) {
+            console.error('获取用户信息失败:', res.status);
+            return null;
         }
+        
+        const data = await res.json();
+        console.log('用户信息:', data);
+        
+        userProfile = {
+            name: data.nick_name || data.name || '用户',
+            avatar: data.avatar_url || '',
+            following: data.total_subscribes || 0,
+            followers: data.total_fans || 0,
+            energy: data.ap_info?.ap || 0
+        };
+        
+        updateProfileUI();
+        return userProfile;
     } catch (error) {
-        showStatus('checkin-status', '签到失败：' + error.message, 'error');
+        console.error('加载用户信息失败:', error);
+        return null;
     }
-});
+}
+
+// ============ 导航 ============
+
+function setupNavigation() {
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const target = e.target.getAttribute('href').substring(1);
+            
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            e.target.classList.add('active');
+            
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById(target).classList.add('active');
+        });
+    });
+}
+
+// ============ 登录/登出 ============
+
+function setupLogin() {
+    const loginBtn = document.getElementById('login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const userProfileBtn = document.getElementById('user-profile');
+    
+    if (loginBtn) {
+        loginBtn.addEventListener('click', handleLogin);
+    }
+    
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            clearToken();
+            closeProfile();
+            document.getElementById('login-modal').classList.add('show');
+            document.getElementById('token-input').value = '';
+            showStatus('login-status', '', '');
+            // 隐藏右上角用户信息
+            const userProfileBtn = document.getElementById('user-profile');
+            if (userProfileBtn) {
+                userProfileBtn.style.display = 'none';
+            }
+        });
+    }
+    
+    if (userProfileBtn) {
+        userProfileBtn.addEventListener('click', () => {
+            if (!getToken()) {
+                alert('请先登录');
+                return;
+            }
+            openProfile();
+        });
+    }
+}
+
+async function handleLogin() {
+    const tokenInput = document.getElementById('token-input');
+    if (!tokenInput) return;
+    
+    const token = tokenInput.value.trim();
+    if (!token) {
+        showStatus('login-status', '请输入 Token', 'error');
+        return;
+    }
+    
+    console.log('尝试登录...');
+    
+    try {
+        const res = await fetch(`${API_BASE}/v1/user/`, {
+            headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
+        });
+        
+        if (!res.ok) {
+            showStatus('login-status', 'Token 无效或已过期', 'error');
+            return;
+        }
+        
+        const data = await res.json();
+        console.log('登录成功，用户数据:', data);
+        
+        if (!data.id || !data.uuid) {
+            showStatus('login-status', 'Token 验证失败：数据不完整', 'error');
+            return;
+        }
+        
+        saveToken(token);
+        showStatus('login-status', '登录成功', 'success');
+        
+        // 设置用户信息
+        userProfile = {
+            name: data.nick_name || data.name || '用户',
+            avatar: data.avatar_url || '',
+            following: data.total_subscribes || 0,
+            followers: data.total_fans || 0,
+            energy: data.ap_info?.ap || 0
+        };
+        
+        console.log('用户信息:', userProfile);
+        updateProfileUI();
+        
+        // 关闭登录窗口
+        setTimeout(() => {
+            const loginModal = document.getElementById('login-modal');
+            if (loginModal) {
+                loginModal.classList.remove('show');
+            }
+        }, 500);
+    } catch (error) {
+        console.error('登录失败:', error);
+        showStatus('login-status', '登录失败：' + error.message, 'error');
+    }
+}
 
 // ============ 标签搜索联想 ============
 
 let searchDebounce = null;
-document.getElementById('tag-search').addEventListener('input', (e) => {
-    const keyword = e.target.value.trim();
-    clearTimeout(searchDebounce);
+function setupTagSearch() {
+    const tagSearch = document.getElementById('tag-search');
+    if (!tagSearch) return;
     
-    if (keyword.length < 1) {
-        document.getElementById('tag-suggestions').classList.remove('show');
-        return;
-    }
-    
-    searchDebounce = setTimeout(() => searchTags(keyword, 'tag'), 300);
-});
+    tagSearch.addEventListener('input', (e) => {
+        const keyword = e.target.value.trim();
+        clearTimeout(searchDebounce);
+        
+        if (keyword.length < 1) {
+            document.getElementById('tag-suggestions').classList.remove('show');
+            return;
+        }
+        
+        searchDebounce = setTimeout(() => searchTags(keyword), 300);
+    });
+}
 
-async function searchTags(keyword, type) {
+async function searchTags(keyword) {
     const token = getToken();
     if (!token) return;
     
-    const suggestionsEl = document.getElementById(type === 'tag' ? 'tag-suggestions' : 'uuid-suggestions');
+    const suggestionsEl = document.getElementById('tag-suggestions');
+    if (!suggestionsEl) return;
+    
     suggestionsEl.innerHTML = '';
     
     try {
@@ -311,11 +341,13 @@ async function searchTags(keyword, type) {
 }
 
 // 点击外部关闭建议
-document.addEventListener('click', (e) => {
-    if (!e.target.closest('.search-box')) {
-        document.querySelectorAll('.suggestions').forEach(s => s.classList.remove('show'));
-    }
-});
+function setupClickOutside() {
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.search-box')) {
+            document.querySelectorAll('.suggestions').forEach(s => s.classList.remove('show'));
+        }
+    });
+}
 
 // ============ 标签管理 ============
 
@@ -339,6 +371,8 @@ function removeTag(name) {
 function renderTags() {
     const tags = getSavedTags();
     const container = document.getElementById('selected-tags');
+    if (!container) return;
+    
     container.innerHTML = tags.map(tag => `
         <div class="tag-item">
             <span>${tag.name}</span>
@@ -350,7 +384,24 @@ function renderTags() {
 
 // ============ 点赞功能 ============
 
-document.getElementById('start-like').addEventListener('click', () => {
+function setupLikeButtons() {
+    const startBtn = document.getElementById('start-like');
+    const pauseBtn = document.getElementById('pause-like');
+    
+    if (startBtn) {
+        startBtn.addEventListener('click', startLiking);
+    }
+    
+    if (pauseBtn) {
+        pauseBtn.addEventListener('click', () => {
+            isPaused = !isPaused;
+            pauseBtn.textContent = isPaused ? '继续' : '暂停';
+            log(isPaused ? '已暂停' : '继续点赞');
+        });
+    }
+}
+
+function startLiking() {
     const tags = getSavedTags();
     if (tags.length === 0) {
         alert('请先选择标签');
@@ -376,19 +427,17 @@ document.getElementById('start-like').addEventListener('click', () => {
     });
     chartData = { labels: [], total: [], byTag: {} };
     
-    document.getElementById('start-like').disabled = true;
-    document.getElementById('pause-like').disabled = false;
-    document.getElementById('like-log').innerHTML = '';
+    const startBtn = document.getElementById('start-like');
+    const pauseBtn = document.getElementById('pause-like');
+    if (startBtn) startBtn.disabled = true;
+    if (pauseBtn) pauseBtn.disabled = false;
+    
+    const logEl = document.getElementById('like-log');
+    if (logEl) logEl.innerHTML = '';
     
     log('开始点赞');
     startLikeLoop(tags);
-});
-
-document.getElementById('pause-like').addEventListener('click', () => {
-    isPaused = !isPaused;
-    document.getElementById('pause-like').textContent = isPaused ? '继续' : '暂停';
-    log(isPaused ? '已暂停' : '继续点赞');
-});
+}
 
 async function startLikeLoop(tags) {
     while (isLiking && !isPaused) {
@@ -442,9 +491,13 @@ async function startLikeLoop(tags) {
         await new Promise(r => setTimeout(r, 1000));
     }
     
-    document.getElementById('start-like').disabled = false;
-    document.getElementById('pause-like').disabled = true;
-    document.getElementById('pause-like').textContent = '暂停';
+    const startBtn = document.getElementById('start-like');
+    const pauseBtn = document.getElementById('pause-like');
+    if (startBtn) startBtn.disabled = false;
+    if (pauseBtn) {
+        pauseBtn.disabled = true;
+        pauseBtn.textContent = '暂停';
+    }
 }
 
 async function getStories(hashtag, page = 0, size = 20) {
@@ -473,6 +526,7 @@ async function likeStory(uuid) {
 
 function log(message, type = '') {
     const logEl = document.getElementById('like-log');
+    if (!logEl) return;
     const time = new Date().toLocaleTimeString('zh-CN');
     logEl.innerHTML += `<div class="log-item ${type}">[${time}] ${message}</div>`;
     logEl.scrollTop = logEl.scrollHeight;
@@ -482,6 +536,9 @@ function updateProgress() {
     const elapsed = Math.floor((Date.now() - likeStats.startTime) / 1000);
     const tags = getSavedTags();
     
+    const progressEl = document.getElementById('like-progress');
+    if (!progressEl) return;
+    
     let html = `<div class="progress-item"><span>总赞数</span><span>${likeStats.total}</span></div>`;
     html += `<div class="progress-item"><span>运行时间</span><span>${elapsed}s</span></div>`;
     
@@ -489,7 +546,7 @@ function updateProgress() {
         html += `<div class="progress-item"><span>#${tag.name}</span><span>${likeStats.byTag[tag.name] || 0}</span></div>`;
     });
     
-    document.getElementById('like-progress').innerHTML = html;
+    progressEl.innerHTML = html;
     
     // 更新图表数据
     if (elapsed % 5 === 0) {
@@ -505,6 +562,7 @@ function updateProgress() {
 
 function renderChart() {
     const chartEl = document.getElementById('like-chart');
+    if (!chartEl) return;
     if (chartData.labels.length < 2) {
         chartEl.innerHTML = '<div style="color:#86868b;text-align:center;padding:2rem">数据收集中...</div>';
         return;
@@ -539,7 +597,14 @@ function renderChart() {
 
 // ============ 热度排行 ============
 
-document.getElementById('load-ranking').addEventListener('click', async () => {
+function setupRanking() {
+    const loadBtn = document.getElementById('load-ranking');
+    if (loadBtn) {
+        loadBtn.addEventListener('click', loadRanking);
+    }
+}
+
+async function loadRanking() {
     const token = getToken();
     if (!token) {
         alert('请先登录');
@@ -547,6 +612,8 @@ document.getElementById('load-ranking').addEventListener('click', async () => {
     }
     
     const listEl = document.getElementById('ranking-list');
+    if (!listEl) return;
+    
     listEl.textContent = '加载中...';
     
     try {
@@ -593,28 +660,35 @@ document.getElementById('load-ranking').addEventListener('click', async () => {
     } catch (error) {
         listEl.textContent = '加载失败：' + error.message;
     }
-});
+}
 
 // ============ UUID 查询 ============
 
 let uuidDebounce = null;
-document.getElementById('uuid-search').addEventListener('input', (e) => {
-    const keyword = e.target.value.trim();
-    clearTimeout(uuidDebounce);
+function setupUUIDSearch() {
+    const uuidSearch = document.getElementById('uuid-search');
+    if (!uuidSearch) return;
     
-    if (keyword.length < 1) {
-        document.getElementById('uuid-suggestions').classList.remove('show');
-        return;
-    }
-    
-    uuidDebounce = setTimeout(() => searchUUID(keyword), 300);
-});
+    uuidSearch.addEventListener('input', (e) => {
+        const keyword = e.target.value.trim();
+        clearTimeout(uuidDebounce);
+        
+        if (keyword.length < 1) {
+            document.getElementById('uuid-suggestions').classList.remove('show');
+            return;
+        }
+        
+        uuidDebounce = setTimeout(() => searchUUID(keyword), 300);
+    });
+}
 
 async function searchUUID(keyword) {
     const token = getToken();
     if (!token) return;
     
     const suggestionsEl = document.getElementById('uuid-suggestions');
+    if (!suggestionsEl) return;
+    
     suggestionsEl.innerHTML = '';
     
     try {
@@ -647,11 +721,14 @@ async function searchUUID(keyword) {
                 <div class="suggestion-meta">${item.searchType} · ${item.uuid}</div>
             `;
             div.addEventListener('click', () => {
-                document.getElementById('uuid-result').innerHTML = `
-                    <div><strong>名称:</strong> ${item.name}</div>
-                    <div><strong>类型:</strong> ${item.searchType}</div>
-                    <div><strong>UUID:</strong> <code>${item.uuid}</code></div>
-                `;
+                const resultEl = document.getElementById('uuid-result');
+                if (resultEl) {
+                    resultEl.innerHTML = `
+                        <div><strong>名称:</strong> ${item.name}</div>
+                        <div><strong>类型:</strong> ${item.searchType}</div>
+                        <div><strong>UUID:</strong> <code>${item.uuid}</code></div>
+                    `;
+                }
                 suggestionsEl.classList.remove('show');
             });
             suggestionsEl.appendChild(div);
@@ -663,23 +740,82 @@ async function searchUUID(keyword) {
     }
 }
 
-// ============ 初始化 ============
+// ============ 签到 ============
 
-renderTags();
-
-// 检查登录状态
-function init() {
-    const token = getToken();
-    if (token) {
-        // 已登录，加载用户信息
-        loadUserProfile().then(() => {
-            document.getElementById('login-modal').classList.remove('show');
+function setupCheckin() {
+    const checkinBtn = document.getElementById('checkin-btn');
+    if (checkinBtn) {
+        checkinBtn.addEventListener('click', async () => {
+            const token = getToken();
+            if (!token) {
+                showStatus('checkin-status', '请先登录', 'error');
+                return;
+            }
+            
+            try {
+                const res = await fetch(`${API_BASE}/v1/checkin/manual`, {
+                    method: 'POST',
+                    headers: {
+                        'x-token': token,
+                        'x-platform': 'nieta-app/web'
+                    }
+                });
+                
+                if (res.ok) {
+                    showStatus('checkin-status', '✓ 签到成功', 'success');
+                } else {
+                    const data = await res.json();
+                    showStatus('checkin-status', '签到失败：' + (data.message || '未知错误'), 'error');
+                }
+            } catch (error) {
+                showStatus('checkin-status', '签到失败：' + error.message, 'error');
+            }
         });
-    } else {
-        // 未登录，显示登录窗口
-        document.getElementById('login-modal').classList.add('show');
     }
 }
 
-init();
-console.log('Neta Tools loaded');
+// ============ 初始化 ============
+
+function init() {
+    console.log('初始化应用...');
+    
+    // 设置 UI 组件
+    setupNavigation();
+    setupLogin();
+    setupTagSearch();
+    setupClickOutside();
+    setupLikeButtons();
+    setupRanking();
+    setupUUIDSearch();
+    setupCheckin();
+    
+    // 渲染已保存的标签
+    renderTags();
+    
+    // 检查登录状态
+    const token = getToken();
+    if (token) {
+        console.log('发现已保存的 Token，加载用户信息...');
+        loadUserProfile().then(() => {
+            const loginModal = document.getElementById('login-modal');
+            if (loginModal) {
+                loginModal.classList.remove('show');
+            }
+        });
+    } else {
+        console.log('未登录，显示登录窗口');
+        const loginModal = document.getElementById('login-modal');
+        if (loginModal) {
+            loginModal.classList.add('show');
+        }
+    }
+    
+    console.log('初始化完成');
+}
+
+// DOM 加载完成后初始化
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
