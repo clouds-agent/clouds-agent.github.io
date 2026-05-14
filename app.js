@@ -280,47 +280,62 @@ async function searchTags(keyword) {
     suggestionsEl.innerHTML = '';
     
     try {
+        const all = [];
+        
         // 搜索活动标签
-        const activitiesRes = await fetch(`${API_BASE}/v1/activities`, {
-            headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
-        });
-        const activities = await activitiesRes.json();
-        const matchedActivities = activities
-            .filter(a => a.tag_name && a.tag_name.includes(keyword))
-            .slice(0, 5)
-            .map(a => ({
-                name: a.tag_name,
-                type: 'activity',
-                popularity: a.popularity,
-                posts: a.participants_count || 0,
-                uuid: a.uuid
-            }));
+        try {
+            const activitiesRes = await fetch(`${API_BASE}/v1/activities`, {
+                headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
+            });
+            if (activitiesRes.ok) {
+                const activities = await activitiesRes.json();
+                const matched = activities
+                    .filter(a => a.tag_name && a.tag_name.includes(keyword))
+                    .map(a => ({
+                        name: a.tag_name,
+                        type: 'activity',
+                        popularity: a.popularity || 0,
+                        posts: a.participants_count || 0
+                    }));
+                all.push(...matched);
+            }
+        } catch (e) {
+            console.error('活动搜索失败:', e);
+        }
         
         // 搜索空间标签
-        const spacesRes = await fetch(`${API_BASE}/v1/configs/config?namespace=space&key=topic_tags_config`, {
-            headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
-        });
-        const spacesData = await spacesRes.json();
-        const spacesConfig = JSON.parse(spacesData.value || '{}');
-        const matchedSpaces = Object.entries(spacesConfig)
-            .filter(([name]) => name.includes(keyword))
-            .slice(0, 5)
-            .map(([name, config]) => ({
-                name: name,
-                type: 'space',
-                popularity: 0,
-                posts: 0,
-                description: config.description
-            }));
+        try {
+            const spacesRes = await fetch(`${API_BASE}/v1/configs/config?namespace=space&key=topic_tags_config`, {
+                headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
+            });
+            if (spacesRes.ok) {
+                const spacesData = await spacesRes.json();
+                const spacesConfig = JSON.parse(spacesData.value || '{}');
+                const matched = Object.entries(spacesConfig)
+                    .filter(([name]) => name.includes(keyword))
+                    .map(([name, config]) => ({
+                        name: name,
+                        type: 'space',
+                        popularity: 0,
+                        posts: 0,
+                        description: config.description
+                    }));
+                all.push(...matched);
+            }
+        } catch (e) {
+            console.error('空间搜索失败:', e);
+        }
         
-        const all = [...matchedActivities, ...matchedSpaces].slice(0, 10);
+        // 按热度排序，取前 10 个
+        all.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+        const top10 = all.slice(0, 10);
         
-        if (all.length === 0) {
+        if (top10.length === 0) {
             suggestionsEl.classList.remove('show');
             return;
         }
         
-        all.forEach(item => {
+        top10.forEach(item => {
             const div = document.createElement('div');
             div.className = 'suggestion-item';
             div.innerHTML = `
@@ -328,6 +343,7 @@ async function searchTags(keyword) {
                 <div class="suggestion-meta">
                     ${item.type === 'activity' ? '🔥 活动' : '📍 空间'}
                     ${item.popularity ? `· 热度：${item.popularity.toLocaleString()}` : ''}
+                    ${item.posts ? `· 帖子：${item.posts.toLocaleString()}` : ''}
                 </div>
             `;
             div.addEventListener('click', () => addTag(item));
@@ -454,14 +470,14 @@ async function startLikeLoop(tags) {
                 for (const story of stories.slice(0, 5)) {
                     if (!isLiking || isPaused) break;
                     
-                    const success = await likeStory(story.uuid);
-                    if (success) {
+                    const result = await likeStory(story.uuid);
+                    if (result.success) {
                         likeStats.total++;
                         likeStats.byTag[tag.name]++;
                         likeStats.lastIncrease = Date.now();
                         log(`✓ ${tag.name}: ${story.title || '无题'}`, 'success');
                     } else {
-                        log(`✗ ${tag.name}: 点赞失败`, 'error');
+                        log(`✗ ${tag.name}: ${result.error}`, 'error');
                     }
                     
                     updateProgress();
@@ -512,16 +528,38 @@ async function getStories(hashtag, page = 0, size = 20) {
 
 async function likeStory(uuid) {
     const token = getToken();
-    const res = await fetch(`${API_BASE}/v1/interactive/like`, {
-        method: 'POST',
-        headers: {
-            'x-token': token,
-            'x-platform': 'nieta-app/web',
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ target_type: 'story', target_uuid: uuid })
-    });
-    return res.ok;
+    if (!token) {
+        return { success: false, error: '未登录' };
+    }
+    
+    try {
+        const res = await fetch(`${API_BASE}/v1/interactive/like`, {
+            method: 'POST',
+            headers: {
+                'x-token': token,
+                'x-platform': 'nieta-app/web',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ target_type: 'story', target_uuid: uuid })
+        });
+        
+        if (res.ok) {
+            return { success: true };
+        }
+        
+        // 获取详细错误
+        let errorText = `HTTP ${res.status}`;
+        try {
+            const errorData = await res.json();
+            errorText = errorData.message || errorData.detail || errorText;
+        } catch (e) {
+            // 无法解析 JSON
+        }
+        
+        return { success: false, error: errorText, status: res.status };
+    } catch (error) {
+        return { success: false, error: error.message || '网络错误' };
+    }
 }
 
 function log(message, type = '') {
@@ -691,29 +729,52 @@ async function searchUUID(keyword) {
     
     suggestionsEl.innerHTML = '';
     
+    if (keyword.length < 1) {
+        suggestionsEl.classList.remove('show');
+        return;
+    }
+    
     try {
-        // 搜索角色
-        const charRes = await fetch(`${API_BASE}/v2/travel/parent-search?keywords=${encodeURIComponent(keyword)}&page_index=0&page_size=10&parent_type=oc`, {
-            headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
-        });
-        const charData = await charRes.json();
-        const chars = (charData.list || []).map(c => ({ ...c, searchType: '角色' }));
+        const all = [];
         
-        // 搜索元素
-        const elemRes = await fetch(`${API_BASE}/v2/travel/parent-search?keywords=${encodeURIComponent(keyword)}&page_index=0&page_size=10&parent_type=elementum`, {
-            headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
-        });
-        const elemData = await elemRes.json();
-        const elems = (elemData.list || []).map(e => ({ ...e, searchType: '元素' }));
+        // 搜索角色（20 个）
+        try {
+            const charRes = await fetch(`${API_BASE}/v2/travel/parent-search?keywords=${encodeURIComponent(keyword)}&page_index=0&page_size=20&parent_type=oc&sort_scheme=exact`, {
+                headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
+            });
+            if (charRes.ok) {
+                const charData = await charRes.json();
+                const chars = (charData.list || []).map(c => ({ ...c, searchType: '角色' }));
+                all.push(...chars);
+            }
+        } catch (e) {
+            console.error('角色搜索失败:', e);
+        }
         
-        const all = [...chars, ...elems].slice(0, 10);
+        // 搜索元素（20 个）
+        try {
+            const elemRes = await fetch(`${API_BASE}/v2/travel/parent-search?keywords=${encodeURIComponent(keyword)}&page_index=0&page_size=20&parent_type=elementum&sort_scheme=exact`, {
+                headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
+            });
+            if (elemRes.ok) {
+                const elemData = await elemRes.json();
+                const elems = (elemData.list || []).map(e => ({ ...e, searchType: '元素' }));
+                all.push(...elems);
+            }
+        } catch (e) {
+            console.error('元素搜索失败:', e);
+        }
         
-        if (all.length === 0) {
+        // 按热度排序（如果有 popularity 字段）
+        all.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+        const top20 = all.slice(0, 20);
+        
+        if (top20.length === 0) {
             suggestionsEl.classList.remove('show');
             return;
         }
         
-        all.forEach(item => {
+        top20.forEach(item => {
             const div = document.createElement('div');
             div.className = 'suggestion-item';
             div.innerHTML = `
@@ -724,10 +785,27 @@ async function searchUUID(keyword) {
                 const resultEl = document.getElementById('uuid-result');
                 if (resultEl) {
                     resultEl.innerHTML = `
-                        <div><strong>名称:</strong> ${item.name}</div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+                            <div><strong>名称:</strong> ${item.name}</div>
+                            <button class="btn-copy-uuid" data-uuid="${item.uuid}">复制</button>
+                        </div>
                         <div><strong>类型:</strong> ${item.searchType}</div>
                         <div><strong>UUID:</strong> <code>${item.uuid}</code></div>
                     `;
+                    
+                    // 绑定复制按钮
+                    const copyBtn = resultEl.querySelector('.btn-copy-uuid');
+                    if (copyBtn) {
+                        copyBtn.addEventListener('click', async () => {
+                            try {
+                                await navigator.clipboard.writeText(item.uuid);
+                                copyBtn.textContent = '✓ 已复制';
+                                setTimeout(() => copyBtn.textContent = '复制', 2000);
+                            } catch (e) {
+                                copyBtn.textContent = '复制失败';
+                            }
+                        });
+                    }
                 }
                 suggestionsEl.classList.remove('show');
             });
