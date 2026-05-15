@@ -610,11 +610,8 @@ function setupLikeButtons() {
                 renderTags(); // 继续时重新渲染，禁用页码编辑
             }
             
-            // 暂停时禁用开始按钮，继续时启用
-            const startBtn = document.getElementById('start-like');
-            if (startBtn) {
-                startBtn.disabled = isPaused;
-            }
+            // 暂停时不禁用开始按钮，允许用户点击终止
+            // 只在点赞过程中禁用开始按钮
         });
     }
 }
@@ -654,6 +651,7 @@ function startLiking() {
     const pauseBtn = document.getElementById('pause-like');
     if (startBtn) {
         startBtn.textContent = '终止';
+        startBtn.disabled = false; // 启用按钮，允许随时点击终止
     }
     if (pauseBtn) pauseBtn.disabled = false;
     
