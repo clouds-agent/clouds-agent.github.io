@@ -12,22 +12,6 @@ let tagFinished = {}; // 每个标签是否已完成
 
 // ============ 工具函数 ============
 
-function toggleHelp() {
-    const helpBox = document.getElementById('tag-help');
-    if (helpBox) {
-        helpBox.classList.toggle('show');
-    }
-}
-
-// 点击别处关闭帮助框
-document.addEventListener('click', function(e) {
-    const helpBox = document.getElementById('tag-help');
-    const helpBtn = document.querySelector('.help-btn');
-    if (helpBox && helpBtn && !helpBox.contains(e.target) && !helpBtn.contains(e.target)) {
-        helpBox.classList.remove('show');
-    }
-});
-
 function getToken() {
     const token = localStorage.getItem('neta_token');
     console.log('getToken:', token ? '有 Token，长度' + token.length : '无 Token');
