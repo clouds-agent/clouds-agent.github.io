@@ -534,8 +534,6 @@ function renderTags() {
 
 // ============ 点赞功能 ============
 
-let isRunning = false; // 是否正在运行
-
 function setupLikeButtons() {
     const startBtn = document.getElementById('start-like');
     const pauseBtn = document.getElementById('pause-like');
