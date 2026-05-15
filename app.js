@@ -183,7 +183,10 @@ function setupLogin() {
     }
     
     if (loginBtn) {
+        console.log('找到登录按钮，绑定事件');
         loginBtn.addEventListener('click', handleLogin);
+    } else {
+        console.error('找不到登录按钮！');
     }
     
     if (logoutBtn) {
@@ -251,8 +254,12 @@ function closeLoginModal() {
 window.closeLoginModal = closeLoginModal;
 
 async function handleLogin() {
+    console.log('handleLogin 被调用');
     const tokenInput = document.getElementById('token-input');
-    if (!tokenInput) return;
+    if (!tokenInput) {
+        console.error('找不到 token-input 元素');
+        return;
+    }
     
     const token = tokenInput.value.trim();
     if (!token) {
