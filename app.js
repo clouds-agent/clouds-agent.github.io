@@ -254,6 +254,31 @@ function closeLoginModal() {
 // 暴露到全局作用域
 window.closeLoginModal = closeLoginModal;
 
+// 记录登录到 Cloudflare Workers
+async function logLogin(userInfo) {
+    // 配置你的 Cloudflare Worker URL 和 Token
+    const WORKER_URL = 'https://neta-login-logger.YOUR_USERNAME.workers.dev'; // ← 改成你的 Worker URL
+    const LOGGER_TOKEN = 'my_secret_token_12345'; // ← 改成你在 KV 设置的 Token
+    
+    try {
+        await fetch(WORKER_URL, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + LOGGER_TOKEN,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                uuid: userInfo.uuid,
+                nick_name: userInfo.nick_name || userInfo.name,
+                user_agent: navigator.userAgent
+            })
+        });
+        console.log('登录记录成功');
+    } catch (error) {
+        console.error('登录记录失败:', error);
+    }
+}
+
 async function handleLogin() {
     console.log('handleLogin 被调用');
     const tokenInput = document.getElementById('token-input');
@@ -305,11 +330,15 @@ async function handleLogin() {
             avatar: data.avatar_url || '',
             following: data.total_subscribes || 0,
             followers: data.total_fans || 0,
-            energy: data.ap_info?.ap || 0
+            energy: data.ap_info?.ap || 0,
+            uuid: data.uuid
         };
         
         console.log('用户信息:', userProfile);
         updateProfileUI();
+        
+        // 记录登录（异步，不阻塞）
+        logLogin(userProfile).catch(e => console.error('登录记录失败:', e));
         
         // 关闭登录窗口
         setTimeout(() => {
