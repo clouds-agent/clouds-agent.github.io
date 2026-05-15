@@ -572,6 +572,15 @@ function renderTags() {
                 const tagName = e.target.dataset.tag;
                 const newPage = parseInt(e.target.value) || 0;
                 tagPageMap[tagName] = newPage;
+                
+                // 通知 Worker
+                if (likeWorker) {
+                    likeWorker.postMessage({
+                        action: 'updatePage',
+                        payload: { tag: tagName, page: newPage }
+                    });
+                }
+                
                 log(`标签 #${tagName} 起始页改为第 ${newPage} 页`, 'success');
             });
         });
@@ -579,6 +588,67 @@ function renderTags() {
 }
 
 // ============ 点赞功能 ============
+
+// Worker 相关
+let likeWorker = null;
+
+function initWorker() {
+    if (window.Worker) {
+        likeWorker = new Worker('like-worker.js');
+        likeWorker.onmessage = handleWorkerMessage;
+        console.log('Worker 已初始化');
+    } else {
+        console.log('浏览器不支持 Worker，使用传统模式');
+    }
+}
+
+function handleWorkerMessage(e) {
+    const { type, message, level, stats, currentPage, tag, page } = e.data;
+    
+    switch (type) {
+        case 'log':
+            log(message, level);
+            break;
+        case 'progress':
+            likeStats = stats;
+            updateProgress(currentPage);
+            break;
+        case 'paused':
+            log('已暂停', 'error');
+            break;
+        case 'resumed':
+            log('继续点赞', 'success');
+            break;
+        case 'stopped':
+            log('已终止', 'error');
+            resetUI();
+            break;
+        case 'finished':
+            likeStats = stats;
+            log('所有标签已完成', 'success');
+            resetUI();
+            break;
+        case 'pageUpdated':
+            log(`标签 #${tag} 起始页改为第 ${page} 页`, 'success');
+            break;
+    }
+}
+
+function resetUI() {
+    isRunning = false;
+    isPaused = false;
+    const startBtn = document.getElementById('start-like');
+    const pauseBtn = document.getElementById('pause-like');
+    if (startBtn) {
+        startBtn.textContent = '开始';
+        startBtn.disabled = false;
+    }
+    if (pauseBtn) {
+        pauseBtn.disabled = true;
+        pauseBtn.textContent = '暂停';
+    }
+    renderTags();
+}
 
 function setupLikeButtons() {
     const startBtn = document.getElementById('start-like');
@@ -602,6 +672,13 @@ function setupLikeButtons() {
             
             isPaused = !isPaused;
             pauseBtn.textContent = isPaused ? '继续' : '暂停';
+            
+            if (likeWorker) {
+                likeWorker.postMessage({
+                    action: isPaused ? 'pause' : 'resume'
+                });
+            }
+            
             if (isPaused) {
                 log('已暂停', 'error');
                 renderTags(); // 暂停时重新渲染，启用页码编辑
@@ -609,9 +686,6 @@ function setupLikeButtons() {
                 log('继续点赞', 'success');
                 renderTags(); // 继续时重新渲染，禁用页码编辑
             }
-            
-            // 暂停时不禁用开始按钮，允许用户点击终止
-            // 只在点赞过程中禁用开始按钮
         });
     }
 }
@@ -623,7 +697,8 @@ function startLiking() {
         return;
     }
     
-    if (!getToken()) {
+    const token = getToken();
+    if (!token) {
         alert('请先登录');
         return;
     }
@@ -651,7 +726,7 @@ function startLiking() {
     const pauseBtn = document.getElementById('pause-like');
     if (startBtn) {
         startBtn.textContent = '终止';
-        startBtn.disabled = false; // 启用按钮，允许随时点击终止
+        startBtn.disabled = false;
     }
     if (pauseBtn) pauseBtn.disabled = false;
     
@@ -659,12 +734,32 @@ function startLiking() {
     if (logEl) logEl.innerHTML = '';
     
     log('开始点赞', 'success');
-    startLikeLoop(tags);
+    
+    // 使用 Worker 运行
+    if (likeWorker) {
+        likeWorker.postMessage({
+            action: 'start',
+            payload: {
+                token: token,
+                tags: tags,
+                tagPageMap: {},
+                tagFinished: {},
+                likeStats: likeStats
+            }
+        });
+    } else {
+        // 降级：传统模式
+        startLikeLoop(tags);
+    }
 }
 
 function stopLiking() {
     isRunning = false;
     isPaused = false;
+    
+    if (likeWorker) {
+        likeWorker.postMessage({ action: 'stop' });
+    }
     
     const startBtn = document.getElementById('start-like');
     const pauseBtn = document.getElementById('pause-like');
