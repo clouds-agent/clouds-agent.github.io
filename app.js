@@ -552,13 +552,30 @@ function renderTags() {
     const container = document.getElementById('selected-tags');
     if (!container) return;
     
-    container.innerHTML = tags.map(tag => `
-        <div class="tag-item">
-            <span>${tag.name}</span>
-            <span class="tag-info">${tag.type === 'activity' ? '🔥' : tag.type === 'space' ? '📍' : '🏷️'} ${tag.popularity ? tag.popularity.toLocaleString() : ''}</span>
-            <button onclick="removeTag('${tag.name}')">×</button>
-        </div>
-    `).join('');
+    container.innerHTML = tags.map(tag => {
+        const currentPage = tagPageMap[tag.name] || 0;
+        const canEdit = isPaused && isRunning;
+        return `
+            <div class="tag-item">
+                <span>${tag.name}</span>
+                <span class="tag-info">${tag.type === 'activity' ? '🔥' : tag.type === 'space' ? '📍' : '🏷️'} ${tag.popularity ? tag.popularity.toLocaleString() : ''}</span>
+                <span class="tag-page">第 <input type="number" class="page-input" data-tag="${tag.name}" value="${currentPage}" min="0" ${canEdit ? '' : 'disabled'} /> 页</span>
+                <button onclick="removeTag('${tag.name}')">×</button>
+            </div>
+        `;
+    }).join('');
+    
+    // 绑定页码输入框事件
+    if (isPaused && isRunning) {
+        document.querySelectorAll('.page-input').forEach(input => {
+            input.addEventListener('change', (e) => {
+                const tagName = e.target.dataset.tag;
+                const newPage = parseInt(e.target.value) || 0;
+                tagPageMap[tagName] = newPage;
+                log(`标签 #${tagName} 起始页改为第 ${newPage} 页`, 'success');
+            });
+        });
+    }
 }
 
 // ============ 点赞功能 ============
@@ -587,8 +604,10 @@ function setupLikeButtons() {
             pauseBtn.textContent = isPaused ? '继续' : '暂停';
             if (isPaused) {
                 log('已暂停', 'error');
+                renderTags(); // 暂停时重新渲染，启用页码编辑
             } else {
                 log('继续点赞', 'success');
+                renderTags(); // 继续时重新渲染，禁用页码编辑
             }
             
             // 暂停时禁用开始按钮，继续时启用

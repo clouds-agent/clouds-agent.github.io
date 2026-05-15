@@ -311,6 +311,33 @@ input[type="password"]:focus {
     color: #86868b;
 }
 
+.tag-page {
+    font-size: 0.8rem;
+    color: #86868b;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.page-input {
+    width: 50px;
+    padding: 0.2rem;
+    border: 1px solid #d2d2d7;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.page-input:disabled {
+    background: #e8e8ed;
+    cursor: not-allowed;
+}
+
+.page-input:not(:disabled) {
+    border-color: #0071e3;
+    background: #fff;
+}
+
 /* 进度 */
 .progress {
     margin-top: 1rem;
