@@ -561,6 +561,12 @@ function setupLikeButtons() {
             } else {
                 log('继续点赞', 'success');
             }
+            
+            // 暂停时禁用开始按钮，继续时启用
+            const startBtn = document.getElementById('start-like');
+            if (startBtn) {
+                startBtn.disabled = isPaused;
+            }
         });
     }
 }
@@ -689,16 +695,19 @@ async function startLikeLoop(tags) {
         await new Promise(r => setTimeout(r, 1000));
     }
     
-    isRunning = false;
-    const startBtn = document.getElementById('start-like');
-    const pauseBtn = document.getElementById('pause-like');
-    if (startBtn) {
-        startBtn.textContent = '开始';
-        startBtn.disabled = false;
-    }
-    if (pauseBtn) {
-        pauseBtn.disabled = true;
-        pauseBtn.textContent = '暂停';
+    // 只有真正结束时才重置按钮（暂停时不重置）
+    if (!isPaused) {
+        isRunning = false;
+        const startBtn = document.getElementById('start-like');
+        const pauseBtn = document.getElementById('pause-like');
+        if (startBtn) {
+            startBtn.textContent = '开始';
+            startBtn.disabled = false;
+        }
+        if (pauseBtn) {
+            pauseBtn.disabled = true;
+            pauseBtn.textContent = '暂停';
+        }
     }
 }
 
