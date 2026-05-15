@@ -207,8 +207,65 @@ input[type="password"]:focus {
 }
 
 .search-box input {
-    flex: 1 1 100%;
+    flex: 1 1 auto;
     min-width: 200px;
+}
+
+/* 帮助按钮 */
+.help-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #0071e3;
+    color: #fff;
+    border: none;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.2s;
+}
+
+.help-btn:hover {
+    background: #005bb5;
+}
+
+/* 帮助框 */
+.help-box {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 0.5rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1000;
+    max-width: 300px;
+}
+
+.help-box.show {
+    display: block;
+}
+
+.help-box p {
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.help-box ul {
+    margin-left: 1.2rem;
+    font-size: 0.85rem;
+    color: #6e6e73;
+}
+
+.help-box li {
+    margin-bottom: 0.25rem;
 }
 
 .btn-add {

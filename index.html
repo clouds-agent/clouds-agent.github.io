@@ -25,9 +25,18 @@
         <section id="like" class="section active">
             <div class="card">
                 <div class="search-box">
-                    <input type="text" id="tag-search" placeholder="请输入标签名：会自动联想官方空间/活动名称，也支持用户自用标签" autocomplete="off" />
+                    <input type="text" id="tag-search" placeholder="请输入标签名" autocomplete="off" />
+                    <button class="help-btn" onclick="toggleHelp()" title="帮助">?</button>
                     <button id="add-tag-btn" class="btn btn-add">添加</button>
                     <div id="tag-suggestions" class="suggestions"></div>
+                </div>
+                <div id="tag-help" class="help-box" onclick="event.stopPropagation()">
+                    <p><strong>说明：</strong></p>
+                    <ul>
+                        <li>会自动联想官方空间/活动名称</li>
+                        <li>也支持用户自用标签</li>
+                        <li>按回车或直接点击「添加」按钮</li>
+                    </ul>
                 </div>
                 <div id="selected-tags" class="tag-list"></div>
                 <div class="btn-group">
@@ -132,6 +141,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260514v26"></script>
+    <script src="app.js?v=20260514v27"></script>
 </body>
 </html>
