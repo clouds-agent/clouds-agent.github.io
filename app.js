@@ -640,9 +640,16 @@ async function startLikeLoop(tags) {
         }
     });
     
-    while (isRunning && !isPaused) {
+    while (isRunning) {
+        // 暂停时等待
+        if (isPaused) {
+            await new Promise(r => setTimeout(r, 500));
+            continue;
+        }
+        
         for (const tag of tags) {
-            if (!isRunning || isPaused) break;
+            if (!isRunning) break;
+            if (isPaused) break;
             
             try {
                 const currentPage = tagPageMap[tag.name] || 0;
@@ -658,7 +665,8 @@ async function startLikeLoop(tags) {
                 
                 let successCount = 0;
                 for (const story of stories) {
-                    if (!isRunning || isPaused) break;
+                    if (!isRunning) break;
+                    if (isPaused) break;
                     
                     const result = await likeStory(story.storyId);
                     if (result.success) {
@@ -695,19 +703,17 @@ async function startLikeLoop(tags) {
         await new Promise(r => setTimeout(r, 1000));
     }
     
-    // 只有真正结束时才重置按钮（暂停时不重置）
-    if (!isPaused) {
-        isRunning = false;
-        const startBtn = document.getElementById('start-like');
-        const pauseBtn = document.getElementById('pause-like');
-        if (startBtn) {
-            startBtn.textContent = '开始';
-            startBtn.disabled = false;
-        }
-        if (pauseBtn) {
-            pauseBtn.disabled = true;
-            pauseBtn.textContent = '暂停';
-        }
+    // 真正结束时重置按钮
+    isRunning = false;
+    const startBtn = document.getElementById('start-like');
+    const pauseBtn = document.getElementById('pause-like');
+    if (startBtn) {
+        startBtn.textContent = '开始';
+        startBtn.disabled = false;
+    }
+    if (pauseBtn) {
+        pauseBtn.disabled = true;
+        pauseBtn.textContent = '暂停';
     }
 }
 
