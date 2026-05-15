@@ -669,11 +669,9 @@ async function startLikeLoop(tags) {
                     await new Promise(r => setTimeout(r, 200));
                 }
                 
-                // 如果这一轮有成功点赞，继续当前页；如果都失败了，可能是都点过了，翻到下一页
-                if (successCount === 0 && stories.length >= 10) {
-                    tagPageMap[tag.name] = currentPage + 1;
-                    log(`#${tag.name} 第${currentPage + 1}页可能都已点赞，翻到第${currentPage + 2}页`);
-                }
+                // 无论成功失败，都翻到下一页
+                tagPageMap[tag.name] = currentPage + 1;
+                log(`#${tag.name} 第${currentPage + 1}页处理完成，翻到第${currentPage + 2}页`);
             } catch (error) {
                 log(`#${tag.name}: ${error.message}`, 'error');
             }
