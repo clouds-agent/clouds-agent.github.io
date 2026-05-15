@@ -840,6 +840,13 @@ function log(message, type = '') {
     if (!logEl) return;
     const time = new Date().toLocaleTimeString('zh-CN');
     logEl.innerHTML += `<div class="log-item ${type}">[${time}] ${message}</div>`;
+    
+    // 限制只显示最新 100 条，避免卡顿
+    const items = logEl.querySelectorAll('.log-item');
+    if (items.length > 100) {
+        items[0].remove();
+    }
+    
     logEl.scrollTop = logEl.scrollHeight;
 }
 
