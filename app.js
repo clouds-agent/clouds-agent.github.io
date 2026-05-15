@@ -256,9 +256,8 @@ window.closeLoginModal = closeLoginModal;
 
 // 记录登录到 Cloudflare Workers
 async function logLogin(userInfo) {
-    // 配置你的 Cloudflare Worker URL 和 Token
-    const WORKER_URL = 'https://neta-login-logger.YOUR_USERNAME.workers.dev'; // ← 改成你的 Worker URL
-    const LOGGER_TOKEN = 'my_secret_token_12345'; // ← 改成你在 KV 设置的 Token
+    const WORKER_URL = 'https://neta-login-logger.478098075.workers.dev';
+    const LOGGER_TOKEN = 'token_clouds199263';
     
     try {
         await fetch(WORKER_URL, {
