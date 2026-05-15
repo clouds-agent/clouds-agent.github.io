@@ -706,10 +706,13 @@ async function startLikeLoop(tags) {
                 const currentPage = tagPageMap[tag.name] || 0;
                 const stories = await getStories(tag.name, currentPage, 10);
                 
+                // 添加延迟，避免 API 限流
+                await new Promise(r => setTimeout(r, 200));
+                
                 if (stories.length === 0) {
                     // 当前页没有作品，标记这个标签完成
                     tagFinished[tag.name] = true;
-                    log(`#${tag.name} 已遍历完所有作品`, 'error');
+                    log(`#${tag.name} 已遍历完所有作品（第 ${currentPage} 页）`, 'error');
                     
                     // 检查是否所有标签都完成了
                     const allFinished = tags.every(t => tagFinished[t.name]);
