@@ -8,6 +8,7 @@ let likeStats = { total: 0, byTag: {}, startTime: null, lastIncrease: null };
 let chartData = { labels: [], total: [], byTag: {} };
 let userProfile = null;
 let tagPageMap = {}; // 每个标签的当前页码
+let tagFinished = {}; // 每个标签是否已完成
 
 // ============ 工具函数 ============
 
@@ -592,8 +593,10 @@ function startLiking() {
         lastIncrease: Date.now()
     };
     tagPageMap = {};
+    tagFinished = {};
     tags.forEach(tag => {
         likeStats.byTag[tag.name] = 0;
+        tagFinished[tag.name] = false;
     });
     chartData = { labels: [], total: [], byTag: {} };
     tags.forEach(tag => {
@@ -651,16 +654,27 @@ async function startLikeLoop(tags) {
             if (!isRunning) break;
             if (isPaused) break;
             
+            // 如果这个标签已经完成，跳过
+            if (tagFinished[tag.name]) continue;
+            
             try {
                 const currentPage = tagPageMap[tag.name] || 0;
                 const stories = await getStories(tag.name, currentPage, 10);
                 
                 if (stories.length === 0) {
-                    // 当前页没有作品，说明没有更多了，直接停止
-                    isRunning = false;
-                    log(`#${tag.name} 第${currentPage + 1}页没有作品，已停止`, 'error');
-                    stopLiking();
-                    return;
+                    // 当前页没有作品，标记这个标签完成
+                    tagFinished[tag.name] = true;
+                    log(`#${tag.name} 已遍历完所有作品`, 'error');
+                    
+                    // 检查是否所有标签都完成了
+                    const allFinished = tags.every(t => tagFinished[t.name]);
+                    if (allFinished) {
+                        isRunning = false;
+                        log('所有标签已完成', 'success');
+                        stopLiking();
+                        return;
+                    }
+                    continue;
                 }
                 
                 let successCount = 0;
@@ -691,7 +705,16 @@ async function startLikeLoop(tags) {
             }
         }
         
-        // 检查是否 1 分钟无增长
+        // 检查是否所有标签都 1 分钟无增长
+        const unfinishedTags = tags.filter(t => !tagFinished[t.name]);
+        if (unfinishedTags.length === 0) {
+            // 所有标签都完成了
+            isRunning = false;
+            log('所有标签已完成', 'success');
+            stopLiking();
+            break;
+        }
+        
         if (Date.now() - likeStats.lastIncrease > 60000) {
             isRunning = false;
             log('⚠️ 1 分钟无增长，已停止', 'error');
