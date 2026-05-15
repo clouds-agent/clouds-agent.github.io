@@ -169,19 +169,17 @@ function setupLogin() {
     
     console.log('setupLogin 执行，getToken:', getToken());
     
-    // 检查是否已登录，未登录则立即显示登录窗口
-    if (!getToken()) {
-        console.log('未登录，显示登录窗口');
+    // 检查是否已登录，已登录则关闭登录窗口
+    if (getToken()) {
+        console.log('已登录，关闭登录窗口');
         const loginModal = document.getElementById('login-modal');
         if (loginModal) {
-            loginModal.classList.add('show');
-            console.log('登录窗口已显示');
-        } else {
-            console.error('登录窗口元素不存在！');
+            loginModal.classList.remove('show');
+            console.log('登录窗口已关闭');
         }
-    } else {
-        console.log('已登录，不显示登录窗口');
         updateProfileUI();
+    } else {
+        console.log('未登录，保持登录窗口显示');
     }
     
     if (loginBtn) {
