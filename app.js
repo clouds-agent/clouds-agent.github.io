@@ -1605,6 +1605,11 @@ async function loadStatsData(type, days) {
                 hasMore = false;
             }
             
+            // 粉丝数据特殊处理：API 总数可能包含其他类型的消息
+            if (type === 'fans' && pageIndex * 100 >= apiTotal * 0.95) {
+                hasMore = false;
+            }
+            
             pageIndex++;
             
             await new Promise(r => setTimeout(r, 100));
