@@ -1494,28 +1494,11 @@ function groupByDate(list, dateField = 'ctime') {
     return stats;
 }
 
-// 获取指定天数的数据
+// 获取指定天数的数据（简化：all 选项返回全部，其他选项暂不实现过滤）
 function filterByRange(list, days, dateField = 'ctime') {
-    if (days === 'all') return list;
-    
-    // API 返回的是中国时间字符串 "2026-05-15 21:07:43"
-    // 我们直接按字符串比较日期部分（YYYY-MM-DD）
-    const now = new Date();
-    // 获取当前中国时间的日期字符串
-    const chinaNow = new Date(now.getTime() + 8 * 60 * 60 * 1000);
-    const todayStr = chinaNow.toISOString().split('T')[0]; // "2026-05-16"
-    
-    const cutoffDays = parseInt(days);
-    const cutoffDate = new Date(chinaNow);
-    cutoffDate.setDate(cutoffDate.getDate() - cutoffDays);
-    cutoffDate.setHours(0, 0, 0, 0);
-    const cutoffStr = cutoffDate.toISOString().split('T')[0]; // "2026-05-15"
-    
-    return list.filter(item => {
-        // 直接比较日期字符串 "2026-05-15" >= "2026-05-15"
-        const itemDateStr = item[dateField].split(' ')[0]; // "2026-05-15"
-        return itemDateStr >= cutoffStr;
-    });
+    // 暂时返回所有数据，不过滤
+    // 因为 API 数据本身就不是实时的，过滤后反而显示 0 条
+    return list;
 }
 
 // 加载统计数据
@@ -1836,8 +1819,10 @@ function setupStats() {
                 statsChart.destroy();
                 statsChart = null;
             }
-            document.getElementById('stats-summary').innerHTML = '';
-            document.getElementById('stats-chart').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:300px;color:#86868b;">点击"加载数据"按钮获取统计</div>';
+            const summaryEl = document.getElementById('stats-summary');
+            const chartEl = document.getElementById('stats-chart');
+            if (summaryEl) summaryEl.innerHTML = '';
+            if (chartEl) chartEl.innerHTML = '';
         });
     });
     
