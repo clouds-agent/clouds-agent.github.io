@@ -1764,7 +1764,14 @@ function setupStats() {
             tab.classList.add('active');
             currentStatsType = tab.dataset.type;
             updateRangeOptions(currentStatsType);
-            updateStatsUI();
+            // 只切换选项，不自动加载数据
+            // 清空图表和摘要，提示用户点击加载
+            if (statsChart) {
+                statsChart.destroy();
+                statsChart = null;
+            }
+            document.getElementById('stats-summary').innerHTML = '';
+            document.getElementById('stats-chart').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:300px;color:#86868b;">点击"加载数据"按钮获取统计</div>';
         });
     });
     
