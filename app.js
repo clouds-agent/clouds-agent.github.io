@@ -1497,12 +1497,21 @@ function groupByDate(list, dateField = 'ctime') {
 // 获取指定天数的数据
 function filterByRange(list, days, dateField = 'ctime') {
     if (days === 'all') return list;
-    const cutoff = new Date();
+    
+    // API 返回的是中国时间（UTC+8），需要统一时区
+    const now = new Date();
+    // 获取当前 UTC 时间，然后 +8 小时转为中国时间
+    const chinaNow = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+    
+    const cutoff = new Date(chinaNow);
     cutoff.setDate(cutoff.getDate() - parseInt(days));
-    cutoff.setHours(0, 0, 0, 0); // 设置为当天 0 点
+    cutoff.setHours(0, 0, 0, 0); // 中国时间 0 点
     
     return list.filter(item => {
-        const itemDate = new Date(item[dateField]);
+        // 将 API 返回的时间（中国时间格式）解析为中国时间
+        const timeStr = item[dateField]; // "2026-05-15 21:07:43"
+        // 替换空格为 T，添加 +08:00 时区标识
+        const itemDate = new Date(timeStr.replace(' ', 'T') + '+08:00');
         return itemDate >= cutoff;
     });
 }
@@ -1521,12 +1530,15 @@ async function loadStatsData(type, days) {
     else if (type === 'like') section = 'SEC_LIKE';
     else if (type === 'inherit') section = 'SEC_INTERACTS';
     
-    // 计算截止日期（用于提前停止）
+    // 计算截止日期（用于提前停止）- 使用中国时间
     let cutoffDate = null;
     if (days !== 'all') {
-        cutoffDate = new Date();
+        const now = new Date();
+        const chinaNow = new Date(now.getTime() + 8 * 60 * 60 * 1000); // UTC+8
+        cutoffDate = new Date(chinaNow);
         cutoffDate.setDate(cutoffDate.getDate() - parseInt(days));
         cutoffDate.setHours(0, 0, 0, 0);
+        console.log(`截止日期（中国时间）：${cutoffDate.toISOString()}`);
     }
     
     try {
@@ -1582,7 +1594,8 @@ async function loadStatsData(type, days) {
             // 检查最后一条数据的时间
             if (filtered.length > 0) {
                 const lastItem = filtered[filtered.length - 1];
-                const lastDate = new Date(lastItem.ctime);
+                // 将 API 返回的时间（中国时间格式）解析为中国时间
+                const lastDate = new Date(lastItem.ctime.replace(' ', 'T') + '+08:00');
                 console.log(`第 ${pageIndex} 页最后一条：${lastItem.ctime}`);
                 
                 // 如果早于截止日期，停止获取
