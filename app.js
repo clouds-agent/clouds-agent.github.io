@@ -1556,8 +1556,9 @@ async function loadStatsData(type, days) {
             console.log(`截止日期：${cutoffDate.toISOString()}`);
         }
         
-        // 使用较小的 page_size 获取实时数据（page_size=100 会返回缓存数据）
-        const pageSize = 20;
+        // 智能 page_size：先用小数据量获取实时数据，确认后用大数据量加速
+        let pageSize = 20; // 第 1 页用小数据量
+        let useRealTime = true; // 是否使用实时模式
         
         while (hasMore && pageIndex <= 500) {
             // 添加时间戳 + 随机数参数，绕过 API 缓存
@@ -1589,6 +1590,20 @@ async function loadStatsData(type, days) {
                 apiTotal = data.total || 0;
                 console.log(`API 返回总数：${apiTotal}`);
                 console.log(`第 1 页数据量：${data.list?.length || 0}, 最新：${data.list?.[0]?.ctime}`);
+                
+                // 检查第 1 页是否是实时数据（最新数据在 24 小时内）
+                const now = new Date();
+                const chinaNow = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+                const todayStr = chinaNow.toISOString().split('T')[0];
+                const firstItemDate = data.list?.[0]?.ctime?.split(' ')[0];
+                if (firstItemDate === todayStr) {
+                    // 第 1 页是实时数据，后续用 page_size=100 加速
+                    useRealTime = false;
+                    pageSize = 100;
+                    console.log(`第 1 页是实时数据 (${firstItemDate})，后续使用 page_size=100 加速`);
+                } else {
+                    console.log(`第 1 页数据滞后 (${firstItemDate})，继续使用 page_size=20`);
+                }
             }
             
             if (!data.list || data.list.length === 0) {
@@ -1600,7 +1615,9 @@ async function loadStatsData(type, days) {
             // 过滤数据
             let filtered = data.list;
             if (type === 'inherit') {
+                const beforeCount = filtered.length;
                 filtered = filtered.filter(item => item.action_type === 'inherit');
+                console.log(`第 ${pageIndex} 页：捏同款过滤 ${beforeCount} → ${filtered.length} 条`);
             }
             
             allData.push(...filtered);
