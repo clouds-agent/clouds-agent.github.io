@@ -1595,18 +1595,8 @@ async function loadStatsData(type, days) {
             
             allData.push(...filtered);
             
-            // 检查最后一条数据的时间
-            if (filtered.length > 0) {
-                const lastItem = filtered[filtered.length - 1];
-                const lastDateStr = lastItem.ctime.split(' ')[0]; // "2026-05-15"
-                console.log(`第 ${pageIndex} 页最后一条：${lastItem.ctime}`);
-                
-                // 如果早于截止日期，停止获取（字符串比较）
-                if (cutoffStr && lastDateStr < cutoffStr) {
-                    console.log(`已到达截止日期，停止获取`);
-                    hasMore = false;
-                }
-            }
+            // 不再提前停止！因为 API 返回的数据不是按时间排序的
+            // 必须获取所有数据，然后在后面统一排序和过滤
             
             // 如果获取的数据少于 page_size，说明是最后一页
             if (data.list.length < 100) {
