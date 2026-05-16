@@ -909,51 +909,18 @@ input[type="password"]:focus {
     opacity: 0.9;
 }
 
-.stats-list {
-    margin-top: 1.5rem;
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.stats-list-item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem;
+.chart-wrapper {
     background: #fff;
-    border-radius: 8px;
-    margin-bottom: 0.5rem;
-    border: 1px solid #e5e5e5;
+    border-radius: 12px;
+    padding: 1rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    min-height: 300px;
 }
 
-.stats-list-item img {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    object-fit: cover;
-}
-
-.stats-list-item .info {
-    flex: 1;
-}
-
-.stats-list-item .name {
-    font-weight: 500;
-    color: #1d1d1f;
-}
-
-.stats-list-item .time {
-    font-size: 0.8rem;
-    color: #86868b;
-    margin-top: 0.25rem;
-}
-
-.stats-list-item .action {
-    font-size: 0.85rem;
-    color: #0071e3;
-    background: #e8f4ff;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
+#stats-chart {
+    min-width: 600px;
+    max-height: 300px;
 }
 
 @media (max-width: 768px) {
@@ -978,5 +945,13 @@ input[type="password"]:focus {
     
     .stats-summary {
         grid-template-columns: 1fr;
+    }
+    
+    .chart-wrapper {
+        padding: 0.5rem;
+    }
+    
+    #stats-chart {
+        min-width: 500px;
     }
 }

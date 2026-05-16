@@ -1481,21 +1481,7 @@ jobs:
 // ============ 数据统计 ============
 
 let currentStatsType = 'fans'; // 当前统计类型：fans, like, inherit
-let statsCache = { fans: null, like: null, inherit: null };
-
-// 格式化时间（相对时间）
-function formatRelativeTime(dateStr) {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diff = now - date;
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    
-    if (hours < 1) return '刚刚';
-    if (hours < 24) return `${hours}小时前`;
-    if (days < 30) return `${days}天前`;
-    return date.toLocaleDateString('zh-CN');
-}
+let statsChart = null; // Chart.js 实例
 
 // 按日期分组统计
 function groupByDate(list, dateField = 'ctime') {
@@ -1512,7 +1498,7 @@ function groupByDate(list, dateField = 'ctime') {
 function filterByRange(list, days, dateField = 'ctime') {
     if (days === 'all') return list;
     const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
+    cutoff.setDate(cutoff.getDate() - parseInt(days));
     return list.filter(item => new Date(item[dateField]) >= cutoff);
 }
 
@@ -1530,13 +1516,17 @@ async function loadStatsData(type, days) {
     else if (type === 'inherit') section = 'SEC_INTERACTS';
     
     try {
-        // 获取所有数据（分页）
         const allData = [];
         let pageIndex = 1;
         let hasMore = true;
         
-        while (hasMore && pageIndex <= 50) { // 最多获取 50 页
-            const res = await fetch(`${API_BASE}/v1/message/message-list?section=${section}&page_index=${pageIndex}&page_size=100`, {
+        console.log(`开始加载 ${type} 数据，section=${section}`);
+        
+        while (hasMore && pageIndex <= 100) {
+            const url = `${API_BASE}/v1/message/message-list?section=${section}&page_index=${pageIndex}&page_size=100`;
+            console.log(`请求第 ${pageIndex} 页: ${url}`);
+            
+            const res = await fetch(url, {
                 headers: {
                     'x-token': token,
                     'x-platform': 'nieta-app/web',
@@ -1547,8 +1537,15 @@ async function loadStatsData(type, days) {
                 }
             });
             
-            if (!res.ok) break;
+            console.log(`响应状态：${res.status}`);
+            
+            if (!res.ok) {
+                console.error(`请求失败：${res.status}`);
+                break;
+            }
+            
             const data = await res.json();
+            console.log(`第 ${pageIndex} 页数据量：${data.list?.length || 0}, total=${data.total}`);
             
             if (!data.list || data.list.length === 0) {
                 hasMore = false;
@@ -1558,22 +1555,22 @@ async function loadStatsData(type, days) {
             // 过滤数据
             let filtered = data.list;
             if (type === 'inherit') {
-                // 只保留捏同款
                 filtered = filtered.filter(item => item.action_type === 'inherit');
             }
             
             allData.push(...filtered);
             
-            // 如果获取的数据少于 page_size，说明已经是最后一页
             if (data.list.length < 100) hasMore = false;
             pageIndex++;
             
-            // 避免请求过快
-            await new Promise(r => setTimeout(r, 200));
+            await new Promise(r => setTimeout(r, 150));
         }
+        
+        console.log(`总共获取 ${allData.length} 条数据`);
         
         // 按时间范围过滤
         const filteredData = filterByRange(allData, days);
+        console.log(`过滤后剩余 ${filteredData.length} 条数据`);
         
         return {
             total: filteredData.length,
@@ -1587,62 +1584,104 @@ async function loadStatsData(type, days) {
     }
 }
 
-// 渲染统计图表
+// 渲染统计图表（Chart.js 折线图）
 function renderStatsChart(stats, type) {
-    const chartEl = document.getElementById('stats-chart');
-    if (!chartEl || !stats || !stats.byDate) return;
+    const ctx = document.getElementById('stats-chart');
+    if (!ctx || !stats || !stats.byDate) return;
+    
+    // 销毁旧图表
+    if (statsChart) {
+        statsChart.destroy();
+    }
     
     const dates = Object.keys(stats.byDate).sort();
     const values = dates.map(d => stats.byDate[d]);
     
-    // 简单的柱状图（用 CSS 实现）
-    const maxValue = Math.max(...values, 1);
-    const bars = dates.map((date, i) => {
-        const height = (values[i] / maxValue) * 100;
-        const value = values[i];
-        const shortDate = date.slice(5); // "05-16"
-        return `
-            <div class="chart-bar" style="height: ${height}%; flex: 1;" title="${date}: ${value}">
-                <div class="chart-bar-value">${value}</div>
-                <div class="chart-bar-label">${shortDate}</div>
-            </div>
-        `;
-    }).join('');
+    // 颜色配置
+    const colors = {
+        fans: { border: '#667eea', bg: 'rgba(102, 126, 234, 0.1)' },
+        like: { border: '#f5576c', bg: 'rgba(245, 87, 108, 0.1)' },
+        inherit: { border: '#00f2fe', bg: 'rgba(0, 242, 254, 0.1)' }
+    };
     
-    chartEl.innerHTML = `
-        <div class="chart-container" style="display: flex; align-items: flex-end; gap: 4px; height: 200px; padding: 1rem; background: #fff; border-radius: 8px;">
-            ${bars}
-        </div>
-    `;
-}
-
-// 渲染统计列表
-function renderStatsList(stats, type) {
-    const listEl = document.getElementById('stats-list');
-    if (!listEl || !stats || !stats.list) return;
+    const color = colors[type] || colors.fans;
     
-    // 按时间倒序排列
-    const sorted = [...stats.list].sort((a, b) => new Date(b.ctime) - new Date(a.ctime));
-    
-    const items = sorted.slice(0, 50).map(item => {
-        const actor = item.actors?.[0];
-        const avatar = actor?.avatar_url || 'https://oss.talesofai.cn/fe_assets/mng/19/d61182142f10c60e6ae0d4576d8893f5.png';
-        const name = actor?.nick_name || '未知用户';
-        const action = type === 'fans' ? '关注了你' : (type === 'like' ? '赞了你的作品' : '捏了你的作品');
-        
-        return `
-            <div class="stats-list-item">
-                <img src="${avatar}" alt="${name}" />
-                <div class="info">
-                    <div class="name">${name}</div>
-                    <div class="time">${formatRelativeTime(item.ctime)}</div>
-                </div>
-                <div class="action">${action}</div>
-            </div>
-        `;
-    }).join('');
-    
-    listEl.innerHTML = items || '<div style="text-align:center;color:#86868b;padding:2rem;">暂无数据</div>';
+    statsChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: dates.map(d => d.slice(5)), // "05-16"
+            datasets: [{
+                label: type === 'fans' ? '新增粉丝' : (type === 'like' ? '获赞数' : '捏同款数'),
+                data: values,
+                borderColor: color.border,
+                backgroundColor: color.bg,
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                pointBackgroundColor: color.border,
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    enabled: true,
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleFont: { size: 14 },
+                    bodyFont: { size: 13 },
+                    padding: 12,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: function(context) {
+                            return `数量：${context.parsed.y}`;
+                        },
+                        title: function(items) {
+                            const index = items[0].dataIndex;
+                            const fullDate = dates[index];
+                            return fullDate;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0,
+                        color: '#86868b'
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    ticks: {
+                        color: '#86868b',
+                        maxRotation: 45,
+                        minRotation: 45
+                    },
+                    grid: {
+                        display: false
+                    }
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            }
+        }
+    });
 }
 
 // 渲染统计摘要
@@ -1673,9 +1712,29 @@ function renderStatsSummary(stats, type) {
     `;
 }
 
+// 更新时间选项
+function updateRangeOptions(type) {
+    const select = document.getElementById('stats-range');
+    if (!select) return;
+    
+    // 隐藏所有选项
+    select.querySelectorAll('option').forEach(opt => {
+        opt.style.display = 'none';
+        opt.selected = false;
+    });
+    
+    // 显示对应类型的选项
+    const showOptions = select.querySelectorAll(`option[data-for="${type}"]`);
+    showOptions.forEach((opt, index) => {
+        opt.style.display = 'block';
+        if (index === 0) opt.selected = true; // 默认选第一个
+    });
+}
+
 // 更新统计 UI
 async function updateStatsUI() {
-    const range = document.getElementById('stats-range')?.value || '30';
+    const rangeSelect = document.getElementById('stats-range');
+    const range = rangeSelect?.value || '7';
     const days = range === 'all' ? 'all' : parseInt(range);
     
     const loadBtn = document.getElementById('load-stats');
@@ -1687,10 +1746,8 @@ async function updateStatsUI() {
     const stats = await loadStatsData(currentStatsType, days);
     
     if (stats) {
-        statsCache[currentStatsType] = stats;
         renderStatsSummary(stats, currentStatsType);
         renderStatsChart(stats, currentStatsType);
-        renderStatsList(stats, currentStatsType);
     }
     
     if (loadBtn) {
@@ -1706,6 +1763,7 @@ function setupStats() {
             document.querySelectorAll('.stats-tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
             currentStatsType = tab.dataset.type;
+            updateRangeOptions(currentStatsType);
             updateStatsUI();
         });
     });
