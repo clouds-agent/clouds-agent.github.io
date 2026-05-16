@@ -1582,9 +1582,11 @@ async function loadStatsData(type, days) {
             if (pageIndex === 1) {
                 apiTotal = data.total || 0;
                 console.log(`API 返回总数：${apiTotal}`);
+                console.log(`第 1 页数据量：${data.list?.length || 0}, 最新：${data.list?.[0]?.ctime}`);
             }
             
             if (!data.list || data.list.length === 0) {
+                console.log(`第 ${pageIndex} 页无数据，停止`);
                 hasMore = false;
                 break;
             }
@@ -1596,6 +1598,7 @@ async function loadStatsData(type, days) {
             }
             
             allData.push(...filtered);
+            console.log(`第 ${pageIndex} 页：获取 ${data.list.length} 条，过滤后 ${filtered.length} 条，累计 ${allData.length} 条`);
             
             // 不再提前停止！因为 API 返回的数据不是按时间排序的
             // 必须获取所有数据，然后在后面统一排序和过滤
