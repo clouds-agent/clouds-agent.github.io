@@ -1591,16 +1591,20 @@ async function loadStatsData(type, days) {
                 console.log(`API 返回总数：${apiTotal}`);
                 console.log(`第 1 页数据量：${data.list?.length || 0}, 最新：${data.list?.[0]?.ctime}`);
                 
-                // 检查第 1 页是否是实时数据（最新数据在 24 小时内）
+                // 检查第 1 页是否是实时数据（最新数据在 2 天内）
                 const now = new Date();
                 const chinaNow = new Date(now.getTime() + 8 * 60 * 60 * 1000);
                 const todayStr = chinaNow.toISOString().split('T')[0];
                 const firstItemDate = data.list?.[0]?.ctime?.split(' ')[0];
-                if (firstItemDate === todayStr) {
-                    // 第 1 页是实时数据，后续用 page_size=100 加速
+                
+                // 计算日期差
+                const dateDiff = (new Date(todayStr) - new Date(firstItemDate)) / (1000 * 60 * 60 * 24);
+                
+                if (dateDiff <= 2) {
+                    // 第 1 页是近 2 天的数据，后续用 page_size=100 加速
                     useRealTime = false;
                     pageSize = 100;
-                    console.log(`第 1 页是实时数据 (${firstItemDate})，后续使用 page_size=100 加速`);
+                    console.log(`第 1 页是近 2 天数据 (${firstItemDate})，后续使用 page_size=100 加速`);
                 } else {
                     console.log(`第 1 页数据滞后 (${firstItemDate})，继续使用 page_size=20`);
                 }
