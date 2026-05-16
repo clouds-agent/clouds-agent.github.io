@@ -1540,7 +1540,8 @@ async function loadStatsData(type, days) {
         }
         
         while (hasMore && pageIndex <= 500) {
-            const url = `${API_BASE}/v1/message/message-list?section=${section}&page_index=${pageIndex}&page_size=100`;
+            // 添加时间戳参数，绕过 API 缓存
+            const url = `${API_BASE}/v1/message/message-list?section=${section}&page_index=${pageIndex}&page_size=100&_t=${Date.now()}`;
             
             const res = await fetch(url, {
                 headers: {
@@ -1550,7 +1551,8 @@ async function loadStatsData(type, days) {
                     'x-nieta-app-version': '6.11.5',
                     'x-teen-mode': '0',
                     'device-id': '7545220721081910273'
-                }
+                },
+                cache: 'no-store' // 禁用浏览器缓存
             });
             
             if (!res.ok) {
