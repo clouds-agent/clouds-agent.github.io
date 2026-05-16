@@ -1590,23 +1590,10 @@ async function loadStatsData(type, days) {
                     console.log(`已到达截止日期，停止获取`);
                     hasMore = false;
                 }
-                
-                // 如果第一页的最后一条数据就已经是一个月前的，说明 API 有限制
-                if (pageIndex === 1) {
-                    const daysDiff = (new Date() - lastDate) / (1000 * 60 * 60 * 24);
-                    if (daysDiff > 30) {
-                        console.warn(`⚠️ 第一页数据就只到${daysDiff.toFixed(0)}天前，API 可能有限制`);
-                    }
-                }
             }
             
-            // 如果获取的数据少于 page_size 或者已经达到 API 总数，停止
-            if (data.list.length < 100 || pageIndex * 100 >= apiTotal) {
-                hasMore = false;
-            }
-            
-            // 粉丝数据特殊处理：API 总数可能包含其他类型的消息
-            if (type === 'fans' && pageIndex * 100 >= apiTotal * 0.95) {
+            // 如果获取的数据少于 page_size，说明是最后一页
+            if (data.list.length < 100) {
                 hasMore = false;
             }
             
