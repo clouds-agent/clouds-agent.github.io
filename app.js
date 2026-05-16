@@ -1579,15 +1579,24 @@ async function loadStatsData(type, days) {
             
             allData.push(...filtered);
             
-            // 检查最后一条数据的时间，如果早于截止日期，停止获取
-            if (cutoffDate && filtered.length > 0) {
+            // 检查最后一条数据的时间
+            if (filtered.length > 0) {
                 const lastItem = filtered[filtered.length - 1];
                 const lastDate = new Date(lastItem.ctime);
                 console.log(`第 ${pageIndex} 页最后一条：${lastItem.ctime}`);
                 
-                if (lastDate < cutoffDate) {
+                // 如果早于截止日期，停止获取
+                if (cutoffDate && lastDate < cutoffDate) {
                     console.log(`已到达截止日期，停止获取`);
                     hasMore = false;
+                }
+                
+                // 如果第一页的最后一条数据就已经是一个月前的，说明 API 有限制
+                if (pageIndex === 1) {
+                    const daysDiff = (new Date() - lastDate) / (1000 * 60 * 60 * 24);
+                    if (daysDiff > 30) {
+                        console.warn(`⚠️ 第一页数据就只到${daysDiff.toFixed(0)}天前，API 可能有限制`);
+                    }
                 }
             }
             
@@ -1659,18 +1668,18 @@ function renderStatsChart(stats, type) {
                 borderWidth: 2,
                 fill: true,
                 tension: 0.3,
-                pointRadius: 4,
-                pointHoverRadius: 8,
+                pointRadius: 5,
+                pointHoverRadius: 10,
                 pointBackgroundColor: color.border,
                 pointBorderColor: '#fff',
                 pointBorderWidth: 2,
-                pointHitRadius: 20 // 增大点击范围
+                pointHitRadius: 30 // 增大点击范围
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            devicePixelRatio: 2, // 高清屏
+            devicePixelRatio: window.devicePixelRatio || 1,
             plugins: {
                 legend: {
                     display: false
@@ -1695,21 +1704,6 @@ function renderStatsChart(stats, type) {
                             return fullDate;
                         }
                     }
-                },
-                zoom: {
-                    pan: {
-                        enabled: true,
-                        mode: 'x'
-                    },
-                    zoom: {
-                        wheel: {
-                            enabled: true
-                        },
-                        pinch: {
-                            enabled: true
-                        },
-                        mode: 'x'
-                    }
                 }
             },
             scales: {
@@ -1731,7 +1725,7 @@ function renderStatsChart(stats, type) {
                         maxRotation: 0,
                         minRotation: 0,
                         autoSkip: true,
-                        maxTicksLimit: 10
+                        maxTicksLimit: 8
                     },
                     grid: {
                         display: false
