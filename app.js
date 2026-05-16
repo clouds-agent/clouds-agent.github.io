@@ -27,6 +27,29 @@ function saveToken(token) {
 function clearToken() {
     localStorage.removeItem('neta_token');
     userProfile = null;
+    
+    // 清空点赞状态
+    isRunning = false;
+    isPaused = false;
+    likeStats = { total: 0, byTag: {}, startTime: null, lastIncrease: null };
+    chartData = { labels: [], total: [], byTag: {} };
+    tagPageMap = {};
+    tagFinished = {};
+    
+    // 清空日志和图表
+    const logEl = document.getElementById('like-log');
+    const chartEl = document.getElementById('like-chart');
+    const progressEl = document.getElementById('like-progress');
+    if (logEl) logEl.innerHTML = '';
+    if (chartEl) chartEl.innerHTML = '';
+    if (progressEl) progressEl.innerHTML = '';
+    
+    // 停止 Worker
+    if (likeWorker) {
+        likeWorker.postMessage({ action: 'stop' });
+    }
+    
+    console.log('已清空点赞状态');
 }
 
 function getSavedTags() {
