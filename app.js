@@ -1556,9 +1556,12 @@ async function loadStatsData(type, days) {
             console.log(`截止日期：${cutoffDate.toISOString()}`);
         }
         
+        // 使用较小的 page_size 获取实时数据（page_size=100 会返回缓存数据）
+        const pageSize = 20;
+        
         while (hasMore && pageIndex <= 500) {
             // 添加时间戳 + 随机数参数，绕过 API 缓存
-            const url = `${API_BASE}/v1/message/message-list?section=${section}&page_index=${pageIndex}&page_size=100&_t=${Date.now()}_&r=${Math.random()}`;
+            const url = `${API_BASE}/v1/message/message-list?section=${section}&page_index=${pageIndex}&page_size=${pageSize}&_t=${Date.now()}_&r=${Math.random()}`;
             
             const res = await fetch(url, {
                 headers: {
@@ -1607,7 +1610,7 @@ async function loadStatsData(type, days) {
             // 必须获取所有数据，然后在后面统一排序和过滤
             
             // 如果获取的数据少于 page_size，说明是最后一页
-            if (data.list.length < 100) {
+            if (data.list.length < pageSize) {
                 hasMore = false;
             }
             
