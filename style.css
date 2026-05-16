@@ -915,12 +915,13 @@ input[type="password"]:focus {
     padding: 1rem;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    min-height: 300px;
+    min-height: 350px;
+    position: relative;
 }
 
 #stats-chart {
-    min-width: 600px;
-    max-height: 300px;
+    min-width: 500px;
+    max-height: 350px;
 }
 
 @media (max-width: 768px) {

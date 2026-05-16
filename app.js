@@ -1508,7 +1508,7 @@ function filterByRange(list, days, dateField = 'ctime') {
 }
 
 // 加载统计数据
-// 加载统计数据
+// 加载统计数据（优化：按时间范围提前停止）
 async function loadStatsData(type, days) {
     const token = getToken();
     if (!token) {
@@ -1521,13 +1521,24 @@ async function loadStatsData(type, days) {
     else if (type === 'like') section = 'SEC_LIKE';
     else if (type === 'inherit') section = 'SEC_INTERACTS';
     
+    // 计算截止日期（用于提前停止）
+    let cutoffDate = null;
+    if (days !== 'all') {
+        cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - parseInt(days));
+        cutoffDate.setHours(0, 0, 0, 0);
+    }
+    
     try {
         const allData = [];
         let pageIndex = 1;
         let hasMore = true;
         let apiTotal = 0;
         
-        console.log(`开始加载 ${type} 数据，section=${section}`);
+        console.log(`开始加载 ${type} 数据，section=${section}, days=${days}`);
+        if (cutoffDate) {
+            console.log(`截止日期：${cutoffDate.toISOString()}`);
+        }
         
         while (hasMore && pageIndex <= 500) {
             const url = `${API_BASE}/v1/message/message-list?section=${section}&page_index=${pageIndex}&page_size=100`;
@@ -1568,12 +1579,23 @@ async function loadStatsData(type, days) {
             
             allData.push(...filtered);
             
-            console.log(`第 ${pageIndex} 页：获取 ${data.list.length} 条，累计 ${allData.length} 条`);
+            // 检查最后一条数据的时间，如果早于截止日期，停止获取
+            if (cutoffDate && filtered.length > 0) {
+                const lastItem = filtered[filtered.length - 1];
+                const lastDate = new Date(lastItem.ctime);
+                console.log(`第 ${pageIndex} 页最后一条：${lastItem.ctime}`);
+                
+                if (lastDate < cutoffDate) {
+                    console.log(`已到达截止日期，停止获取`);
+                    hasMore = false;
+                }
+            }
             
             // 如果获取的数据少于 page_size 或者已经达到 API 总数，停止
             if (data.list.length < 100 || pageIndex * 100 >= apiTotal) {
                 hasMore = false;
             }
+            
             pageIndex++;
             
             await new Promise(r => setTimeout(r, 100));
@@ -1636,17 +1658,19 @@ function renderStatsChart(stats, type) {
                 backgroundColor: color.bg,
                 borderWidth: 2,
                 fill: true,
-                tension: 0.4,
-                pointRadius: 5,
-                pointHoverRadius: 7,
+                tension: 0.3,
+                pointRadius: 4,
+                pointHoverRadius: 8,
                 pointBackgroundColor: color.border,
                 pointBorderColor: '#fff',
-                pointBorderWidth: 2
+                pointBorderWidth: 2,
+                pointHitRadius: 20 // 增大点击范围
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            devicePixelRatio: 2, // 高清屏
             plugins: {
                 legend: {
                     display: false
@@ -1655,11 +1679,12 @@ function renderStatsChart(stats, type) {
                     enabled: true,
                     mode: 'index',
                     intersect: false,
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    titleFont: { size: 14 },
+                    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                    titleFont: { size: 14, weight: 'bold' },
                     bodyFont: { size: 13 },
                     padding: 12,
                     cornerRadius: 8,
+                    displayColors: false,
                     callbacks: {
                         label: function(context) {
                             return `数量：${context.parsed.y}`;
@@ -1670,6 +1695,21 @@ function renderStatsChart(stats, type) {
                             return fullDate;
                         }
                     }
+                },
+                zoom: {
+                    pan: {
+                        enabled: true,
+                        mode: 'x'
+                    },
+                    zoom: {
+                        wheel: {
+                            enabled: true
+                        },
+                        pinch: {
+                            enabled: true
+                        },
+                        mode: 'x'
+                    }
                 }
             },
             scales: {
@@ -1677,7 +1717,8 @@ function renderStatsChart(stats, type) {
                     beginAtZero: true,
                     ticks: {
                         precision: 0,
-                        color: '#86868b'
+                        color: '#86868b',
+                        font: { size: 12 }
                     },
                     grid: {
                         color: 'rgba(0, 0, 0, 0.05)'
@@ -1686,8 +1727,11 @@ function renderStatsChart(stats, type) {
                 x: {
                     ticks: {
                         color: '#86868b',
-                        maxRotation: 45,
-                        minRotation: 45
+                        font: { size: 11 },
+                        maxRotation: 0,
+                        minRotation: 0,
+                        autoSkip: true,
+                        maxTicksLimit: 10
                     },
                     grid: {
                         display: false
