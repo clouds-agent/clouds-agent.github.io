@@ -1557,8 +1557,8 @@ async function loadStatsData(type, days) {
         }
         
         while (hasMore && pageIndex <= 500) {
-            // 添加时间戳参数，绕过 API 缓存
-            const url = `${API_BASE}/v1/message/message-list?section=${section}&page_index=${pageIndex}&page_size=100&_t=${Date.now()}`;
+            // 添加时间戳 + 随机数参数，绕过 API 缓存
+            const url = `${API_BASE}/v1/message/message-list?section=${section}&page_index=${pageIndex}&page_size=100&_t=${Date.now()}_&r=${Math.random()}`;
             
             const res = await fetch(url, {
                 headers: {
@@ -1567,7 +1567,10 @@ async function loadStatsData(type, days) {
                     'x-app-bundle-version': '6.11.5',
                     'x-nieta-app-version': '6.11.5',
                     'x-teen-mode': '0',
-                    'device-id': '7545220721081910273'
+                    'device-id': '7545220721081910273',
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
                 },
                 cache: 'no-store' // 禁用浏览器缓存
             });
