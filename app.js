@@ -1494,11 +1494,28 @@ function groupByDate(list, dateField = 'ctime') {
     return stats;
 }
 
-// 获取指定天数的数据（简化：all 选项返回全部，其他选项暂不实现过滤）
+// 获取指定天数的数据
 function filterByRange(list, days, dateField = 'ctime') {
-    // 暂时返回所有数据，不过滤
-    // 因为 API 数据本身就不是实时的，过滤后反而显示 0 条
-    return list;
+    if (days === 'all') return list;
+    
+    // 获取当前中国时间的日期字符串
+    const now = new Date();
+    const chinaNow = new Date(now.getTime() + 8 * 60 * 60 * 1000); // UTC+8
+    const todayStr = chinaNow.toISOString().split('T')[0]; // "2026-05-17"
+    
+    const cutoffDays = parseInt(days);
+    const cutoffDate = new Date(chinaNow);
+    cutoffDate.setDate(cutoffDate.getDate() - cutoffDays);
+    cutoffDate.setHours(0, 0, 0, 0);
+    const cutoffStr = cutoffDate.toISOString().split('T')[0]; // "2026-05-16"
+    
+    console.log(`[filterByRange] todayStr=${todayStr}, cutoffStr=${cutoffStr}, days=${days}`);
+    
+    return list.filter(item => {
+        // 直接比较日期字符串 "2026-05-16" >= "2026-05-16"
+        const itemDateStr = item[dateField].split(' ')[0]; // "2026-05-15"
+        return itemDateStr >= cutoffStr;
+    });
 }
 
 // 加载统计数据
