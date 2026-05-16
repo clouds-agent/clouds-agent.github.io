@@ -1499,9 +1499,15 @@ function filterByRange(list, days, dateField = 'ctime') {
     if (days === 'all') return list;
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - parseInt(days));
-    return list.filter(item => new Date(item[dateField]) >= cutoff);
+    cutoff.setHours(0, 0, 0, 0); // 设置为当天 0 点
+    
+    return list.filter(item => {
+        const itemDate = new Date(item[dateField]);
+        return itemDate >= cutoff;
+    });
 }
 
+// 加载统计数据
 // 加载统计数据
 async function loadStatsData(type, days) {
     const token = getToken();
@@ -1519,12 +1525,12 @@ async function loadStatsData(type, days) {
         const allData = [];
         let pageIndex = 1;
         let hasMore = true;
+        let apiTotal = 0;
         
         console.log(`开始加载 ${type} 数据，section=${section}`);
         
-        while (hasMore && pageIndex <= 100) {
+        while (hasMore && pageIndex <= 500) {
             const url = `${API_BASE}/v1/message/message-list?section=${section}&page_index=${pageIndex}&page_size=100`;
-            console.log(`请求第 ${pageIndex} 页: ${url}`);
             
             const res = await fetch(url, {
                 headers: {
@@ -1537,15 +1543,17 @@ async function loadStatsData(type, days) {
                 }
             });
             
-            console.log(`响应状态：${res.status}`);
-            
             if (!res.ok) {
                 console.error(`请求失败：${res.status}`);
                 break;
             }
             
             const data = await res.json();
-            console.log(`第 ${pageIndex} 页数据量：${data.list?.length || 0}, total=${data.total}`);
+            
+            if (pageIndex === 1) {
+                apiTotal = data.total || 0;
+                console.log(`API 返回总数：${apiTotal}`);
+            }
             
             if (!data.list || data.list.length === 0) {
                 hasMore = false;
@@ -1560,10 +1568,15 @@ async function loadStatsData(type, days) {
             
             allData.push(...filtered);
             
-            if (data.list.length < 100) hasMore = false;
+            console.log(`第 ${pageIndex} 页：获取 ${data.list.length} 条，累计 ${allData.length} 条`);
+            
+            // 如果获取的数据少于 page_size 或者已经达到 API 总数，停止
+            if (data.list.length < 100 || pageIndex * 100 >= apiTotal) {
+                hasMore = false;
+            }
             pageIndex++;
             
-            await new Promise(r => setTimeout(r, 150));
+            await new Promise(r => setTimeout(r, 100));
         }
         
         console.log(`总共获取 ${allData.length} 条数据`);
@@ -1572,9 +1585,15 @@ async function loadStatsData(type, days) {
         const filteredData = filterByRange(allData, days);
         console.log(`过滤后剩余 ${filteredData.length} 条数据`);
         
+        // 调试：打印第一条和最后一条数据的时间
+        if (allData.length > 0) {
+            console.log(`最新数据时间：${allData[0].ctime}`);
+            console.log(`最旧数据时间：${allData[allData.length - 1].ctime}`);
+        }
+        
         return {
             total: filteredData.length,
-            allTotal: allData.length,
+            allTotal: apiTotal,
             list: filteredData,
             byDate: groupByDate(filteredData)
         };
@@ -1583,9 +1602,6 @@ async function loadStatsData(type, days) {
         return null;
     }
 }
-
-// 渲染统计图表（Chart.js 折线图）
-function renderStatsChart(stats, type) {
     const ctx = document.getElementById('stats-chart');
     if (!ctx || !stats || !stats.byDate) return;
     
