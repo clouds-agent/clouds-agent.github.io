@@ -1616,9 +1616,21 @@ async function loadStatsData(type, days) {
             console.warn(`⚠️ 所有数据都被过滤掉了！最新数据是${allData[0].ctime.split(' ')[0]}，早于截止日期${cutoffStr}`);
         }
         
+        // 粉丝/点赞/捏同款的总数从 userProfile 获取（更准确）
+        let displayTotal = apiTotal;
+        if (userProfile) {
+            if (type === 'like') {
+                displayTotal = parseInt(userProfile.total_likes) || apiTotal;
+            } else if (type === 'inherit') {
+                displayTotal = parseInt(userProfile.total_same_style) || apiTotal;
+            } else if (type === 'fans') {
+                displayTotal = userProfile.total_fans || apiTotal;
+            }
+        }
+        
         return {
             total: filteredData.length,
-            allTotal: apiTotal,
+            allTotal: displayTotal, // 显示准确的总数
             list: filteredData,
             byDate: groupByDate(filteredData)
         };
