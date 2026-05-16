@@ -1602,6 +1602,9 @@ async function loadStatsData(type, days) {
         return null;
     }
 }
+
+// 渲染统计图表（Chart.js 折线图）
+function renderStatsChart(stats, type) {
     const ctx = document.getElementById('stats-chart');
     if (!ctx || !stats || !stats.byDate) return;
     
