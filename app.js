@@ -1498,21 +1498,23 @@ function groupByDate(list, dateField = 'ctime') {
 function filterByRange(list, days, dateField = 'ctime') {
     if (days === 'all') return list;
     
-    // API 返回的是中国时间（UTC+8），需要统一时区
+    // API 返回的是中国时间字符串 "2026-05-15 21:07:43"
+    // 我们直接按字符串比较日期部分（YYYY-MM-DD）
     const now = new Date();
-    // 获取当前 UTC 时间，然后 +8 小时转为中国时间
+    // 获取当前中国时间的日期字符串
     const chinaNow = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+    const todayStr = chinaNow.toISOString().split('T')[0]; // "2026-05-16"
     
-    const cutoff = new Date(chinaNow);
-    cutoff.setDate(cutoff.getDate() - parseInt(days));
-    cutoff.setHours(0, 0, 0, 0); // 中国时间 0 点
+    const cutoffDays = parseInt(days);
+    const cutoffDate = new Date(chinaNow);
+    cutoffDate.setDate(cutoffDate.getDate() - cutoffDays);
+    cutoffDate.setHours(0, 0, 0, 0);
+    const cutoffStr = cutoffDate.toISOString().split('T')[0]; // "2026-05-15"
     
     return list.filter(item => {
-        // 将 API 返回的时间（中国时间格式）解析为中国时间
-        const timeStr = item[dateField]; // "2026-05-15 21:07:43"
-        // 替换空格为 T，添加 +08:00 时区标识
-        const itemDate = new Date(timeStr.replace(' ', 'T') + '+08:00');
-        return itemDate >= cutoff;
+        // 直接比较日期字符串 "2026-05-15" >= "2026-05-15"
+        const itemDateStr = item[dateField].split(' ')[0]; // "2026-05-15"
+        return itemDateStr >= cutoffStr;
     });
 }
 
@@ -1532,13 +1534,15 @@ async function loadStatsData(type, days) {
     
     // 计算截止日期（用于提前停止）- 使用中国时间
     let cutoffDate = null;
+    let cutoffStr = null;
     if (days !== 'all') {
         const now = new Date();
         const chinaNow = new Date(now.getTime() + 8 * 60 * 60 * 1000); // UTC+8
         cutoffDate = new Date(chinaNow);
         cutoffDate.setDate(cutoffDate.getDate() - parseInt(days));
         cutoffDate.setHours(0, 0, 0, 0);
-        console.log(`截止日期（中国时间）：${cutoffDate.toISOString()}`);
+        cutoffStr = cutoffDate.toISOString().split('T')[0]; // "2026-05-15"
+        console.log(`截止日期字符串：${cutoffStr}`);
     }
     
     try {
@@ -1594,12 +1598,11 @@ async function loadStatsData(type, days) {
             // 检查最后一条数据的时间
             if (filtered.length > 0) {
                 const lastItem = filtered[filtered.length - 1];
-                // 将 API 返回的时间（中国时间格式）解析为中国时间
-                const lastDate = new Date(lastItem.ctime.replace(' ', 'T') + '+08:00');
+                const lastDateStr = lastItem.ctime.split(' ')[0]; // "2026-05-15"
                 console.log(`第 ${pageIndex} 页最后一条：${lastItem.ctime}`);
                 
-                // 如果早于截止日期，停止获取
-                if (cutoffDate && lastDate < cutoffDate) {
+                // 如果早于截止日期，停止获取（字符串比较）
+                if (cutoffStr && lastDateStr < cutoffStr) {
                     console.log(`已到达截止日期，停止获取`);
                     hasMore = false;
                 }
