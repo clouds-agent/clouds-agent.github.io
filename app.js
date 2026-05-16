@@ -1620,6 +1620,11 @@ async function loadStatsData(type, days) {
         
         console.log(`总共获取 ${allData.length} 条数据`);
         
+        // 按时间倒序排序（确保最新数据在前面）
+        allData.sort((a, b) => {
+            return b.ctime.localeCompare(a.ctime);
+        });
+        
         // 调试：打印第一条和最后一条数据的时间
         if (allData.length > 0) {
             console.log(`最新数据时间：${allData[0].ctime}`);
