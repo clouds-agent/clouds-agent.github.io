@@ -827,3 +827,156 @@ input[type="password"]:focus {
         font-size: 0.85rem;
     }
 }
+
+/* 数据统计样式 */
+.stats-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.stats-tab {
+    padding: 0.5rem 1.25rem;
+    border: 1px solid #e5e5e5;
+    background: #fff;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #86868b;
+    transition: all 0.2s;
+}
+
+.stats-tab:hover {
+    background: #f5f5f7;
+    color: #1d1d1f;
+}
+
+.stats-tab.active {
+    background: #0071e3;
+    color: #fff;
+    border-color: #0071e3;
+}
+
+.stats-controls {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    align-items: center;
+}
+
+.stats-select {
+    padding: 0.5rem 1rem;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    background: #fff;
+    cursor: pointer;
+    min-width: 120px;
+}
+
+.stats-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    padding: 1rem;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.stat-card.like {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.stat-card.inherit {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.stat-card .stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.stat-card .stat-label {
+    font-size: 0.8rem;
+    opacity: 0.9;
+}
+
+.stats-list {
+    margin-top: 1.5rem;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.stats-list-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: #fff;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    border: 1px solid #e5e5e5;
+}
+
+.stats-list-item img {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.stats-list-item .info {
+    flex: 1;
+}
+
+.stats-list-item .name {
+    font-weight: 500;
+    color: #1d1d1f;
+}
+
+.stats-list-item .time {
+    font-size: 0.8rem;
+    color: #86868b;
+    margin-top: 0.25rem;
+}
+
+.stats-list-item .action {
+    font-size: 0.85rem;
+    color: #0071e3;
+    background: #e8f4ff;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+@media (max-width: 768px) {
+    .stats-tabs {
+        flex-wrap: wrap;
+    }
+    
+    .stats-tab {
+        flex: 1;
+        min-width: 80px;
+        text-align: center;
+    }
+    
+    .stats-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .stats-select {
+        width: 100%;
+    }
+    
+    .stats-summary {
+        grid-template-columns: 1fr;
+    }
+}

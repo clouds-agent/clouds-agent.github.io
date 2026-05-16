@@ -51,6 +51,26 @@
         <!-- 工具页 -->
         <section id="tools" class="section">
             <div class="card">
+                <h3>📊 数据统计</h3>
+                <div class="stats-tabs">
+                    <button class="stats-tab active" data-type="fans">粉丝</button>
+                    <button class="stats-tab" data-type="like">点赞</button>
+                    <button class="stats-tab" data-type="inherit">捏同款</button>
+                </div>
+                <div class="stats-controls">
+                    <select id="stats-range" class="stats-select">
+                        <option value="7">最近 7 天</option>
+                        <option value="30" selected>最近 30 天</option>
+                        <option value="90">最近 90 天</option>
+                        <option value="all">全部</option>
+                    </select>
+                    <button id="load-stats" class="btn btn-primary">加载数据</button>
+                </div>
+                <div id="stats-summary" class="stats-summary"></div>
+                <div id="stats-chart" class="chart"></div>
+                <div id="stats-list" class="stats-list"></div>
+            </div>
+            <div class="card">
                 <h3>UUID 查询</h3>
                 <div class="search-box">
                     <input type="text" id="uuid-search" placeholder="搜索角色或元素（输入关键词自动联想）" autocomplete="off" />

@@ -1478,6 +1478,245 @@ jobs:
     }
 }
 
+// ============ 数据统计 ============
+
+let currentStatsType = 'fans'; // 当前统计类型：fans, like, inherit
+let statsCache = { fans: null, like: null, inherit: null };
+
+// 格式化时间（相对时间）
+function formatRelativeTime(dateStr) {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diff = now - date;
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    
+    if (hours < 1) return '刚刚';
+    if (hours < 24) return `${hours}小时前`;
+    if (days < 30) return `${days}天前`;
+    return date.toLocaleDateString('zh-CN');
+}
+
+// 按日期分组统计
+function groupByDate(list, dateField = 'ctime') {
+    const stats = {};
+    list.forEach(item => {
+        const date = item[dateField].split(' ')[0]; // "2026-05-16"
+        if (!stats[date]) stats[date] = 0;
+        stats[date]++;
+    });
+    return stats;
+}
+
+// 获取指定天数的数据
+function filterByRange(list, days, dateField = 'ctime') {
+    if (days === 'all') return list;
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    return list.filter(item => new Date(item[dateField]) >= cutoff);
+}
+
+// 加载统计数据
+async function loadStatsData(type, days) {
+    const token = getToken();
+    if (!token) {
+        alert('请先登录');
+        return null;
+    }
+    
+    let section;
+    if (type === 'fans') section = 'SEC_SUBSCRIBE';
+    else if (type === 'like') section = 'SEC_LIKE';
+    else if (type === 'inherit') section = 'SEC_INTERACTS';
+    
+    try {
+        // 获取所有数据（分页）
+        const allData = [];
+        let pageIndex = 1;
+        let hasMore = true;
+        
+        while (hasMore && pageIndex <= 50) { // 最多获取 50 页
+            const res = await fetch(`${API_BASE}/v1/message/message-list?section=${section}&page_index=${pageIndex}&page_size=100`, {
+                headers: {
+                    'x-token': token,
+                    'x-platform': 'nieta-app/web',
+                    'x-app-bundle-version': '6.11.5',
+                    'x-nieta-app-version': '6.11.5',
+                    'x-teen-mode': '0',
+                    'device-id': '7545220721081910273'
+                }
+            });
+            
+            if (!res.ok) break;
+            const data = await res.json();
+            
+            if (!data.list || data.list.length === 0) {
+                hasMore = false;
+                break;
+            }
+            
+            // 过滤数据
+            let filtered = data.list;
+            if (type === 'inherit') {
+                // 只保留捏同款
+                filtered = filtered.filter(item => item.action_type === 'inherit');
+            }
+            
+            allData.push(...filtered);
+            
+            // 如果获取的数据少于 page_size，说明已经是最后一页
+            if (data.list.length < 100) hasMore = false;
+            pageIndex++;
+            
+            // 避免请求过快
+            await new Promise(r => setTimeout(r, 200));
+        }
+        
+        // 按时间范围过滤
+        const filteredData = filterByRange(allData, days);
+        
+        return {
+            total: filteredData.length,
+            allTotal: allData.length,
+            list: filteredData,
+            byDate: groupByDate(filteredData)
+        };
+    } catch (error) {
+        console.error('加载统计数据失败:', error);
+        return null;
+    }
+}
+
+// 渲染统计图表
+function renderStatsChart(stats, type) {
+    const chartEl = document.getElementById('stats-chart');
+    if (!chartEl || !stats || !stats.byDate) return;
+    
+    const dates = Object.keys(stats.byDate).sort();
+    const values = dates.map(d => stats.byDate[d]);
+    
+    // 简单的柱状图（用 CSS 实现）
+    const maxValue = Math.max(...values, 1);
+    const bars = dates.map((date, i) => {
+        const height = (values[i] / maxValue) * 100;
+        const value = values[i];
+        const shortDate = date.slice(5); // "05-16"
+        return `
+            <div class="chart-bar" style="height: ${height}%; flex: 1;" title="${date}: ${value}">
+                <div class="chart-bar-value">${value}</div>
+                <div class="chart-bar-label">${shortDate}</div>
+            </div>
+        `;
+    }).join('');
+    
+    chartEl.innerHTML = `
+        <div class="chart-container" style="display: flex; align-items: flex-end; gap: 4px; height: 200px; padding: 1rem; background: #fff; border-radius: 8px;">
+            ${bars}
+        </div>
+    `;
+}
+
+// 渲染统计列表
+function renderStatsList(stats, type) {
+    const listEl = document.getElementById('stats-list');
+    if (!listEl || !stats || !stats.list) return;
+    
+    // 按时间倒序排列
+    const sorted = [...stats.list].sort((a, b) => new Date(b.ctime) - new Date(a.ctime));
+    
+    const items = sorted.slice(0, 50).map(item => {
+        const actor = item.actors?.[0];
+        const avatar = actor?.avatar_url || 'https://oss.talesofai.cn/fe_assets/mng/19/d61182142f10c60e6ae0d4576d8893f5.png';
+        const name = actor?.nick_name || '未知用户';
+        const action = type === 'fans' ? '关注了你' : (type === 'like' ? '赞了你的作品' : '捏了你的作品');
+        
+        return `
+            <div class="stats-list-item">
+                <img src="${avatar}" alt="${name}" />
+                <div class="info">
+                    <div class="name">${name}</div>
+                    <div class="time">${formatRelativeTime(item.ctime)}</div>
+                </div>
+                <div class="action">${action}</div>
+            </div>
+        `;
+    }).join('');
+    
+    listEl.innerHTML = items || '<div style="text-align:center;color:#86868b;padding:2rem;">暂无数据</div>';
+}
+
+// 渲染统计摘要
+function renderStatsSummary(stats, type) {
+    const summaryEl = document.getElementById('stats-summary');
+    if (!summaryEl || !stats) return;
+    
+    const typeLabel = type === 'fans' ? '粉丝' : (type === 'like' ? '点赞' : '捏同款');
+    const classPrefix = type === 'fans' ? '' : (type === 'like' ? 'like' : 'inherit');
+    
+    // 计算日均
+    const dateCount = Object.keys(stats.byDate).length || 1;
+    const avgPerDay = (stats.total / dateCount).toFixed(1);
+    
+    summaryEl.innerHTML = `
+        <div class="stat-card ${classPrefix}">
+            <div class="stat-value">${stats.total}</div>
+            <div class="stat-label">总计${typeLabel}</div>
+        </div>
+        <div class="stat-card ${classPrefix}">
+            <div class="stat-value">${avgPerDay}</div>
+            <div class="stat-label">日均${typeLabel}</div>
+        </div>
+        <div class="stat-card ${classPrefix}">
+            <div class="stat-value">${stats.allTotal}</div>
+            <div class="stat-label">历史总量</div>
+        </div>
+    `;
+}
+
+// 更新统计 UI
+async function updateStatsUI() {
+    const range = document.getElementById('stats-range')?.value || '30';
+    const days = range === 'all' ? 'all' : parseInt(range);
+    
+    const loadBtn = document.getElementById('load-stats');
+    if (loadBtn) {
+        loadBtn.disabled = true;
+        loadBtn.textContent = '加载中...';
+    }
+    
+    const stats = await loadStatsData(currentStatsType, days);
+    
+    if (stats) {
+        statsCache[currentStatsType] = stats;
+        renderStatsSummary(stats, currentStatsType);
+        renderStatsChart(stats, currentStatsType);
+        renderStatsList(stats, currentStatsType);
+    }
+    
+    if (loadBtn) {
+        loadBtn.disabled = false;
+        loadBtn.textContent = '加载数据';
+    }
+}
+
+function setupStats() {
+    // 切换统计类型
+    document.querySelectorAll('.stats-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.stats-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            currentStatsType = tab.dataset.type;
+            updateStatsUI();
+        });
+    });
+    
+    // 加载数据按钮
+    const loadBtn = document.getElementById('load-stats');
+    if (loadBtn) {
+        loadBtn.addEventListener('click', () => updateStatsUI());
+    }
+}
+
 // ============ 初始化 ============
 
 function init() {
@@ -1492,6 +1731,7 @@ function init() {
     setupRanking();
     setupUUIDSearch();
     setupCheckin();
+    setupStats();
     loadHotTags();
     
     // 渲染已保存的标签
