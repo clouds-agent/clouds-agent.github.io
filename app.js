@@ -1620,14 +1620,20 @@ async function loadStatsData(type, days) {
         
         console.log(`总共获取 ${allData.length} 条数据`);
         
-        // 按时间范围过滤
-        const filteredData = filterByRange(allData, days);
-        console.log(`过滤后剩余 ${filteredData.length} 条数据`);
-        
         // 调试：打印第一条和最后一条数据的时间
         if (allData.length > 0) {
             console.log(`最新数据时间：${allData[0].ctime}`);
             console.log(`最旧数据时间：${allData[allData.length - 1].ctime}`);
+        }
+        
+        // 按时间范围过滤
+        const filteredData = filterByRange(allData, days);
+        console.log(`过滤后剩余 ${filteredData.length} 条数据`);
+        console.log(`时间范围：最近${days === 'all' ? '全部' : days + '天'}, cutoffStr=${cutoffStr}`);
+        
+        // 如果过滤后为 0，显示警告
+        if (allData.length > 0 && filteredData.length === 0) {
+            console.warn(`⚠️ 所有数据都被过滤掉了！最新数据是${allData[0].ctime.split(' ')[0]}，早于截止日期${cutoffStr}`);
         }
         
         return {
