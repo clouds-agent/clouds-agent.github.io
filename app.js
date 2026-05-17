@@ -1556,8 +1556,12 @@ async function loadStatsData(type, days) {
             console.log(`截止日期：${cutoffDate.toISOString()}`);
         }
         
-        // 智能 page_size：先用小数据量获取实时数据，确认后用大数据量加速
-        let pageSize = 20; // 第 1 页用小数据量
+        // 智能 page_size 策略（基于测试结果）：
+        // page_size <= 3: 实时数据（当天）
+        // page_size 5-10: 滞后 1 天
+        // page_size 20: 滞后 2 天
+        // page_size >= 50: 严重滞后
+        let pageSize = 3; // 第 1 页用 page_size=3 获取实时数据
         let useRealTime = true; // 是否使用实时模式
         
         while (hasMore && pageIndex <= 500) {
@@ -1600,13 +1604,13 @@ async function loadStatsData(type, days) {
                 // 计算日期差
                 const dateDiff = (new Date(todayStr) - new Date(firstItemDate)) / (1000 * 60 * 60 * 24);
                 
-                if (dateDiff <= 2) {
-                    // 第 1 页是近 2 天的数据，后续用 page_size=100 加速
+                if (dateDiff <= 1) {
+                    // 第 1 页是近 1 天的数据，后续用 page_size=50 加速（50 会滞后到 5 月 2 日，但比 100 好）
                     useRealTime = false;
-                    pageSize = 100;
-                    console.log(`第 1 页是近 2 天数据 (${firstItemDate})，后续使用 page_size=100 加速`);
+                    pageSize = 50;
+                    console.log(`第 1 页是近 1 天数据 (${firstItemDate})，后续使用 page_size=50 加速`);
                 } else {
-                    console.log(`第 1 页数据滞后 (${firstItemDate})，继续使用 page_size=20`);
+                    console.log(`第 1 页数据滞后 (${firstItemDate})，继续使用 page_size=3`);
                 }
             }
             
