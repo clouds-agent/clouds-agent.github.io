@@ -1658,9 +1658,17 @@ async function loadStatsData(type, days) {
         }
         
         // 按时间范围过滤
+        console.log(`[loadStatsData] 调用 filterByRange, days=${days}, allData.length=${allData.length}`);
         const filteredData = filterByRange(allData, days);
         console.log(`过滤后剩余 ${filteredData.length} 条数据`);
         console.log(`时间范围：最近${days === 'all' ? '全部' : days + '天'}, cutoffStr=${cutoffStr}`);
+        
+        // 调试：打印过滤后的日期分布
+        if (filteredData.length > 0) {
+            const dates = filteredData.map(d => d.ctime.split(' ')[0]);
+            const uniqueDates = [...new Set(dates)].sort();
+            console.log(`过滤后的日期分布：${uniqueDates.join(', ')}`);
+        }
         
         // 如果过滤后为 0，显示警告
         if (allData.length > 0 && filteredData.length === 0) {
@@ -1858,6 +1866,8 @@ async function updateStatsUI() {
     const range = rangeSelect?.value || '7';
     const days = range === 'all' ? 'all' : parseInt(range);
     
+    console.log(`[updateStatsUI] type=${currentStatsType}, range=${range}, days=${days}`);
+    
     const loadBtn = document.getElementById('load-stats');
     if (loadBtn) {
         loadBtn.disabled = true;
@@ -1867,6 +1877,7 @@ async function updateStatsUI() {
     const stats = await loadStatsData(currentStatsType, days);
     
     if (stats) {
+        console.log(`[updateStatsUI] 加载完成，total=${stats.total}, byDate 键数量=${Object.keys(stats.byDate).length}`);
         renderStatsSummary(stats, currentStatsType);
         renderStatsChart(stats, currentStatsType);
     }
