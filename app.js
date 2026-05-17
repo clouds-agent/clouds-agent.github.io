@@ -1833,13 +1833,6 @@ function renderStatsSummary(stats, type) {
     `;
 }
 
-// 每个类型的默认选项
-const defaultRange = {
-    fans: '7',      // 默认 1 周
-    like: '7',      // 默认 1 周
-    inherit: '14'   // 默认 2 周
-};
-
 // 更新时间选项
 function updateRangeOptions(type) {
     const select = document.getElementById('stats-range');
@@ -1851,18 +1844,12 @@ function updateRangeOptions(type) {
         opt.selected = false;
     });
     
-    // 显示对应类型的选项
-    const showOptions = Array.from(select.querySelectorAll(`option[data-for="${type}"]`));
-    showOptions.forEach(opt => {
+    // 显示对应类型的选项，并选中第一个
+    const showOptions = select.querySelectorAll(`option[data-for="${type}"]`);
+    showOptions.forEach((opt, index) => {
         opt.style.display = 'block';
+        if (index === 0) opt.selected = true; // 默认选第一个
     });
-    
-    // 选择默认值或第一个
-    const defaultVal = defaultRange[type] || showOptions[0]?.value;
-    const defaultOpt = showOptions.find(opt => opt.value === defaultVal) || showOptions[0];
-    if (defaultOpt) {
-        defaultOpt.selected = true;
-    }
 }
 
 // 更新统计 UI
@@ -1915,6 +1902,19 @@ function setupStats() {
     const loadBtn = document.getElementById('load-stats');
     if (loadBtn) {
         loadBtn.addEventListener('click', () => updateStatsUI());
+    }
+    
+    // 时间选项变化时，自动更新选中状态（确保只选中当前类型的一个选项）
+    const rangeSelect = document.getElementById('stats-range');
+    if (rangeSelect) {
+        rangeSelect.addEventListener('change', () => {
+            const type = currentStatsType;
+            const selectedValue = rangeSelect.value;
+            // 确保同类型的其他选项不被选中
+            rangeSelect.querySelectorAll(`option[data-for="${type}"]`).forEach(opt => {
+                opt.selected = (opt.value === selectedValue);
+            });
+        });
     }
 }
 

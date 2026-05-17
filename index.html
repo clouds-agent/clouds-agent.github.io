@@ -62,20 +62,20 @@
                     <select id="stats-range" class="stats-select">
                         <!-- 粉丝选项 -->
                         <option value="1" data-for="fans">最近 1 天</option>
-                        <option value="7" data-for="fans">最近 1 周</option>
+                        <option value="7" data-for="fans" selected>最近 1 周</option>
                         <option value="30" data-for="fans">最近 1 月</option>
                         <option value="90" data-for="fans">最近 3 月</option>
                         <option value="all" data-for="fans">全部</option>
                         <!-- 点赞选项 -->
-                        <option value="1" data-for="like">最近 1 天</option>
-                        <option value="3" data-for="like">最近 3 天</option>
-                        <option value="7" data-for="like">最近 1 周</option>
-                        <option value="14" data-for="like">最近 2 周</option>
+                        <option value="1" data-for="like" style="display:none">最近 1 天</option>
+                        <option value="3" data-for="like" style="display:none">最近 3 天</option>
+                        <option value="7" data-for="like" style="display:none">最近 1 周</option>
+                        <option value="14" data-for="like" style="display:none">最近 2 周</option>
                         <!-- 捏同款选项 -->
-                        <option value="1" data-for="inherit">最近 1 天</option>
-                        <option value="3" data-for="inherit">最近 3 天</option>
-                        <option value="7" data-for="inherit">最近 1 周</option>
-                        <option value="14" data-for="inherit">最近 2 周</option>
+                        <option value="1" data-for="inherit" style="display:none">最近 1 天</option>
+                        <option value="3" data-for="inherit" style="display:none">最近 3 天</option>
+                        <option value="7" data-for="inherit" style="display:none">最近 1 周</option>
+                        <option value="14" data-for="inherit" style="display:none">最近 2 周</option>
                     </select>
                     <button id="load-stats" class="btn btn-primary">加载数据</button>
                 </div>
@@ -166,6 +166,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260517v2"></script>
+    <script src="app.js?v=20260517v3"></script>
 </body>
 </html>
