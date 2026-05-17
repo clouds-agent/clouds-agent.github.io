@@ -1810,6 +1810,9 @@ function renderStatsSummary(stats, type) {
     const dateCount = Object.keys(stats.byDate).length || 1;
     const avgPerDay = (stats.total / dateCount).toFixed(1);
     
+    // 获取最新数据时间
+    const latestTime = stats.list?.[0]?.ctime || '无数据';
+    
     summaryEl.innerHTML = `
         <div class="stat-card ${classPrefix}">
             <div class="stat-value">${stats.total}</div>
@@ -1823,8 +1826,19 @@ function renderStatsSummary(stats, type) {
             <div class="stat-value">${stats.allTotal}</div>
             <div class="stat-label">历史总量</div>
         </div>
+        <div class="stat-card ${classPrefix}" style="min-width: 200px;">
+            <div class="stat-value" style="font-size: 14px; line-height: 1.4;">${latestTime}</div>
+            <div class="stat-label">${typeLabel}最新</div>
+        </div>
     `;
 }
+
+// 每个类型的默认选项
+const defaultRange = {
+    fans: '7',      // 默认 1 周
+    like: '7',      // 默认 1 周
+    inherit: '14'   // 默认 2 周
+};
 
 // 更新时间选项
 function updateRangeOptions(type) {
@@ -1838,11 +1852,17 @@ function updateRangeOptions(type) {
     });
     
     // 显示对应类型的选项
-    const showOptions = select.querySelectorAll(`option[data-for="${type}"]`);
-    showOptions.forEach((opt, index) => {
+    const showOptions = Array.from(select.querySelectorAll(`option[data-for="${type}"]`));
+    showOptions.forEach(opt => {
         opt.style.display = 'block';
-        if (index === 0) opt.selected = true; // 默认选第一个
     });
+    
+    // 选择默认值或第一个
+    const defaultVal = defaultRange[type] || showOptions[0]?.value;
+    const defaultOpt = showOptions.find(opt => opt.value === defaultVal) || showOptions[0];
+    if (defaultOpt) {
+        defaultOpt.selected = true;
+    }
 }
 
 // 更新统计 UI
