@@ -1639,10 +1639,11 @@ async function loadStatsData(type, days) {
             // 必须获取所有数据，然后在后面统一排序和过滤
             
             // 如果获取的数据少于 page_size，说明是最后一页
-            if (data.list.length < pageSize) {
+            // 注意：第 1 页用 page_size=3 探测，不参与停止检查
+            if (pageIndex > 1 && data.list.length < pageSize) {
                 console.log(`第 ${pageIndex} 页数据量 (${data.list.length}) < pageSize (${pageSize})，停止`);
                 hasMore = false;
-            } else {
+            } else if (pageIndex > 1) {
                 console.log(`继续请求第 ${pageIndex + 1} 页...`);
             }
             
