@@ -1565,6 +1565,7 @@ async function loadStatsData(type, days) {
         let useRealTime = true; // 是否使用实时模式
         
         while (hasMore && pageIndex <= 500) {
+            console.log(`准备请求第 ${pageIndex} 页，pageSize=${pageSize}, hasMore=${hasMore}`);
             // 添加时间戳 + 随机数参数，绕过 API 缓存
             const url = `${API_BASE}/v1/message/message-list?section=${section}&page_index=${pageIndex}&page_size=${pageSize}&_t=${Date.now()}_&r=${Math.random()}`;
             
@@ -1585,10 +1586,13 @@ async function loadStatsData(type, days) {
             
             if (!res.ok) {
                 console.error(`请求失败：${res.status}`);
+                const errorText = await res.text();
+                console.error(`错误详情：${errorText}`);
                 break;
             }
             
             const data = await res.json();
+            console.log(`第 ${pageIndex} 页响应：list.length=${data.list?.length}, total=${data.total}`);
             
             if (pageIndex === 1) {
                 apiTotal = data.total || 0;
@@ -1636,7 +1640,10 @@ async function loadStatsData(type, days) {
             
             // 如果获取的数据少于 page_size，说明是最后一页
             if (data.list.length < pageSize) {
+                console.log(`第 ${pageIndex} 页数据量 (${data.list.length}) < pageSize (${pageSize})，停止`);
                 hasMore = false;
+            } else {
+                console.log(`继续请求第 ${pageIndex + 1} 页...`);
             }
             
             pageIndex++;
@@ -1644,6 +1651,7 @@ async function loadStatsData(type, days) {
             await new Promise(r => setTimeout(r, 100));
         }
         
+        console.log(`循环结束：hasMore=${hasMore}, pageIndex=${pageIndex}, allData.length=${allData.length}`);
         console.log(`总共获取 ${allData.length} 条数据`);
         
         // 按时间倒序排序（确保最新数据在前面）
