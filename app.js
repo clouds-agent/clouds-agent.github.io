@@ -1605,10 +1605,10 @@ async function loadStatsData(type, days) {
                 const dateDiff = (new Date(todayStr) - new Date(firstItemDate)) / (1000 * 60 * 60 * 24);
                 
                 if (dateDiff <= 1) {
-                    // 第 1 页是近 1 天的数据，后续用 page_size=50 加速（50 会滞后到 5 月 2 日，但比 100 好）
+                    // 第 1 页是近 1 天的数据，后续用 page_size=10 加速（10 滞后约 1 天，可接受）
                     useRealTime = false;
-                    pageSize = 50;
-                    console.log(`第 1 页是近 1 天数据 (${firstItemDate})，后续使用 page_size=50 加速`);
+                    pageSize = 10;
+                    console.log(`第 1 页是近 1 天数据 (${firstItemDate})，后续使用 page_size=10 加速`);
                 } else {
                     console.log(`第 1 页数据滞后 (${firstItemDate})，继续使用 page_size=3`);
                 }
