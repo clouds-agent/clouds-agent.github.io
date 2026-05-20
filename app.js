@@ -17,6 +17,10 @@ let userFinished = {}; // 每个用户是否已完成
 let userSearchDebounce = null; // 搜索防抖定时器
 let currentUserConfirm = null; // 当前待确认的用户信息
 
+// 超时设置
+let timeoutDuration = 1; // 无增长停止时间（分钟），0 表示无截止
+let timeoutScope = 'all'; // 应用范围：'all', 'except-users', 'except-tags'
+
 // ============ 工具函数 ============
 
 function getToken() {
@@ -1180,14 +1184,33 @@ async function startLikeLoop(tags) {
             log('所有标签已完成', 'info');
         }
         
-        // 检查是否所有任务都 1 分钟无增长（标签 + 用户）
-        const unfinishedUsersCheck = selectedUsers.filter(u => !userFinished[u.uuid]);
-        if (Date.now() - likeStats.lastIncrease > 60000) {
-            // 只有当所有任务都无增长时才停止
-            if (unfinishedTagsCheck.length === 0 && unfinishedUsersCheck.length === 0) {
+        // 检查超时（根据设置）
+        const timeoutMs = timeoutDuration * 60 * 1000;
+        const noGrowthTime = Date.now() - likeStats.lastIncrease;
+        
+        if (timeoutDuration > 0 && noGrowthTime > timeoutMs) {
+            // 根据范围判断是否停止
+            let shouldStop = false;
+            
+            if (timeoutScope === 'all') {
+                // 整体：所有任务都超时才停止
+                shouldStop = true;
+            } else if (timeoutScope === 'except-users') {
+                // 除用户：只检查标签是否完成
+                if (unfinishedTagsCheck.length === 0) {
+                    shouldStop = true;
+                }
+            } else if (timeoutScope === 'except-tags') {
+                // 除标签：只检查用户是否完成
+                const unfinishedUsersCheck = selectedUsers.filter(u => !userFinished[u.uuid]);
+                if (unfinishedUsersCheck.length === 0) {
+                    shouldStop = true;
+                }
+            }
+            
+            if (shouldStop) {
                 isRunning = false;
-                log('⚠️ 1 分钟无增长，已停止', 'error');
-                log('请检查：Token 是否有效、是否有新作品', 'error');
+                log(`⚠️ ${timeoutDuration}分钟无增长，已停止`, 'error');
                 stopLiking();
                 break;
             }
@@ -1320,16 +1343,32 @@ async function startUserLikeLoop(users) {
             break;
         }
         
-        // 只检查当前用户是否 1 分钟无增长，不影响其他任务
-        if (Date.now() - likeStats.lastIncrease > 60000) {
-            // 标记当前用户完成，但继续其他任务
-            userFinished[user.uuid] = true;
-            log(`⚠️ @${user.name} 1 分钟无增长，跳过`, 'error');
+        // 检查超时（根据设置）
+        const timeoutMs = timeoutDuration * 60 * 1000;
+        const noGrowthTime = Date.now() - likeStats.lastIncrease;
+        
+        if (timeoutDuration > 0 && noGrowthTime > timeoutMs) {
+            // 根据范围判断是否停止
+            let shouldStop = false;
             
-            // 检查是否还有其他任务
-            if (unfinishedTags.length === 0 && users.filter(u => !userFinished[u.uuid]).length === 0) {
+            if (timeoutScope === 'all') {
+                // 整体：所有任务都超时才停止
+                shouldStop = true;
+            } else if (timeoutScope === 'except-users') {
+                // 除用户：只检查标签是否完成
+                if (unfinishedTags.length === 0) {
+                    shouldStop = true;
+                }
+            } else if (timeoutScope === 'except-tags') {
+                // 除标签：只检查用户是否完成
+                if (unfinishedUsers.length === 0) {
+                    shouldStop = true;
+                }
+            }
+            
+            if (shouldStop) {
                 isRunning = false;
-                log('所有任务已完成', 'success');
+                log(`⚠️ ${timeoutDuration}分钟无增长，已停止`, 'error');
                 stopLiking();
                 break;
             }
@@ -2417,6 +2456,22 @@ function init() {
     }
     
     console.log('初始化完成');
+    
+    // 初始化超时设置
+    const timeoutDurationSelect = document.getElementById('timeout-duration');
+    const timeoutScopeSelect = document.getElementById('timeout-scope');
+    if (timeoutDurationSelect) {
+        timeoutDurationSelect.addEventListener('change', (e) => {
+            timeoutDuration = parseInt(e.target.value);
+            console.log('超时时间设置为:', timeoutDuration, '分钟');
+        });
+    }
+    if (timeoutScopeSelect) {
+        timeoutScopeSelect.addEventListener('change', (e) => {
+            timeoutScope = e.target.value;
+            console.log('超时范围设置为:', timeoutScope);
+        });
+    }
 }
 
 // DOM 加载完成后初始化

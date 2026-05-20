@@ -40,6 +40,26 @@
                 </div>
                 <div id="selected-users" class="user-list"></div>
                 
+                <div class="timeout-settings">
+                    <div class="setting-row">
+                        <label class="setting-label">无增长停止时间：</label>
+                        <select id="timeout-duration" class="setting-select">
+                            <option value="1">1 分钟</option>
+                            <option value="5">5 分钟</option>
+                            <option value="10">10 分钟</option>
+                            <option value="0">无截止时间</option>
+                        </select>
+                    </div>
+                    <div class="setting-row">
+                        <label class="setting-label">应用范围：</label>
+                        <select id="timeout-scope" class="setting-select">
+                            <option value="all">整体</option>
+                            <option value="except-users">除用户</option>
+                            <option value="except-tags">除标签</option>
+                        </select>
+                    </div>
+                </div>
+                
                 <div class="btn-group">
                     <button id="start-like" class="btn btn-primary">开始</button>
                     <button id="pause-like" class="btn btn-secondary" disabled>暂停</button>
@@ -198,6 +218,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260520v8"></script>
+    <script src="app.js?v=20260520v9"></script>
 </body>
 </html>

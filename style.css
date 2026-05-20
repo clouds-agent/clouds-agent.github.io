@@ -176,6 +176,44 @@ input[type="password"]:focus {
     margin-right: 0;
 }
 
+.timeout-settings {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #fafafa;
+    border-radius: 8px;
+}
+
+.setting-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+}
+
+.setting-label {
+    font-size: 0.85rem;
+    color: #86868b;
+    white-space: nowrap;
+}
+
+.setting-select {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d2d2d7;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background: #fff;
+    color: #1d1d1f;
+    cursor: pointer;
+}
+
+.setting-select:focus {
+    outline: none;
+    border-color: #0071e3;
+}
+
 .btn-group {
     margin-top: 1rem;
 }
