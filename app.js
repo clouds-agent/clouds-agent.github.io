@@ -109,6 +109,34 @@ async function searchUsers(keyword) {
     }
 }
 
+// 获取用户详细信息（准确的粉丝数）
+async function getUserDetail(uuid) {
+    const token = getToken();
+    if (!token) {
+        return null;
+    }
+    
+    try {
+        const res = await fetch(`${API_BASE}/v1/user/?uuid=${encodeURIComponent(uuid)}`, {
+            headers: {
+                'x-token': token,
+                'x-platform': 'nieta-app/web'
+            }
+        });
+        
+        if (!res.ok) {
+            console.error('获取用户详情失败:', res.status);
+            return null;
+        }
+        
+        const data = await res.json();
+        return data;
+    } catch (error) {
+        console.error('获取用户详情异常:', error);
+        return null;
+    }
+}
+
 function showUserSuggestions(users) {
     const container = document.getElementById('user-suggestions');
     if (!container) return;
@@ -175,19 +203,24 @@ function initUserSearch() {
 
 // ============ 用户确认模态框 ============
 
-function showUserConfirmModal(user) {
+async function showUserConfirmModal(user) {
     currentUserConfirm = user;
+    
+    // 获取详细用户信息（准确的粉丝数）
+    const detail = await getUserDetail(user.uuid);
+    const followers = detail ? (detail.total_fans || 0) : (user.subscriber_count || 0);
+    const stories = detail ? (detail.story_count || user.story_count || 0) : (user.story_count || 0);
     
     const modal = document.getElementById('user-confirm-modal');
     const avatar = document.getElementById('confirm-avatar');
     const name = document.getElementById('confirm-name');
-    const followers = document.getElementById('confirm-followers');
-    const stories = document.getElementById('confirm-stories');
+    const followersEl = document.getElementById('confirm-followers');
+    const storiesEl = document.getElementById('confirm-stories');
     
     if (avatar) avatar.src = user.avatar_url || '';
     if (name) name.textContent = user.nick_name || '未知';
-    if (followers) followers.textContent = user.subscriber_count || 0;
-    if (stories) stories.textContent = user.story_count || 0;
+    if (followersEl) followersEl.textContent = followers;
+    if (storiesEl) storiesEl.textContent = stories;
     
     if (modal) modal.classList.add('show');
 }
@@ -201,9 +234,9 @@ function closeUserConfirmModal() {
 function initUserConfirm() {
     const addBtn = document.getElementById('confirm-add-user');
     if (addBtn) {
-        addBtn.addEventListener('click', () => {
+        addBtn.addEventListener('click', async () => {
             if (currentUserConfirm) {
-                addUserToQueue(currentUserConfirm);
+                await addUserToQueue(currentUserConfirm);
                 closeUserConfirmModal();
             }
         });
@@ -212,26 +245,31 @@ function initUserConfirm() {
 
 // ============ 用户任务队列 ============
 
-function addUserToQueue(user) {
+async function addUserToQueue(user) {
     // 检查是否已存在
     if (selectedUsers.some(u => u.uuid === user.uuid)) {
         log(`用户 ${user.nick_name} 已在队列中`, 'error');
         return;
     }
     
+    // 获取详细用户信息（准确的粉丝数）
+    const detail = await getUserDetail(user.uuid);
+    const followers = detail ? (detail.total_fans || 0) : (user.subscriber_count || 0);
+    const storyCount = detail ? (detail.story_count || user.story_count || 0) : (user.story_count || 0);
+    
     selectedUsers.push({
         uuid: user.uuid,
         name: user.nick_name,
         avatar: user.avatar_url,
-        followers: user.subscriber_count,
-        storyCount: user.story_count
+        followers: followers,
+        storyCount: storyCount
     });
     
     userPageMap[user.uuid] = 0;
     userFinished[user.uuid] = false;
     
     renderUserQueue();
-    log(`已添加用户：${user.nick_name}（${user.story_count || 0} 作品）`, 'success');
+    log(`已添加用户：${user.nick_name}（${storyCount} 作品，${followers} 粉丝）`, 'success');
 }
 
 function removeUserFromQueue(uuid) {
