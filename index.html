@@ -25,12 +25,30 @@
         <!-- 点赞页 -->
         <section id="like" class="section active">
             <div class="card">
-                <div class="search-box">
-                    <input type="text" id="tag-search" placeholder="请输入标签名" autocomplete="off" />
-                    <button id="add-tag-btn" class="btn btn-add">添加</button>
-                    <div id="tag-suggestions" class="suggestions"></div>
+                <div class="like-mode-switch">
+                    <button class="mode-btn active" data-mode="tag"># 标签点赞</button>
+                    <button class="mode-btn" data-mode="user">@ 用户点赞</button>
                 </div>
-                <div id="selected-tags" class="tag-list"></div>
+                
+                <!-- 标签模式 -->
+                <div id="tag-mode-panel">
+                    <div class="search-box">
+                        <input type="text" id="tag-search" placeholder="请输入标签名" autocomplete="off" />
+                        <button id="add-tag-btn" class="btn btn-add">添加</button>
+                        <div id="tag-suggestions" class="suggestions"></div>
+                    </div>
+                    <div id="selected-tags" class="tag-list"></div>
+                </div>
+                
+                <!-- 用户模式 -->
+                <div id="user-mode-panel" style="display:none;">
+                    <div class="search-box">
+                        <input type="text" id="user-search" placeholder="输入用户昵称（支持模糊搜索）" autocomplete="off" />
+                        <div id="user-suggestions" class="suggestions"></div>
+                    </div>
+                    <div id="selected-users" class="user-list"></div>
+                </div>
+                
                 <div class="btn-group">
                     <button id="start-like" class="btn btn-primary">开始</button>
                     <button id="pause-like" class="btn btn-secondary" disabled>暂停</button>
@@ -150,6 +168,29 @@
         </div>
     </div>
 
+    <!-- 用户确认悬浮窗 -->
+    <div id="user-confirm-modal" class="modal">
+        <div class="modal-content user-confirm-modal">
+            <div class="modal-header">
+                <h3>确认用户</h3>
+                <button class="modal-close" onclick="closeUserConfirmModal()">×</button>
+            </div>
+            <div class="user-confirm-body">
+                <div class="user-card" id="user-confirm-card">
+                    <img id="confirm-avatar" src="" alt="头像" class="confirm-avatar" />
+                    <div class="confirm-info">
+                        <div class="confirm-name" id="confirm-name">-</div>
+                        <div class="confirm-stats">
+                            <span><strong id="confirm-followers">0</strong> 粉丝</span>
+                            <span><strong id="confirm-stories">0</strong> 作品</span>
+                        </div>
+                    </div>
+                </div>
+                <button id="confirm-add-user" class="btn btn-primary btn-full">添加到任务队列</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Token 登录悬浮窗 -->
     <div id="login-modal" class="modal show">
         <div class="modal-content modal-login">
@@ -166,6 +207,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260517v7"></script>
+    <script src="app.js?v=20260520v1"></script>
 </body>
 </html>

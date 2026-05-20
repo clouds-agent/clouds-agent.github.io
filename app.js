@@ -10,6 +10,14 @@ let userProfile = null;
 let tagPageMap = {}; // 每个标签的当前页码
 let tagFinished = {}; // 每个标签是否已完成
 
+// 用户点赞相关状态
+let likeMode = 'tag'; // 'tag' 或 'user'
+let selectedUsers = []; // 已选中的用户列表 [{uuid, name, avatar, followers, storyCount}]
+let userPageMap = {}; // 每个用户的当前页码
+let userFinished = {}; // 每个用户是否已完成
+let userSearchDebounce = null; // 搜索防抖定时器
+let currentUserConfirm = null; // 当前待确认的用户信息
+
 // ============ 工具函数 ============
 
 function getToken() {
@@ -66,6 +74,257 @@ function showStatus(elementId, message, type) {
     if (el) {
         el.textContent = message;
         el.className = `status ${type}`;
+    }
+}
+
+// ============ 点赞模式切换 ============
+
+function initLikeMode() {
+    const modeBtns = document.querySelectorAll('.mode-btn');
+    modeBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const mode = btn.dataset.mode;
+            if (mode === likeMode) return;
+            
+            likeMode = mode;
+            
+            // 更新按钮状态
+            modeBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            // 切换面板
+            const tagPanel = document.getElementById('tag-mode-panel');
+            const userPanel = document.getElementById('user-mode-panel');
+            if (tagPanel) tagPanel.style.display = mode === 'tag' ? 'block' : 'none';
+            if (userPanel) userPanel.style.display = mode === 'user' ? 'block' : 'none';
+            
+            // 清空当前状态
+            stopLiking();
+        });
+    });
+}
+
+// ============ 用户搜索 ============
+
+async function searchUsers(keyword) {
+    if (!keyword || keyword.trim().length === 0) {
+        return [];
+    }
+    
+    const token = getToken();
+    if (!token) {
+        return [];
+    }
+    
+    try {
+        const res = await fetch(`${API_BASE}/v1/user/search?keywords=${encodeURIComponent(keyword.trim())}&page_index=0&page_size=10`, {
+            headers: {
+                'x-token': token,
+                'x-platform': 'nieta-app/web'
+            }
+        });
+        
+        if (!res.ok) {
+            console.error('搜索用户失败:', res.status);
+            return [];
+        }
+        
+        const data = await res.json();
+        return data.list || [];
+    } catch (error) {
+        console.error('搜索用户异常:', error);
+        return [];
+    }
+}
+
+function showUserSuggestions(users) {
+    const container = document.getElementById('user-suggestions');
+    if (!container) return;
+    
+    if (users.length === 0) {
+        container.innerHTML = '';
+        container.style.display = 'none';
+        return;
+    }
+    
+    container.innerHTML = users.map(user => `
+        <div class="suggestion-item" data-uuid="${user.uuid}">
+            <img src="${user.avatar_url || ''}" alt="${user.nick_name}" class="suggestion-avatar" />
+            <div class="suggestion-info">
+                <div class="suggestion-name">${user.nick_name || '未知'}</div>
+                <div class="suggestion-meta">${user.follower_count || 0} 粉丝 · ${user.story_count || 0} 作品</div>
+            </div>
+        </div>
+    `).join('');
+    
+    container.style.display = 'block';
+    
+    // 绑定点击事件
+    container.querySelectorAll('.suggestion-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const uuid = item.dataset.uuid;
+            const user = users.find(u => u.uuid === uuid);
+            if (user) {
+                showUserConfirmModal(user);
+                container.style.display = 'none';
+                document.getElementById('user-search').value = '';
+            }
+        });
+    });
+}
+
+function initUserSearch() {
+    const input = document.getElementById('user-search');
+    if (!input) return;
+    
+    input.addEventListener('input', () => {
+        const keyword = input.value.trim();
+        
+        // 清除之前的定时器
+        if (userSearchDebounce) {
+            clearTimeout(userSearchDebounce);
+        }
+        
+        // 防抖 300ms
+        userSearchDebounce = setTimeout(async () => {
+            const users = await searchUsers(keyword);
+            showUserSuggestions(users);
+        }, 300);
+    });
+    
+    // 点击外部关闭建议框
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('#user-suggestions') && !e.target.closest('#user-search')) {
+            const container = document.getElementById('user-suggestions');
+            if (container) container.style.display = 'none';
+        }
+    });
+}
+
+// ============ 用户确认模态框 ============
+
+function showUserConfirmModal(user) {
+    currentUserConfirm = user;
+    
+    const modal = document.getElementById('user-confirm-modal');
+    const avatar = document.getElementById('confirm-avatar');
+    const name = document.getElementById('confirm-name');
+    const followers = document.getElementById('confirm-followers');
+    const stories = document.getElementById('confirm-stories');
+    
+    if (avatar) avatar.src = user.avatar_url || '';
+    if (name) name.textContent = user.nick_name || '未知';
+    if (followers) followers.textContent = user.follower_count || 0;
+    if (stories) stories.textContent = user.story_count || 0;
+    
+    if (modal) modal.classList.add('show');
+}
+
+function closeUserConfirmModal() {
+    const modal = document.getElementById('user-confirm-modal');
+    if (modal) modal.classList.remove('show');
+    currentUserConfirm = null;
+}
+
+function initUserConfirm() {
+    const addBtn = document.getElementById('confirm-add-user');
+    if (addBtn) {
+        addBtn.addEventListener('click', () => {
+            if (currentUserConfirm) {
+                addUserToQueue(currentUserConfirm);
+                closeUserConfirmModal();
+            }
+        });
+    }
+}
+
+// ============ 用户任务队列 ============
+
+function addUserToQueue(user) {
+    // 检查是否已存在
+    if (selectedUsers.some(u => u.uuid === user.uuid)) {
+        log(`用户 ${user.nick_name} 已在队列中`, 'error');
+        return;
+    }
+    
+    selectedUsers.push({
+        uuid: user.uuid,
+        name: user.nick_name,
+        avatar: user.avatar_url,
+        followers: user.follower_count,
+        storyCount: user.story_count
+    });
+    
+    userPageMap[user.uuid] = 0;
+    userFinished[user.uuid] = false;
+    
+    renderUserQueue();
+    log(`已添加用户：${user.nick_name}（${user.story_count || 0} 作品）`, 'success');
+}
+
+function removeUserFromQueue(uuid) {
+    selectedUsers = selectedUsers.filter(u => u.uuid !== uuid);
+    delete userPageMap[uuid];
+    delete userFinished[uuid];
+    renderUserQueue();
+    log(`已移除用户`, 'info');
+}
+
+function renderUserQueue() {
+    const container = document.getElementById('selected-users');
+    if (!container) return;
+    
+    if (selectedUsers.length === 0) {
+        container.innerHTML = '<div class="empty-tip">暂无用户，搜索后点击添加</div>';
+        return;
+    }
+    
+    container.innerHTML = selectedUsers.map(user => `
+        <div class="user-queue-item">
+            <img src="${user.avatar || ''}" alt="${user.name}" class="user-queue-avatar" />
+            <div class="user-queue-info">
+                <div class="user-queue-name">${user.name}</div>
+                <div class="user-queue-meta">${user.followers || 0} 粉丝 · ${user.storyCount || 0} 作品</div>
+            </div>
+            <button class="user-queue-remove" data-uuid="${user.uuid}">×</button>
+        </div>
+    `).join('');
+    
+    // 绑定移除事件
+    container.querySelectorAll('.user-queue-remove').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const uuid = btn.dataset.uuid;
+            removeUserFromQueue(uuid);
+        });
+    });
+}
+
+// ============ 获取用户作品 ============
+
+async function getUserStories(uuid, page = 0, size = 20) {
+    const token = getToken();
+    if (!token) {
+        return [];
+    }
+    
+    try {
+        const res = await fetch(`${API_BASE}/v2/story/user-stories?uuid=${encodeURIComponent(uuid)}&page_index=${page}&page_size=${size}`, {
+            headers: {
+                'x-token': token,
+                'x-platform': 'nieta-app/web'
+            }
+        });
+        
+        if (!res.ok) {
+            console.error('获取用户作品失败:', res.status);
+            return [];
+        }
+        
+        const data = await res.json();
+        return data.list || [];
+    } catch (error) {
+        console.error('获取用户作品异常:', error);
+        return [];
     }
 }
 
@@ -714,65 +973,109 @@ function setupLikeButtons() {
 }
 
 function startLiking() {
-    const tags = getSavedTags();
-    if (tags.length === 0) {
-        alert('请先选择标签');
-        return;
-    }
-    
     const token = getToken();
     if (!token) {
         alert('请先登录');
         return;
     }
     
-    isRunning = true;
-    isPaused = false;
-    likeStats = {
-        total: 0,
-        byTag: {},
-        startTime: Date.now(),
-        lastIncrease: Date.now()
-    };
-    tagPageMap = {};
-    tagFinished = {};
-    tags.forEach(tag => {
-        likeStats.byTag[tag.name] = 0;
-        tagFinished[tag.name] = false;
-    });
-    chartData = { labels: [], total: [], byTag: {} };
-    tags.forEach(tag => {
-        chartData.byTag[tag.name] = [];
-    });
-    
-    const startBtn = document.getElementById('start-like');
-    const pauseBtn = document.getElementById('pause-like');
-    if (startBtn) {
-        startBtn.textContent = '终止';
-        startBtn.disabled = false;
-    }
-    if (pauseBtn) pauseBtn.disabled = false;
-    
-    const logEl = document.getElementById('like-log');
-    if (logEl) logEl.innerHTML = '';
-    
-    log('开始点赞', 'success');
-    
-    // 使用 Worker 运行
-    if (likeWorker) {
-        likeWorker.postMessage({
-            action: 'start',
-            payload: {
-                token: token,
-                tags: tags,
-                tagPageMap: {},
-                tagFinished: {},
-                likeStats: likeStats
-            }
+    if (likeMode === 'tag') {
+        const tags = getSavedTags();
+        if (tags.length === 0) {
+            alert('请先选择标签');
+            return;
+        }
+        
+        isRunning = true;
+        isPaused = false;
+        likeStats = {
+            total: 0,
+            byTag: {},
+            startTime: Date.now(),
+            lastIncrease: Date.now()
+        };
+        tagPageMap = {};
+        tagFinished = {};
+        tags.forEach(tag => {
+            likeStats.byTag[tag.name] = 0;
+            tagFinished[tag.name] = false;
         });
+        chartData = { labels: [], total: [], byTag: {} };
+        tags.forEach(tag => {
+            chartData.byTag[tag.name] = [];
+        });
+        
+        const startBtn = document.getElementById('start-like');
+        const pauseBtn = document.getElementById('pause-like');
+        if (startBtn) {
+            startBtn.textContent = '终止';
+            startBtn.disabled = false;
+        }
+        if (pauseBtn) pauseBtn.disabled = false;
+        
+        const logEl = document.getElementById('like-log');
+        if (logEl) logEl.innerHTML = '';
+        
+        log('开始点赞', 'success');
+        
+        // 使用 Worker 运行
+        if (likeWorker) {
+            likeWorker.postMessage({
+                action: 'start',
+                payload: {
+                    token: token,
+                    tags: tags,
+                    tagPageMap: {},
+                    tagFinished: {},
+                    likeStats: likeStats
+                }
+            });
+        } else {
+            // 降级：传统模式
+            startLikeLoop(tags);
+        }
     } else {
-        // 降级：传统模式
-        startLikeLoop(tags);
+        // 用户模式
+        if (selectedUsers.length === 0) {
+            alert('请先添加用户');
+            return;
+        }
+        
+        isRunning = true;
+        isPaused = false;
+        likeStats = {
+            total: 0,
+            byTag: {},
+            startTime: Date.now(),
+            lastIncrease: Date.now()
+        };
+        userPageMap = {};
+        userFinished = {};
+        selectedUsers.forEach(user => {
+            likeStats.byTag[user.uuid] = 0;
+            userFinished[user.uuid] = false;
+            userPageMap[user.uuid] = 0;
+        });
+        chartData = { labels: [], total: [], byTag: {} };
+        selectedUsers.forEach(user => {
+            chartData.byTag[user.uuid] = [];
+        });
+        
+        const startBtn = document.getElementById('start-like');
+        const pauseBtn = document.getElementById('pause-like');
+        if (startBtn) {
+            startBtn.textContent = '终止';
+            startBtn.disabled = false;
+        }
+        if (pauseBtn) pauseBtn.disabled = false;
+        
+        const logEl = document.getElementById('like-log');
+        if (logEl) logEl.innerHTML = '';
+        
+        log('开始点赞用户作品', 'success');
+        
+        // 用户模式暂不使用 Worker，直接运行
+        startUserLikeLoop(selectedUsers);
     }
 }
 
@@ -927,6 +1230,114 @@ async function getStories(hashtag, page = 0, size = 10) {
     }));
 }
 
+async function startUserLikeLoop(users) {
+    // 初始化页码
+    users.forEach(user => {
+        if (userPageMap[user.uuid] === undefined) {
+            userPageMap[user.uuid] = 0;
+        }
+    });
+    
+    while (isRunning) {
+        // 暂停时等待
+        if (isPaused) {
+            await new Promise(r => setTimeout(r, 500));
+            continue;
+        }
+        
+        for (const user of users) {
+            if (!isRunning) break;
+            if (isPaused) break;
+            
+            // 如果这个用户已经完成，跳过
+            if (userFinished[user.uuid]) continue;
+            
+            try {
+                const currentPage = userPageMap[user.uuid] || 0;
+                const stories = await getUserStories(user.uuid, currentPage, 20);
+                
+                // 添加延迟，避免 API 限流
+                await new Promise(r => setTimeout(r, 300));
+                
+                if (stories.length === 0) {
+                    // 当前页没有作品，标记这个用户完成
+                    userFinished[user.uuid] = true;
+                    log(`@${user.name} 已遍历完所有作品（第 ${currentPage} 页）`, 'error');
+                    
+                    // 检查是否所有用户都完成了
+                    const allFinished = users.every(u => userFinished[u.uuid]);
+                    if (allFinished) {
+                        isRunning = false;
+                        log('所有用户作品已完成点赞', 'success');
+                        stopLiking();
+                        return;
+                    }
+                    continue;
+                }
+                
+                let successCount = 0;
+                for (const story of stories) {
+                    if (!isRunning) break;
+                    if (isPaused) break;
+                    
+                    const result = await likeStory(story.storyId);
+                    if (result.success) {
+                        likeStats.total++;
+                        likeStats.byTag[user.uuid]++;
+                        likeStats.lastIncrease = Date.now();
+                        log(`✓ @${user.name}: ${story.title || '无题'}`, 'success');
+                        successCount++;
+                    } else {
+                        log(`✗ @${user.name}: ${result.error}`, 'error');
+                    }
+                    
+                    updateProgress();
+                    await new Promise(r => setTimeout(r, 200));
+                }
+                
+                // 无论成功失败，都翻到下一页
+                userPageMap[user.uuid] = currentPage + 1;
+                log(`@${user.name} 第${currentPage + 1}页处理完成，翻到第${currentPage + 2}页`);
+            } catch (error) {
+                log(`@${user.name}: ${error.message}`, 'error');
+            }
+        }
+        
+        // 检查是否所有用户都 1 分钟无增长
+        const unfinishedUsers = users.filter(u => !userFinished[u.uuid]);
+        if (unfinishedUsers.length === 0) {
+            // 所有用户都完成了
+            isRunning = false;
+            log('所有用户作品已完成点赞', 'success');
+            stopLiking();
+            break;
+        }
+        
+        if (Date.now() - likeStats.lastIncrease > 60000) {
+            isRunning = false;
+            log('⚠️ 1 分钟无增长，已停止', 'error');
+            log('请检查：Token 是否有效、用户是否有新作品', 'error');
+            stopLiking();
+            break;
+        }
+        
+        await new Promise(r => setTimeout(r, 1000));
+    }
+    
+    // 真正结束时重置按钮
+    isRunning = false;
+    const startBtn = document.getElementById('start-like');
+    const pauseBtn = document.getElementById('pause-like');
+    if (startBtn) {
+        startBtn.textContent = '开始';
+        startBtn.disabled = false;
+    }
+    if (pauseBtn) {
+        pauseBtn.disabled = true;
+        pauseBtn.textContent = '暂停';
+    }
+}
+
 async function likeStory(uuid) {
     const token = getToken();
     if (!token) {
@@ -990,7 +1401,6 @@ function log(message, type = '') {
 
 function updateProgress() {
     const elapsed = Math.floor((Date.now() - likeStats.startTime) / 1000);
-    const tags = getSavedTags();
     
     const progressEl = document.getElementById('like-progress');
     if (!progressEl) return;
@@ -998,9 +1408,16 @@ function updateProgress() {
     let html = `<div class="progress-item"><span>总赞数</span><span>${likeStats.total}</span></div>`;
     html += `<div class="progress-item"><span>运行时间</span><span>${elapsed}s</span></div>`;
     
-    tags.forEach(tag => {
-        html += `<div class="progress-item"><span>#${tag.name}</span><span>${likeStats.byTag[tag.name] || 0}</span></div>`;
-    });
+    if (likeMode === 'tag') {
+        const tags = getSavedTags();
+        tags.forEach(tag => {
+            html += `<div class="progress-item"><span>#${tag.name}</span><span>${likeStats.byTag[tag.name] || 0}</span></div>`;
+        });
+    } else {
+        selectedUsers.forEach(user => {
+            html += `<div class="progress-item"><span>@${user.name}</span><span>${likeStats.byTag[user.uuid] || 0}</span></div>`;
+        });
+    }
     
     progressEl.innerHTML = html;
     
@@ -1008,10 +1425,18 @@ function updateProgress() {
     if (elapsed % 5 === 0) {
         chartData.labels.push(elapsed);
         chartData.total.push(likeStats.total);
-        tags.forEach(tag => {
-            if (!chartData.byTag[tag.name]) chartData.byTag[tag.name] = [];
-            chartData.byTag[tag.name].push(likeStats.byTag[tag.name] || 0);
-        });
+        if (likeMode === 'tag') {
+            const tags = getSavedTags();
+            tags.forEach(tag => {
+                if (!chartData.byTag[tag.name]) chartData.byTag[tag.name] = [];
+                chartData.byTag[tag.name].push(likeStats.byTag[tag.name] || 0);
+            });
+        } else {
+            selectedUsers.forEach(user => {
+                if (!chartData.byTag[user.uuid]) chartData.byTag[user.uuid] = [];
+                chartData.byTag[user.uuid].push(likeStats.byTag[user.uuid] || 0);
+            });
+        }
         renderChart();
     }
 }
@@ -1954,6 +2379,12 @@ function init() {
     setupCheckin();
     setupStats();
     loadHotTags();
+    
+    // 新增：用户点赞模式相关
+    initLikeMode();
+    initUserSearch();
+    initUserConfirm();
+    renderUserQueue();
     
     // 渲染已保存的标签
     renderTags();

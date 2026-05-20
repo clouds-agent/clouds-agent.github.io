@@ -306,6 +306,156 @@ input[type="password"]:focus {
     color: #c62828;
 }
 
+/* 点赞模式切换 */
+.like-mode-switch {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.mode-btn {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    background: #f5f5f7;
+    border: 1px solid #d2d2d7;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #86868b;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.mode-btn:hover {
+    background: #e8e8ed;
+}
+
+.mode-btn.active {
+    background: #0071e3;
+    color: #fff;
+    border-color: #0071e3;
+}
+
+/* 用户列表 */
+.user-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    min-height: 60px;
+}
+
+.user-queue-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: #f5f5f7;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+}
+
+.user-queue-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #fff;
+}
+
+.user-queue-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.user-queue-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #1d1d1f;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.user-queue-meta {
+    font-size: 0.8rem;
+    color: #86868b;
+    margin-top: 0.25rem;
+}
+
+.user-queue-remove {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #fff;
+    border: 1px solid #d2d2d7;
+    color: #86868b;
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.user-queue-remove:hover {
+    background: #c62828;
+    color: #fff;
+    border-color: #c62828;
+}
+
+.empty-tip {
+    color: #86868b;
+    font-size: 0.9rem;
+    text-align: center;
+    padding: 1.5rem;
+    background: #fafafa;
+    border-radius: 8px;
+}
+
+/* 用户建议项 */
+.suggestion-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.suggestion-item:hover {
+    background: #f5f5f7;
+}
+
+.suggestion-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #fff;
+}
+
+.suggestion-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.suggestion-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #1d1d1f;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.suggestion-meta {
+    font-size: 0.8rem;
+    color: #86868b;
+    margin-top: 0.25rem;
+}
+
 .tag-info {
     font-size: 0.8rem;
     color: #86868b;
@@ -561,6 +711,59 @@ input[type="password"]:focus {
 
 .modal-login {
     max-width: 350px;
+}
+
+.user-confirm-modal {
+    max-width: 380px;
+}
+
+.user-confirm-body {
+    padding: 1.5rem;
+}
+
+.user-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: #f5f5f7;
+    padding: 1rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+}
+
+.confirm-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #fff;
+    flex-shrink: 0;
+}
+
+.confirm-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.confirm-name {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: #1d1d1f;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.confirm-stats {
+    font-size: 0.85rem;
+    color: #86868b;
+    margin-top: 0.5rem;
+    display: flex;
+    gap: 1rem;
+}
+
+.confirm-stats strong {
+    color: #1d1d1f;
 }
 
 .modal-header {
