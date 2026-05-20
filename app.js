@@ -333,7 +333,15 @@ async function getUserStories(uuid, page = 0, size = 20) {
         }
         
         const data = await res.json();
-        return data.list || [];
+        const list = data.list || [];
+        console.log('获取用户作品:', uuid, '页码', page, '返回', list.length, '个');
+        // 返回 storyId 和 title 字段
+        return list.map(item => ({
+            storyId: item.storyId,
+            title: item.name,
+            likeCount: item.likeCount,
+            sameStyleCount: item.sameStyleCount
+        }));
     } catch (error) {
         console.error('获取用户作品异常:', error);
         return [];
