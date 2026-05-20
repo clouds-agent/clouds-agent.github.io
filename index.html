@@ -25,29 +25,20 @@
         <!-- 点赞页 -->
         <section id="like" class="section active">
             <div class="card">
-                <div class="like-mode-switch">
-                    <button class="mode-btn active" data-mode="tag"># 标签点赞</button>
-                    <button class="mode-btn" data-mode="user">@ 用户点赞</button>
+                <div class="search-box">
+                    <input type="text" id="tag-search" placeholder="请输入标签名" autocomplete="off" />
+                    <button id="add-tag-btn" class="btn btn-add">添加</button>
+                    <div id="tag-suggestions" class="suggestions"></div>
                 </div>
+                <div id="selected-tags" class="tag-list"></div>
                 
-                <!-- 标签模式 -->
-                <div id="tag-mode-panel">
-                    <div class="search-box">
-                        <input type="text" id="tag-search" placeholder="请输入标签名" autocomplete="off" />
-                        <button id="add-tag-btn" class="btn btn-add">添加</button>
-                        <div id="tag-suggestions" class="suggestions"></div>
-                    </div>
-                    <div id="selected-tags" class="tag-list"></div>
-                </div>
+                <div class="divider">或</div>
                 
-                <!-- 用户模式 -->
-                <div id="user-mode-panel" style="display:none;">
-                    <div class="search-box">
-                        <input type="text" id="user-search" placeholder="输入用户昵称（支持模糊搜索）" autocomplete="off" />
-                        <div id="user-suggestions" class="suggestions"></div>
-                    </div>
-                    <div id="selected-users" class="user-list"></div>
+                <div class="search-box">
+                    <input type="text" id="user-search" placeholder="输入用户昵称（支持模糊搜索）" autocomplete="off" />
+                    <div id="user-suggestions" class="suggestions"></div>
                 </div>
+                <div id="selected-users" class="user-list"></div>
                 
                 <div class="btn-group">
                     <button id="start-like" class="btn btn-primary">开始</button>
@@ -207,6 +198,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260520v1"></script>
+    <script src="app.js?v=20260520v2"></script>
 </body>
 </html>

@@ -306,6 +306,33 @@ input[type="password"]:focus {
     color: #c62828;
 }
 
+/* 分割线 */
+.divider {
+    text-align: center;
+    color: #86868b;
+    font-size: 0.9rem;
+    margin: 1.5rem 0;
+    position: relative;
+}
+
+.divider::before,
+.divider::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 40%;
+    height: 1px;
+    background: #e5e5e5;
+}
+
+.divider::before {
+    left: 0;
+}
+
+.divider::after {
+    right: 0;
+}
+
 /* 点赞模式切换 */
 .like-mode-switch {
     display: flex;
@@ -355,11 +382,12 @@ input[type="password"]:focus {
 }
 
 .user-queue-avatar {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     object-fit: cover;
     background: #fff;
+    flex-shrink: 0;
 }
 
 .user-queue-info {
@@ -429,11 +457,12 @@ input[type="password"]:focus {
 }
 
 .suggestion-avatar {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     object-fit: cover;
     background: #fff;
+    flex-shrink: 0;
 }
 
 .suggestion-info {
@@ -732,8 +761,8 @@ input[type="password"]:focus {
 }
 
 .confirm-avatar {
-    width: 60px;
-    height: 60px;
+    width: 80px;
+    height: 80px;
     border-radius: 50%;
     object-fit: cover;
     background: #fff;

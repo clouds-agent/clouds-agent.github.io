@@ -11,7 +11,6 @@ let tagPageMap = {}; // 每个标签的当前页码
 let tagFinished = {}; // 每个标签是否已完成
 
 // 用户点赞相关状态
-let likeMode = 'tag'; // 'tag' 或 'user'
 let selectedUsers = []; // 已选中的用户列表 [{uuid, name, avatar, followers, storyCount}]
 let userPageMap = {}; // 每个用户的当前页码
 let userFinished = {}; // 每个用户是否已完成
@@ -77,33 +76,6 @@ function showStatus(elementId, message, type) {
     }
 }
 
-// ============ 点赞模式切换 ============
-
-function initLikeMode() {
-    const modeBtns = document.querySelectorAll('.mode-btn');
-    modeBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const mode = btn.dataset.mode;
-            if (mode === likeMode) return;
-            
-            likeMode = mode;
-            
-            // 更新按钮状态
-            modeBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            
-            // 切换面板
-            const tagPanel = document.getElementById('tag-mode-panel');
-            const userPanel = document.getElementById('user-mode-panel');
-            if (tagPanel) tagPanel.style.display = mode === 'tag' ? 'block' : 'none';
-            if (userPanel) userPanel.style.display = mode === 'user' ? 'block' : 'none';
-            
-            // 清空当前状态
-            stopLiking();
-        });
-    });
-}
-
 // ============ 用户搜索 ============
 
 async function searchUsers(keyword) {
@@ -152,7 +124,7 @@ function showUserSuggestions(users) {
             <img src="${user.avatar_url || ''}" alt="${user.nick_name}" class="suggestion-avatar" />
             <div class="suggestion-info">
                 <div class="suggestion-name">${user.nick_name || '未知'}</div>
-                <div class="suggestion-meta">${user.follower_count || 0} 粉丝 · ${user.story_count || 0} 作品</div>
+                <div class="suggestion-meta">${user.subscriber_count || 0} 粉丝 · ${user.story_count || 0} 作品</div>
             </div>
         </div>
     `).join('');
@@ -214,7 +186,7 @@ function showUserConfirmModal(user) {
     
     if (avatar) avatar.src = user.avatar_url || '';
     if (name) name.textContent = user.nick_name || '未知';
-    if (followers) followers.textContent = user.follower_count || 0;
+    if (followers) followers.textContent = user.subscriber_count || 0;
     if (stories) stories.textContent = user.story_count || 0;
     
     if (modal) modal.classList.add('show');
@@ -251,7 +223,7 @@ function addUserToQueue(user) {
         uuid: user.uuid,
         name: user.nick_name,
         avatar: user.avatar_url,
-        followers: user.follower_count,
+        followers: user.subscriber_count,
         storyCount: user.story_count
     });
     
@@ -979,46 +951,63 @@ function startLiking() {
         return;
     }
     
-    if (likeMode === 'tag') {
-        const tags = getSavedTags();
-        if (tags.length === 0) {
-            alert('请先选择标签');
-            return;
-        }
-        
-        isRunning = true;
-        isPaused = false;
-        likeStats = {
-            total: 0,
-            byTag: {},
-            startTime: Date.now(),
-            lastIncrease: Date.now()
-        };
-        tagPageMap = {};
-        tagFinished = {};
-        tags.forEach(tag => {
-            likeStats.byTag[tag.name] = 0;
-            tagFinished[tag.name] = false;
-        });
-        chartData = { labels: [], total: [], byTag: {} };
-        tags.forEach(tag => {
-            chartData.byTag[tag.name] = [];
-        });
-        
-        const startBtn = document.getElementById('start-like');
-        const pauseBtn = document.getElementById('pause-like');
-        if (startBtn) {
-            startBtn.textContent = '终止';
-            startBtn.disabled = false;
-        }
-        if (pauseBtn) pauseBtn.disabled = false;
-        
-        const logEl = document.getElementById('like-log');
-        if (logEl) logEl.innerHTML = '';
-        
-        log('开始点赞', 'success');
-        
-        // 使用 Worker 运行
+    const tags = getSavedTags();
+    const users = selectedUsers;
+    
+    if (tags.length === 0 && users.length === 0) {
+        alert('请先添加标签或用户');
+        return;
+    }
+    
+    isRunning = true;
+    isPaused = false;
+    likeStats = {
+        total: 0,
+        byTag: {},
+        startTime: Date.now(),
+        lastIncrease: Date.now()
+    };
+    
+    // 初始化标签
+    tagPageMap = {};
+    tagFinished = {};
+    tags.forEach(tag => {
+        likeStats.byTag[tag.name] = 0;
+        tagFinished[tag.name] = false;
+    });
+    
+    // 初始化用户
+    userPageMap = {};
+    userFinished = {};
+    users.forEach(user => {
+        likeStats.byTag[user.uuid] = 0;
+        userFinished[user.uuid] = false;
+        userPageMap[user.uuid] = 0;
+    });
+    
+    chartData = { labels: [], total: [], byTag: {} };
+    tags.forEach(tag => {
+        chartData.byTag[tag.name] = [];
+    });
+    users.forEach(user => {
+        chartData.byTag[user.uuid] = [];
+    });
+    
+    const startBtn = document.getElementById('start-like');
+    const pauseBtn = document.getElementById('pause-like');
+    if (startBtn) {
+        startBtn.textContent = '终止';
+        startBtn.disabled = false;
+    }
+    if (pauseBtn) pauseBtn.disabled = false;
+    
+    const logEl = document.getElementById('like-log');
+    if (logEl) logEl.innerHTML = '';
+    
+    log('开始点赞', 'success');
+    
+    // 启动标签点赞（Worker）
+    if (tags.length > 0) {
         if (likeWorker) {
             likeWorker.postMessage({
                 action: 'start',
@@ -1031,51 +1020,13 @@ function startLiking() {
                 }
             });
         } else {
-            // 降级：传统模式
             startLikeLoop(tags);
         }
-    } else {
-        // 用户模式
-        if (selectedUsers.length === 0) {
-            alert('请先添加用户');
-            return;
-        }
-        
-        isRunning = true;
-        isPaused = false;
-        likeStats = {
-            total: 0,
-            byTag: {},
-            startTime: Date.now(),
-            lastIncrease: Date.now()
-        };
-        userPageMap = {};
-        userFinished = {};
-        selectedUsers.forEach(user => {
-            likeStats.byTag[user.uuid] = 0;
-            userFinished[user.uuid] = false;
-            userPageMap[user.uuid] = 0;
-        });
-        chartData = { labels: [], total: [], byTag: {} };
-        selectedUsers.forEach(user => {
-            chartData.byTag[user.uuid] = [];
-        });
-        
-        const startBtn = document.getElementById('start-like');
-        const pauseBtn = document.getElementById('pause-like');
-        if (startBtn) {
-            startBtn.textContent = '终止';
-            startBtn.disabled = false;
-        }
-        if (pauseBtn) pauseBtn.disabled = false;
-        
-        const logEl = document.getElementById('like-log');
-        if (logEl) logEl.innerHTML = '';
-        
-        log('开始点赞用户作品', 'success');
-        
-        // 用户模式暂不使用 Worker，直接运行
-        startUserLikeLoop(selectedUsers);
+    }
+    
+    // 启动用户点赞
+    if (users.length > 0) {
+        startUserLikeLoop(users);
     }
 }
 
@@ -1408,16 +1359,16 @@ function updateProgress() {
     let html = `<div class="progress-item"><span>总赞数</span><span>${likeStats.total}</span></div>`;
     html += `<div class="progress-item"><span>运行时间</span><span>${elapsed}s</span></div>`;
     
-    if (likeMode === 'tag') {
-        const tags = getSavedTags();
-        tags.forEach(tag => {
-            html += `<div class="progress-item"><span>#${tag.name}</span><span>${likeStats.byTag[tag.name] || 0}</span></div>`;
-        });
-    } else {
-        selectedUsers.forEach(user => {
-            html += `<div class="progress-item"><span>@${user.name}</span><span>${likeStats.byTag[user.uuid] || 0}</span></div>`;
-        });
-    }
+    // 显示标签进度
+    const tags = getSavedTags();
+    tags.forEach(tag => {
+        html += `<div class="progress-item"><span>#${tag.name}</span><span>${likeStats.byTag[tag.name] || 0}</span></div>`;
+    });
+    
+    // 显示用户进度
+    selectedUsers.forEach(user => {
+        html += `<div class="progress-item"><span>@${user.name}</span><span>${likeStats.byTag[user.uuid] || 0}</span></div>`;
+    });
     
     progressEl.innerHTML = html;
     
@@ -1425,18 +1376,14 @@ function updateProgress() {
     if (elapsed % 5 === 0) {
         chartData.labels.push(elapsed);
         chartData.total.push(likeStats.total);
-        if (likeMode === 'tag') {
-            const tags = getSavedTags();
-            tags.forEach(tag => {
-                if (!chartData.byTag[tag.name]) chartData.byTag[tag.name] = [];
-                chartData.byTag[tag.name].push(likeStats.byTag[tag.name] || 0);
-            });
-        } else {
-            selectedUsers.forEach(user => {
-                if (!chartData.byTag[user.uuid]) chartData.byTag[user.uuid] = [];
-                chartData.byTag[user.uuid].push(likeStats.byTag[user.uuid] || 0);
-            });
-        }
+        tags.forEach(tag => {
+            if (!chartData.byTag[tag.name]) chartData.byTag[tag.name] = [];
+            chartData.byTag[tag.name].push(likeStats.byTag[tag.name] || 0);
+        });
+        selectedUsers.forEach(user => {
+            if (!chartData.byTag[user.uuid]) chartData.byTag[user.uuid] = [];
+            chartData.byTag[user.uuid].push(likeStats.byTag[user.uuid] || 0);
+        });
         renderChart();
     }
 }
@@ -2380,8 +2327,7 @@ function init() {
     setupStats();
     loadHotTags();
     
-    // 新增：用户点赞模式相关
-    initLikeMode();
+    // 新增：用户点赞相关
     initUserSearch();
     initUserConfirm();
     renderUserQueue();
