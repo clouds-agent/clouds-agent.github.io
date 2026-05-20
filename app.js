@@ -209,7 +209,8 @@ async function showUserConfirmModal(user) {
     // 获取详细用户信息（准确的粉丝数）
     const detail = await getUserDetail(user.uuid);
     const followers = detail ? (detail.total_fans || 0) : 0;
-    const stories = detail ? (detail.story_count || 0) : 0;
+    // story_count 是 null，要用 total_collections
+    const stories = detail ? (detail.total_collections || 0) : 0;
     
     const modal = document.getElementById('user-confirm-modal');
     const avatar = document.getElementById('confirm-avatar');
@@ -255,7 +256,8 @@ async function addUserToQueue(user) {
     // 获取详细用户信息（准确的粉丝数）
     const detail = await getUserDetail(user.uuid);
     const followers = detail ? (detail.total_fans || 0) : (user.subscriber_count || 0);
-    const storyCount = detail ? (detail.story_count || user.story_count || 0) : (user.story_count || 0);
+    // story_count 是 null，要用 total_collections
+    const storyCount = detail ? (detail.total_collections || 0) : (user.story_count || 0);
     
     selectedUsers.push({
         uuid: user.uuid,
