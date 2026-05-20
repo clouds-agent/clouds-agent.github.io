@@ -1184,36 +1184,25 @@ async function startLikeLoop(tags) {
             log('所有标签已完成', 'info');
         }
         
-        // 检查超时（根据设置）
+        // 检查超时（根据设置）- 只针对标签
         const timeoutMs = timeoutDuration * 60 * 1000;
         const noGrowthTime = Date.now() - likeStats.lastIncrease;
         
         if (timeoutDuration > 0 && noGrowthTime > timeoutMs) {
-            // 根据范围判断是否停止
-            let shouldStop = false;
-            
             if (timeoutScope === 'all') {
-                // 整体：所有任务都超时才停止
-                shouldStop = true;
+                // 整体：标签超时就停止整个进程
+                isRunning = false;
+                log(`⚠️ ${timeoutDuration}分钟无增长，已停止`, 'error');
+                stopLiking();
+                break;
             } else if (timeoutScope === 'except-users') {
-                // 除用户：只检查标签是否完成
-                if (unfinishedTagsCheck.length === 0) {
-                    shouldStop = true;
-                }
-            } else if (timeoutScope === 'except-tags') {
-                // 除标签：只检查用户是否完成
-                const unfinishedUsersCheck = selectedUsers.filter(u => !userFinished[u.uuid]);
-                if (unfinishedUsersCheck.length === 0) {
-                    shouldStop = true;
-                }
-            }
-            
-            if (shouldStop) {
+                // 除用户：标签超时就停止整个进程（用户不检查超时，会遍历完）
                 isRunning = false;
                 log(`⚠️ ${timeoutDuration}分钟无增长，已停止`, 'error');
                 stopLiking();
                 break;
             }
+            // except-tags: 标签不检查超时，继续跑
         }
         
         await new Promise(r => setTimeout(r, 1000));
@@ -1343,35 +1332,25 @@ async function startUserLikeLoop(users) {
             break;
         }
         
-        // 检查超时（根据设置）
+        // 检查超时（根据设置）- 只针对用户
         const timeoutMs = timeoutDuration * 60 * 1000;
         const noGrowthTime = Date.now() - likeStats.lastIncrease;
         
         if (timeoutDuration > 0 && noGrowthTime > timeoutMs) {
-            // 根据范围判断是否停止
-            let shouldStop = false;
-            
             if (timeoutScope === 'all') {
-                // 整体：所有任务都超时才停止
-                shouldStop = true;
-            } else if (timeoutScope === 'except-users') {
-                // 除用户：只检查标签是否完成
-                if (unfinishedTags.length === 0) {
-                    shouldStop = true;
-                }
+                // 整体：用户超时就停止整个进程
+                isRunning = false;
+                log(`⚠️ ${timeoutDuration}分钟无增长，已停止`, 'error');
+                stopLiking();
+                break;
             } else if (timeoutScope === 'except-tags') {
-                // 除标签：只检查用户是否完成
-                if (unfinishedUsers.length === 0) {
-                    shouldStop = true;
-                }
-            }
-            
-            if (shouldStop) {
+                // 除标签：用户超时就停止整个进程（标签不检查超时）
                 isRunning = false;
                 log(`⚠️ ${timeoutDuration}分钟无增长，已停止`, 'error');
                 stopLiking();
                 break;
             }
+            // except-users: 用户不检查超时，继续跑
         }
         
         await new Promise(r => setTimeout(r, 1000));
