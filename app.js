@@ -137,7 +137,7 @@ async function getUserDetail(uuid) {
     }
 }
 
-async function showUserSuggestions(users) {
+function showUserSuggestions(users) {
     const container = document.getElementById('user-suggestions');
     if (!container) return;
     
@@ -147,35 +147,25 @@ async function showUserSuggestions(users) {
         return;
     }
     
-    // 获取每个用户的详细信息（准确的粉丝数）
-    const usersWithDetail = await Promise.all(users.map(async (user) => {
-        const detail = await getUserDetail(user.uuid);
-        return {
-            ...user,
-            followers: detail ? (detail.total_fans || 0) : (user.subscriber_count || 0),
-            storyCount: detail ? (detail.story_count || user.story_count || 0) : (user.story_count || 0)
-        };
-    }));
-    
-    container.innerHTML = usersWithDetail.map(user => `
+    // 只显示头像和昵称，不显示粉丝数（搜索 API 的数据不准确）
+    container.innerHTML = users.map(user => `
         <div class="suggestion-item" data-uuid="${user.uuid}">
             <img src="${user.avatar_url || ''}" alt="${user.nick_name}" class="suggestion-avatar" />
             <div class="suggestion-info">
                 <div class="suggestion-name">${user.nick_name || '未知'}</div>
-                <div class="suggestion-meta">${user.followers} 粉丝 · ${user.storyCount} 作品</div>
             </div>
         </div>
     `).join('');
     
     container.style.display = 'block';
     
-    // 绑定点击事件（直接添加，不再弹窗确认）
+    // 绑定点击事件，弹窗确认
     container.querySelectorAll('.suggestion-item').forEach(item => {
-        item.addEventListener('click', async () => {
+        item.addEventListener('click', () => {
             const uuid = item.dataset.uuid;
-            const user = usersWithDetail.find(u => u.uuid === uuid);
+            const user = users.find(u => u.uuid === uuid);
             if (user) {
-                await addUserToQueue(user);
+                showUserConfirmModal(user);
                 container.style.display = 'none';
                 document.getElementById('user-search').value = '';
             }
@@ -209,6 +199,48 @@ function initUserSearch() {
             if (container) container.style.display = 'none';
         }
     });
+}
+
+// ============ 用户确认模态框 ============
+
+async function showUserConfirmModal(user) {
+    currentUserConfirm = user;
+    
+    // 获取详细用户信息（准确的粉丝数）
+    const detail = await getUserDetail(user.uuid);
+    const followers = detail ? (detail.total_fans || 0) : 0;
+    const stories = detail ? (detail.story_count || 0) : 0;
+    
+    const modal = document.getElementById('user-confirm-modal');
+    const avatar = document.getElementById('confirm-avatar');
+    const name = document.getElementById('confirm-name');
+    const followersEl = document.getElementById('confirm-followers');
+    const storiesEl = document.getElementById('confirm-stories');
+    
+    if (avatar) avatar.src = user.avatar_url || '';
+    if (name) name.textContent = user.nick_name || '未知';
+    if (followersEl) followersEl.textContent = followers;
+    if (storiesEl) storiesEl.textContent = stories;
+    
+    if (modal) modal.classList.add('show');
+}
+
+function closeUserConfirmModal() {
+    const modal = document.getElementById('user-confirm-modal');
+    if (modal) modal.classList.remove('show');
+    currentUserConfirm = null;
+}
+
+function initUserConfirm() {
+    const addBtn = document.getElementById('confirm-add-user');
+    if (addBtn) {
+        addBtn.addEventListener('click', async () => {
+            if (currentUserConfirm) {
+                await addUserToQueue(currentUserConfirm);
+                closeUserConfirmModal();
+            }
+        });
+    }
 }
 
 // ============ 用户任务队列 ============
@@ -2335,6 +2367,7 @@ function init() {
     
     // 新增：用户点赞相关
     initUserSearch();
+    initUserConfirm();
     renderUserQueue();
     
     // 渲染已保存的标签
