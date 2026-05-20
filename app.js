@@ -1173,22 +1173,24 @@ async function startLikeLoop(tags) {
             }
         }
         
-        // 检查是否所有标签都 1 分钟无增长
-        const unfinishedTags = tags.filter(t => !tagFinished[t.name]);
-        if (unfinishedTags.length === 0) {
-            // 所有标签都完成了
-            isRunning = false;
-            log('所有标签已完成', 'success');
-            stopLiking();
-            break;
+        // 检查是否所有标签都完成了
+        const unfinishedTagsCheck = tags.filter(t => !tagFinished[t.name]);
+        if (unfinishedTagsCheck.length === 0) {
+            // 所有标签都完成了，但可能还有用户在跑
+            log('所有标签已完成', 'info');
         }
         
+        // 检查是否所有任务都 1 分钟无增长（标签 + 用户）
+        const unfinishedUsersCheck = selectedUsers.filter(u => !userFinished[u.uuid]);
         if (Date.now() - likeStats.lastIncrease > 60000) {
-            isRunning = false;
-            log('⚠️ 1 分钟无增长，已停止', 'error');
-            log('请检查：Token 是否有效、标签是否有新作品', 'error');
-            stopLiking();
-            break;
+            // 只有当所有任务都无增长时才停止
+            if (unfinishedTagsCheck.length === 0 && unfinishedUsersCheck.length === 0) {
+                isRunning = false;
+                log('⚠️ 1 分钟无增长，已停止', 'error');
+                log('请检查：Token 是否有效、是否有新作品', 'error');
+                stopLiking();
+                break;
+            }
         }
         
         await new Promise(r => setTimeout(r, 1000));
@@ -1261,13 +1263,16 @@ async function startUserLikeLoop(users) {
                 if (stories.length === 0) {
                     // 当前页没有作品，标记这个用户完成
                     userFinished[user.uuid] = true;
-                    log(`@${user.name} 已遍历完所有作品（第 ${currentPage} 页）`, 'error');
+                    log(`@${user.name} 已遍历完所有作品（第 ${currentPage} 页）`, 'info');
                     
-                    // 检查是否所有用户都完成了
-                    const allFinished = users.every(u => userFinished[u.uuid]);
-                    if (allFinished) {
+                    // 检查是否所有任务都完成了（标签 + 用户）
+                    const tags = getSavedTags();
+                    const unfinishedTags = tags.filter(t => !tagFinished[t.name]);
+                    const unfinishedUsers = users.filter(u => !userFinished[u.uuid]);
+                    
+                    if (unfinishedTags.length === 0 && unfinishedUsers.length === 0) {
                         isRunning = false;
-                        log('所有用户作品已完成点赞', 'success');
+                        log('所有任务已完成', 'success');
                         stopLiking();
                         return;
                     }
@@ -1284,7 +1289,8 @@ async function startUserLikeLoop(users) {
                         likeStats.total++;
                         likeStats.byTag[user.uuid]++;
                         likeStats.lastIncrease = Date.now();
-                        log(`✓ @${user.name}: ${story.title || '无题'}`, 'success');
+                        const storyTitle = story.name || story.title || '无题';
+                        log(`✓ @${user.name}: ${storyTitle}`, 'success');
                         successCount++;
                     } else {
                         log(`✗ @${user.name}: ${result.error}`, 'error');
@@ -1302,22 +1308,31 @@ async function startUserLikeLoop(users) {
             }
         }
         
-        // 检查是否所有用户都 1 分钟无增长
+        // 检查是否所有任务都完成了（标签 + 用户）
+        const tags = getSavedTags();
+        const unfinishedTags = tags.filter(t => !tagFinished[t.name]);
         const unfinishedUsers = users.filter(u => !userFinished[u.uuid]);
-        if (unfinishedUsers.length === 0) {
-            // 所有用户都完成了
+        
+        if (unfinishedTags.length === 0 && unfinishedUsers.length === 0) {
             isRunning = false;
-            log('所有用户作品已完成点赞', 'success');
+            log('所有任务已完成', 'success');
             stopLiking();
             break;
         }
         
+        // 只检查当前用户是否 1 分钟无增长，不影响其他任务
         if (Date.now() - likeStats.lastIncrease > 60000) {
-            isRunning = false;
-            log('⚠️ 1 分钟无增长，已停止', 'error');
-            log('请检查：Token 是否有效、用户是否有新作品', 'error');
-            stopLiking();
-            break;
+            // 标记当前用户完成，但继续其他任务
+            userFinished[user.uuid] = true;
+            log(`⚠️ @${user.name} 1 分钟无增长，跳过`, 'error');
+            
+            // 检查是否还有其他任务
+            if (unfinishedTags.length === 0 && users.filter(u => !userFinished[u.uuid]).length === 0) {
+                isRunning = false;
+                log('所有任务已完成', 'success');
+                stopLiking();
+                break;
+            }
         }
         
         await new Promise(r => setTimeout(r, 1000));
