@@ -1138,15 +1138,7 @@ async function startLikeLoop(tags) {
                     tagFinished[tag.name] = true;
                     log(`#${tag.name} 已遍历完所有作品（第 ${currentPage} 页）`, 'info');
                     
-                    // 检查是否所有任务都完成了（标签 + 用户）
-                    const unfinishedUsers = selectedUsers.filter(u => !userFinished[u.uuid]);
-                    if (unfinishedUsers.length === 0) {
-                        isRunning = false;
-                        log('所有任务已完成', 'success');
-                        stopLiking();
-                        return;
-                    }
-                    // 还有用户在跑，继续
+                    // 不在这里检查完成，让外层循环检查
                     continue;
                 }
                 
@@ -1180,9 +1172,19 @@ async function startLikeLoop(tags) {
         
         // 检查是否所有标签都完成了
         const unfinishedTagsCheck = tags.filter(t => !tagFinished[t.name]);
-        if (unfinishedTagsCheck.length === 0) {
-            // 所有标签都完成了，但可能还有用户在跑
-            log('所有标签已完成', 'info');
+        if (unfinishedTagsCheck.length === 0 && tags.length > 0) {
+            // 所有标签都完成了，检查用户
+            const unfinishedUsers = selectedUsers.filter(u => !userFinished[u.uuid]);
+            if (unfinishedUsers.length === 0) {
+                // 所有任务都完成了
+                isRunning = false;
+                log('所有任务已完成', 'success');
+                stopLiking();
+                break;
+            } else {
+                // 还有用户在跑
+                log('所有标签已完成，等待用户进程...', 'info');
+            }
         }
         
         // 检查超时（根据设置）- 只针对标签
@@ -1204,6 +1206,18 @@ async function startLikeLoop(tags) {
                 break;
             }
             // except-tags: 标签不检查超时，继续跑
+        }
+        
+        // 所有标签都完成了，检查用户
+        if (unfinishedTagsCheck.length === 0 && tags.length > 0) {
+            const unfinishedUsers = selectedUsers.filter(u => !userFinished[u.uuid]);
+            if (unfinishedUsers.length === 0) {
+                // 所有任务都完成了
+                isRunning = false;
+                log('所有任务已完成', 'success');
+                stopLiking();
+                break;
+            }
         }
         
         await new Promise(r => setTimeout(r, 1000));
@@ -1352,6 +1366,21 @@ async function startUserLikeLoop(users) {
                 break;
             }
             // except-users: 用户不检查超时，继续跑
+        }
+        
+        // 所有用户都完成了，但可能还有标签在跑
+        const unfinishedTagsCheck = tags.filter(t => !tagFinished[t.name]);
+        if (unfinishedUsers.length === 0 && users.length > 0) {
+            if (unfinishedTagsCheck.length === 0) {
+                // 所有任务都完成了
+                isRunning = false;
+                log('所有任务已完成', 'success');
+                stopLiking();
+                break;
+            } else {
+                // 还有标签在跑
+                log('所有用户已完成，等待标签进程...', 'info');
+            }
         }
         
         await new Promise(r => setTimeout(r, 1000));
