@@ -1195,6 +1195,10 @@ async function startLikeLoop(tags) {
                     log('所有标签已完成，等待用户进程...', 'info');
                     tagsFinishedLogged = true;
                 }
+                // except-users 模式下，标签循环可以退出了，让用户循环继续
+                if (timeoutScope === 'except-users') {
+                    break;
+                }
             }
         } else {
             // 还有标签在跑，重置标志
@@ -1212,8 +1216,23 @@ async function startLikeLoop(tags) {
                 log(`⚠️ ${timeoutDuration}分钟无增长，已停止`, 'error');
                 stopLiking();
                 break;
+            } else if (timeoutScope === 'except-users') {
+                // 除用户：标签超时就停止标签，但用户继续跑
+                log(`⚠️ 标签 ${timeoutDuration}分钟无增长，停止标签进程，用户继续`, 'error');
+                // 标记所有标签完成，标签循环会自然退出
+                tags.forEach(t => tagFinished[t.name] = true);
+                // 检查用户是否也完成了
+                const unfinishedUsers = selectedUsers.filter(u => !userFinished[u.uuid]);
+                if (unfinishedUsers.length === 0) {
+                    // 用户也完成了，停止整个进程
+                    isRunning = false;
+                    log('所有任务已完成', 'success');
+                    stopLiking();
+                    break;
+                }
+                // 用户还在跑，继续循环（但标签都标记完成了，不会再点赞）
+                continue;
             }
-            // except-users: 标签超时也不停止，让用户继续跑
             // except-tags: 标签不检查超时，继续跑
         }
         
@@ -1357,8 +1376,23 @@ async function startUserLikeLoop(users) {
                 log(`⚠️ ${timeoutDuration}分钟无增长，已停止`, 'error');
                 stopLiking();
                 break;
+            } else if (timeoutScope === 'except-tags') {
+                // 除标签：用户超时就停止用户，但标签继续跑
+                log(`⚠️ 用户 ${timeoutDuration}分钟无增长，停止用户进程，标签继续`, 'error');
+                // 标记所有用户完成
+                users.forEach(u => userFinished[u.uuid] = true);
+                // 检查标签是否也完成了
+                const unfinishedTags = tags.filter(t => !tagFinished[t.name]);
+                if (unfinishedTags.length === 0) {
+                    // 标签也完成了，停止整个进程
+                    isRunning = false;
+                    log('所有任务已完成', 'success');
+                    stopLiking();
+                    break;
+                }
+                // 标签还在跑，继续循环
+                continue;
             }
-            // except-tags: 用户超时也不停止，让标签继续跑
             // except-users: 用户不检查超时，继续跑
         }
         
@@ -1375,6 +1409,10 @@ async function startUserLikeLoop(users) {
                 if (!usersFinishedLogged) {
                     log('所有用户已完成，等待标签进程...', 'info');
                     usersFinishedLogged = true;
+                }
+                // except-tags 模式下，用户循环可以退出了，让标签循环继续
+                if (timeoutScope === 'except-tags') {
+                    break;
                 }
             }
         } else {
