@@ -939,11 +939,17 @@ input[type="password"]:focus {
     min-width: 70px;
 }
 
+.stat-large {
+    text-align: center;
+    flex: 1;
+    min-width: 70px;
+    position: relative;
+}
+
 .stat-value-large {
     font-size: 1.4rem;
     font-weight: 700;
     color: #0071e3;
-    position: relative;
 }
 
 .stat-label-large {
@@ -991,39 +997,36 @@ input[type="password"]:focus {
 /* 数据变化提示 */
 .stat-delta {
     position: absolute;
-    top: -20px;
+    top: -18px;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 0.85rem;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 8px;
     white-space: nowrap;
-    opacity: 0;
-    transition: opacity 0.3s;
     pointer-events: none;
-}
-
-.stat-delta.show {
-    opacity: 1;
-    animation: deltaFloat 0.5s ease-out;
+    z-index: 10;
+    animation: deltaFadeIn 0.4s ease-out;
 }
 
 .stat-delta.positive {
-    background: #e8f5e9;
-    color: #2e7d32;
+    background: rgba(46, 125, 50, 0.9);
+    color: #fff;
 }
 
 .stat-delta.negative {
-    background: #ffebee;
-    color: #c62828;
+    background: rgba(198, 40, 40, 0.9);
+    color: #fff;
 }
 
-@keyframes deltaFloat {
+@keyframes deltaFadeIn {
     from {
-        transform: translateX(-50%) translateY(10px);
+        opacity: 0;
+        transform: translateX(-50%) translateY(5px);
     }
     to {
+        opacity: 1;
         transform: translateX(-50%) translateY(0);
     }
 }
