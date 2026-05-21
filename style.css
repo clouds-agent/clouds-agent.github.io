@@ -939,17 +939,25 @@ input[type="password"]:focus {
     min-width: 70px;
 }
 
+.profile-stats-large {
+    display: block;
+    width: 100%;
+}
+
 .stat-row {
     display: flex;
     justify-content: space-around;
     align-items: center;
     padding: 1rem 1.5rem;
     background: #fff;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .stat-row-second {
     background: #fafafa;
     border-top: 1px solid #f5f5f7;
+    display: flex;
 }
 
 .stat-large {
