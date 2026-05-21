@@ -1196,9 +1196,10 @@ async function startLikeLoop(tags) {
                     tagsFinishedLogged = true;
                 }
                 // except-users 模式下，标签循环可以退出了，让用户循环继续
-                // 不要调用 stopLiking()，直接 break
+                // 不要调用 stopLiking()，直接 return（不执行函数末尾的重置代码）
                 if (timeoutScope === 'except-users') {
-                    break;
+                    log('标签进程结束，用户进程继续', 'info');
+                    return; // 直接返回，不执行函数末尾的重置代码
                 }
             }
         } else {
