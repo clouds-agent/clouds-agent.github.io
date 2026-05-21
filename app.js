@@ -1206,55 +1206,6 @@ async function startLikeLoop(tags) {
             tagsFinishedLogged = false;
         }
         
-        // 检查超时（根据设置）- 只针对标签
-        const timeoutMs = timeoutDuration * 60 * 1000;
-        const noGrowthTime = Date.now() - likeStats.lastIncrease;
-        
-        if (timeoutDuration > 0 && noGrowthTime > timeoutMs) {
-            if (timeoutScope === 'all') {
-                // 整体：标签超时就停止整个进程
-                isRunning = false;
-                log(`⚠️ ${timeoutDuration}分钟无增长，已停止`, 'error');
-                stopLiking();
-                break;
-            } else if (timeoutScope === 'except-users') {
-                // 除用户：标签超时就停止标签，但用户继续跑
-                log(`⚠️ 标签 ${timeoutDuration}分钟无增长，停止标签进程，用户继续`, 'error');
-                // 标记所有标签完成
-                tags.forEach(t => tagFinished[t.name] = true);
-                // 直接退出标签循环，不要调用 stopLiking()，让用户循环继续
-                break;
-            }
-            // except-tags: 标签不检查超时，继续跑
-        }
-        
-        } else {
-            // 还有标签在跑，重置标志
-            tagsFinishedLogged = false;
-        }
-        
-        // 检查超时（根据设置）- 只针对标签
-        const timeoutMs = timeoutDuration * 60 * 1000;
-        const noGrowthTime = Date.now() - likeStats.lastIncrease;
-        
-        if (timeoutDuration > 0 && noGrowthTime > timeoutMs) {
-            if (timeoutScope === 'all') {
-                // 整体：标签超时就停止整个进程
-                isRunning = false;
-                log(`⚠️ ${timeoutDuration}分钟无增长，已停止`, 'error');
-                stopLiking();
-                break;
-            } else if (timeoutScope === 'except-users') {
-                // 除用户：标签超时就停止标签，但用户继续跑
-                log(`⚠️ 标签 ${timeoutDuration}分钟无增长，停止标签进程，用户继续`, 'error');
-                // 标记所有标签完成
-                tags.forEach(t => tagFinished[t.name] = true);
-                // 直接退出标签循环，不要调用 stopLiking()，让用户循环继续
-                break;
-            }
-            // except-tags: 标签不检查超时，继续跑
-        }
-        
         await new Promise(r => setTimeout(r, 1000));
     }
     
