@@ -1136,16 +1136,17 @@ async function startLikeLoop(tags) {
                 if (stories.length === 0) {
                     // 当前页没有作品，标记这个标签完成
                     tagFinished[tag.name] = true;
-                    log(`#${tag.name} 已遍历完所有作品（第 ${currentPage} 页）`, 'error');
+                    log(`#${tag.name} 已遍历完所有作品（第 ${currentPage} 页）`, 'info');
                     
-                    // 检查是否所有标签都完成了
-                    const allFinished = tags.every(t => tagFinished[t.name]);
-                    if (allFinished) {
+                    // 检查是否所有任务都完成了（标签 + 用户）
+                    const unfinishedUsers = selectedUsers.filter(u => !userFinished[u.uuid]);
+                    if (unfinishedUsers.length === 0) {
                         isRunning = false;
-                        log('所有标签已完成', 'success');
+                        log('所有任务已完成', 'success');
                         stopLiking();
                         return;
                     }
+                    // 还有用户在跑，继续
                     continue;
                 }
                 
