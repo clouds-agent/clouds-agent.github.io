@@ -956,6 +956,42 @@ input[type="password"]:focus {
     background: #e5e5e5;
 }
 
+.profile-refresh-row {
+    display: flex;
+    justify-content: center;
+    padding: 1rem 1.5rem;
+    background: #fff;
+    border-top: 1px solid #f5f5f7;
+}
+
+.btn-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid #e5e5e5;
+    background: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.btn-icon:hover {
+    background: #f5f5f7;
+    border-color: #0071e3;
+}
+
+.btn-icon:hover .refresh-icon {
+    transform: rotate(180deg);
+}
+
+.refresh-icon {
+    width: 20px;
+    height: 20px;
+    transition: transform 0.3s;
+}
+
 .profile-actions {
     padding: 1.5rem;
     background: #fff;

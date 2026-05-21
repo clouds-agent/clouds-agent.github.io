@@ -416,6 +416,12 @@ function updateProfileUI() {
     
     const energyEl = document.getElementById('profile-energy');
     if (energyEl) energyEl.textContent = (userProfile.energy !== undefined ? userProfile.energy : '-');
+    
+    const likesEl = document.getElementById('profile-likes');
+    if (likesEl) likesEl.textContent = userProfile.likes || 0;
+    
+    const sameStyleEl = document.getElementById('profile-same-style');
+    if (sameStyleEl) sameStyleEl.textContent = userProfile.sameStyle || 0;
 }
 
 async function loadUserProfile() {
@@ -443,7 +449,9 @@ async function loadUserProfile() {
             avatar: data.avatar_url || '',
             following: data.total_subscribes || 0,
             followers: data.total_fans || 0,
-            energy: data.ap_info?.ap || 0
+            energy: data.ap_info?.ap || 0,
+            likes: data.total_likes || 0,
+            sameStyle: data.total_same_style || 0
         };
         
         updateProfileUI();
@@ -1871,6 +1879,7 @@ async function loadHotTags() {
 function setupCheckin() {
     const checkinBtn = document.getElementById('checkin-btn');
     const autoCheckinToggle = document.getElementById('auto-checkin-toggle');
+    const refreshProfileBtn = document.getElementById('refresh-profile-btn');
     
     if (checkinBtn) {
         checkinBtn.addEventListener('click', async () => {
@@ -1903,6 +1912,38 @@ function setupCheckin() {
             } finally {
                 checkinBtn.disabled = false;
                 checkinBtn.textContent = '签到';
+            }
+        });
+    }
+    
+    // 刷新用户数据按钮
+    if (refreshProfileBtn) {
+        refreshProfileBtn.addEventListener('click', async () => {
+            const token = getToken();
+            if (!token) {
+                showStatus('checkin-status', '请先登录', 'error');
+                return;
+            }
+            
+            // 旋转图标
+            const icon = refreshProfileBtn.querySelector('.refresh-icon');
+            if (icon) {
+                icon.style.transform = 'rotate(360deg)';
+            }
+            
+            try {
+                await loadUserProfile();
+                showStatus('checkin-status', '✓ 数据已刷新', 'success');
+                setTimeout(() => {
+                    showStatus('checkin-status', '', '');
+                }, 2000);
+            } catch (error) {
+                showStatus('checkin-status', '刷新失败：' + error.message, 'error');
+            } finally {
+                // 重置图标
+                if (icon) {
+                    icon.style.transform = 'rotate(0deg)';
+                }
             }
         });
     }
