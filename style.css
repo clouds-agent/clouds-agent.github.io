@@ -936,24 +936,25 @@ input[type="password"]:focus {
 .stat-large {
     text-align: center;
     flex: 1;
-    min-width: 60px;
+    min-width: 70px;
 }
 
 .stat-value-large {
-    font-size: 1.2rem;
+    font-size: 1.4rem;
     font-weight: 700;
     color: #0071e3;
+    position: relative;
 }
 
 .stat-label-large {
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     color: #86868b;
-    margin-top: 0.25rem;
+    margin-top: 0.3rem;
 }
 
 .stat-divider {
     width: 1px;
-    height: 35px;
+    height: 42px;
     background: #e5e5e5;
 }
 
@@ -961,12 +962,13 @@ input[type="password"]:focus {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding-left: 0.5rem;
+    padding-left: 0.75rem;
+    min-width: 50px;
 }
 
 .btn-refresh {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     border: 1px solid #e5e5e5;
     background: #fff;
@@ -974,7 +976,7 @@ input[type="password"]:focus {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: 18px;
     color: #86868b;
     transition: all 0.2s;
 }
@@ -984,6 +986,46 @@ input[type="password"]:focus {
     border-color: #0071e3;
     color: #0071e3;
     transform: rotate(180deg);
+}
+
+/* 数据变化提示 */
+.stat-delta {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+}
+
+.stat-delta.show {
+    opacity: 1;
+    animation: deltaFloat 0.5s ease-out;
+}
+
+.stat-delta.positive {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.stat-delta.negative {
+    background: #ffebee;
+    color: #c62828;
+}
+
+@keyframes deltaFloat {
+    from {
+        transform: translateX(-50%) translateY(10px);
+    }
+    to {
+        transform: translateX(-50%) translateY(0);
+    }
 }
 
 .profile-actions {

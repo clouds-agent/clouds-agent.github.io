@@ -16,6 +16,7 @@ let userPageMap = {}; // 每个用户的当前页码
 let userFinished = {}; // 每个用户是否已完成
 let userSearchDebounce = null; // 搜索防抖定时器
 let currentUserConfirm = null; // 当前待确认的用户信息
+let previousProfileData = null; // 上次用户数据（用于对比变化）
 
 // 超时设置
 let timeoutDuration = 1; // 无增长停止时间（分钟），0 表示无截止
@@ -422,6 +423,49 @@ function updateProfileUI() {
     
     const sameStyleEl = document.getElementById('profile-same-style');
     if (sameStyleEl) sameStyleEl.textContent = userProfile.sameStyle || 0;
+    
+    // 显示数据变化提示
+    if (previousProfileData) {
+        showStatDelta('profile-following', userProfile.following, previousProfileData.following);
+        showStatDelta('profile-followers', userProfile.followers, previousProfileData.followers);
+        showStatDelta('profile-energy', userProfile.energy, previousProfileData.energy);
+        showStatDelta('profile-likes', userProfile.likes, previousProfileData.likes);
+        showStatDelta('profile-same-style', userProfile.sameStyle, previousProfileData.sameStyle);
+    }
+    
+    // 保存当前数据用于下次对比
+    previousProfileData = { ...userProfile };
+}
+
+function showStatDelta(elementId, newValue, oldValue) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    
+    // 移除旧的 delta
+    const oldDelta = el.querySelector('.stat-delta');
+    if (oldDelta) oldDelta.remove();
+    
+    // 计算变化
+    const newNum = Number(newValue) || 0;
+    const oldNum = Number(oldValue) || 0;
+    const delta = newNum - oldNum;
+    
+    if (delta === 0) return;
+    
+    // 创建 delta 元素
+    const deltaEl = document.createElement('div');
+    deltaEl.className = `stat-delta ${delta > 0 ? 'positive' : 'negative'} show`;
+    deltaEl.textContent = delta > 0 ? `+${delta}` : delta;
+    
+    // 插入到数值前面
+    el.insertBefore(deltaEl, el.firstChild);
+    
+    // 5 秒后移除
+    setTimeout(() => {
+        if (deltaEl.parentNode) {
+            deltaEl.remove();
+        }
+    }, 5000);
 }
 
 async function loadUserProfile() {
@@ -443,6 +487,9 @@ async function loadUserProfile() {
         
         const data = await res.json();
         console.log('用户信息:', data);
+        
+        // 保存旧数据用于对比
+        const oldProfile = userProfile ? { ...userProfile } : null;
         
         userProfile = {
             name: data.nick_name || data.name || '用户',
