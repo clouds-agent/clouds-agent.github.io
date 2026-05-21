@@ -1196,6 +1196,7 @@ async function startLikeLoop(tags) {
                     tagsFinishedLogged = true;
                 }
                 // except-users 模式下，标签循环可以退出了，让用户循环继续
+                // 不要调用 stopLiking()，直接 break
                 if (timeoutScope === 'except-users') {
                     break;
                 }
@@ -1219,19 +1220,10 @@ async function startLikeLoop(tags) {
             } else if (timeoutScope === 'except-users') {
                 // 除用户：标签超时就停止标签，但用户继续跑
                 log(`⚠️ 标签 ${timeoutDuration}分钟无增长，停止标签进程，用户继续`, 'error');
-                // 标记所有标签完成，标签循环会自然退出
+                // 标记所有标签完成
                 tags.forEach(t => tagFinished[t.name] = true);
-                // 检查用户是否也完成了
-                const unfinishedUsers = selectedUsers.filter(u => !userFinished[u.uuid]);
-                if (unfinishedUsers.length === 0) {
-                    // 用户也完成了，停止整个进程
-                    isRunning = false;
-                    log('所有任务已完成', 'success');
-                    stopLiking();
-                    break;
-                }
-                // 用户还在跑，继续循环（但标签都标记完成了，不会再点赞）
-                continue;
+                // 直接退出标签循环，不要调用 stopLiking()，让用户循环继续
+                break;
             }
             // except-tags: 标签不检查超时，继续跑
         }
@@ -1246,6 +1238,32 @@ async function startLikeLoop(tags) {
                 stopLiking();
                 break;
             }
+        }
+        } else {
+            // 还有标签在跑，重置标志
+            tagsFinishedLogged = false;
+        }
+        
+        // 检查超时（根据设置）- 只针对标签
+        const timeoutMs = timeoutDuration * 60 * 1000;
+        const noGrowthTime = Date.now() - likeStats.lastIncrease;
+        
+        if (timeoutDuration > 0 && noGrowthTime > timeoutMs) {
+            if (timeoutScope === 'all') {
+                // 整体：标签超时就停止整个进程
+                isRunning = false;
+                log(`⚠️ ${timeoutDuration}分钟无增长，已停止`, 'error');
+                stopLiking();
+                break;
+            } else if (timeoutScope === 'except-users') {
+                // 除用户：标签超时就停止标签，但用户继续跑
+                log(`⚠️ 标签 ${timeoutDuration}分钟无增长，停止标签进程，用户继续`, 'error');
+                // 标记所有标签完成
+                tags.forEach(t => tagFinished[t.name] = true);
+                // 直接退出标签循环，不要调用 stopLiking()，让用户循环继续
+                break;
+            }
+            // except-tags: 标签不检查超时，继续跑
         }
         
         await new Promise(r => setTimeout(r, 1000));
