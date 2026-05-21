@@ -936,37 +936,37 @@ input[type="password"]:focus {
 .stat-large {
     text-align: center;
     flex: 1;
+    min-width: 60px;
 }
 
 .stat-value-large {
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     font-weight: 700;
     color: #0071e3;
 }
 
 .stat-label-large {
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     color: #86868b;
     margin-top: 0.25rem;
 }
 
 .stat-divider {
     width: 1px;
-    height: 40px;
+    height: 35px;
     background: #e5e5e5;
 }
 
-.profile-refresh-row {
+.stat-refresh {
     display: flex;
+    align-items: center;
     justify-content: center;
-    padding: 1rem 1.5rem;
-    background: #fff;
-    border-top: 1px solid #f5f5f7;
+    padding-left: 0.5rem;
 }
 
-.btn-icon {
-    width: 44px;
-    height: 44px;
+.btn-refresh {
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     border: 1px solid #e5e5e5;
     background: #fff;
@@ -974,22 +974,16 @@ input[type="password"]:focus {
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 16px;
+    color: #86868b;
     transition: all 0.2s;
 }
 
-.btn-icon:hover {
+.btn-refresh:hover {
     background: #f5f5f7;
     border-color: #0071e3;
-}
-
-.btn-icon:hover .refresh-icon {
+    color: #0071e3;
     transform: rotate(180deg);
-}
-
-.refresh-icon {
-    width: 20px;
-    height: 20px;
-    transition: transform 0.3s;
 }
 
 .profile-actions {
