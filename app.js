@@ -1212,13 +1212,8 @@ async function startLikeLoop(tags) {
                 log(`⚠️ ${timeoutDuration}分钟无增长，已停止`, 'error');
                 stopLiking();
                 break;
-            } else if (timeoutScope === 'except-users') {
-                // 除用户：标签超时就停止整个进程（用户不检查超时，会遍历完）
-                isRunning = false;
-                log(`⚠️ ${timeoutDuration}分钟无增长，已停止`, 'error');
-                stopLiking();
-                break;
             }
+            // except-users: 标签超时也不停止，让用户继续跑
             // except-tags: 标签不检查超时，继续跑
         }
         
@@ -1362,13 +1357,8 @@ async function startUserLikeLoop(users) {
                 log(`⚠️ ${timeoutDuration}分钟无增长，已停止`, 'error');
                 stopLiking();
                 break;
-            } else if (timeoutScope === 'except-tags') {
-                // 除标签：用户超时就停止整个进程（标签不检查超时）
-                isRunning = false;
-                log(`⚠️ ${timeoutDuration}分钟无增长，已停止`, 'error');
-                stopLiking();
-                break;
             }
+            // except-tags: 用户超时也不停止，让标签继续跑
             // except-users: 用户不检查超时，继续跑
         }
         
