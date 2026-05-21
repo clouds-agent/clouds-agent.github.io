@@ -14,6 +14,7 @@ let tagFinished = {}; // 每个标签是否已完成
 let selectedUsers = []; // 已选中的用户列表 [{uuid, name, avatar, followers, storyCount}]
 let userPageMap = {}; // 每个用户的当前页码
 let userFinished = {}; // 每个用户是否已完成
+let userZeroSuccessPages = {}; // 每个用户连续 0 成功的页数
 let userSearchDebounce = null; // 搜索防抖定时器
 let currentUserConfirm = null; // 当前待确认的用户信息
 
@@ -1249,10 +1250,13 @@ async function getStories(hashtag, page = 0, size = 10) {
 }
 
 async function startUserLikeLoop(users) {
-    // 初始化页码
+    // 初始化页码和 0 成功计数器
     users.forEach(user => {
         if (userPageMap[user.uuid] === undefined) {
             userPageMap[user.uuid] = 0;
+        }
+        if (userZeroSuccessPages[user.uuid] === undefined) {
+            userZeroSuccessPages[user.uuid] = 0;
         }
     });
     
@@ -1307,9 +1311,24 @@ async function startUserLikeLoop(users) {
                     await new Promise(r => setTimeout(r, 200));
                 }
                 
-                // 无论成功失败，都翻到下一页
-                userPageMap[user.uuid] = currentPage + 1;
-                log(`@${user.name} 第${currentPage + 1}页处理完成，翻到第${currentPage + 2}页`);
+                // 检查是否连续多页都是 0 成功
+                if (successCount === 0) {
+                    userZeroSuccessPages[user.uuid]++;
+                    if (userZeroSuccessPages[user.uuid] >= 2) {
+                        // 连续 2 页都是 0 成功，认为已经点完了
+                        userFinished[user.uuid] = true;
+                        log(`@${user.name} 连续${userZeroSuccessPages[user.uuid]}页无新点赞，认为已完成`, 'warning');
+                    } else {
+                        // 继续翻页
+                        userPageMap[user.uuid] = currentPage + 1;
+                        log(`@${user.name} 第${currentPage + 1}页处理完成，翻到第${currentPage + 2}页`);
+                    }
+                } else {
+                    // 有成功点赞，重置计数器并翻页
+                    userZeroSuccessPages[user.uuid] = 0;
+                    userPageMap[user.uuid] = currentPage + 1;
+                    log(`@${user.name} 第${currentPage + 1}页处理完成，翻到第${currentPage + 2}页`);
+                }
             } catch (error) {
                 log(`@${user.name}: ${error.message}`, 'error');
             }
