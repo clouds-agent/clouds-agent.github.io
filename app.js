@@ -16,7 +16,6 @@ let userPageMap = {}; // 每个用户的当前页码
 let userFinished = {}; // 每个用户是否已完成
 let userSearchDebounce = null; // 搜索防抖定时器
 let currentUserConfirm = null; // 当前待确认的用户信息
-let userZeroSuccessPages = {}; // 每个用户连续 0 成功页数的计数器
 
 // 超时设置
 let timeoutDuration = 1; // 无增长停止时间（分钟），0 表示无截止
@@ -1036,12 +1035,10 @@ function startLiking() {
     // 初始化用户
     userPageMap = {};
     userFinished = {};
-    userZeroSuccessPages = {};
     users.forEach(user => {
         likeStats.byTag[user.uuid] = 0;
         userFinished[user.uuid] = false;
         userPageMap[user.uuid] = 0;
-        userZeroSuccessPages[user.uuid] = 0;
     });
     
     // 重置日志标志
@@ -1309,17 +1306,7 @@ async function startUserLikeLoop(users) {
                     userFinished[user.uuid] = true;
                     log(`@${user.name} 已遍历完所有作品（第 ${currentPage} 页）`, 'info');
                     
-                    // 检查是否所有任务都完成了（标签 + 用户）
-                    const tags = getSavedTags();
-                    const unfinishedTags = tags.filter(t => !tagFinished[t.name]);
-                    const unfinishedUsers = users.filter(u => !userFinished[u.uuid]);
-                    
-                    if (unfinishedTags.length === 0 && unfinishedUsers.length === 0) {
-                        isRunning = false;
-                        log('所有任务已完成', 'success');
-                        stopLiking();
-                        return;
-                    }
+                    // 不在这里检查完成，让外层循环检查
                     continue;
                 }
                 
@@ -1336,8 +1323,6 @@ async function startUserLikeLoop(users) {
                         const storyTitle = story.name || story.title || '无题';
                         log(`✓ @${user.name}: ${storyTitle}`, 'success');
                         successCount++;
-                        // 重置 0 成功计数器
-                        userZeroSuccessPages[user.uuid] = 0;
                     } else {
                         log(`✗ @${user.name}: ${result.error}`, 'error');
                     }
@@ -1346,30 +1331,7 @@ async function startUserLikeLoop(users) {
                     await new Promise(r => setTimeout(r, 200));
                 }
                 
-                // 检查是否连续多页都是 0 成功
-                if (successCount === 0) {
-                    userZeroSuccessPages[user.uuid]++;
-                    if (userZeroSuccessPages[user.uuid] >= 2) {
-                        // 连续 2 页都是 0 成功，认为已经点完了
-                        userFinished[user.uuid] = true;
-                        log(`@${user.name} 连续${userZeroSuccessPages[user.uuid]}页无新点赞，认为已完成`, 'info');
-                        
-                        // 检查是否所有任务都完成了
-                        const tags = getSavedTags();
-                        const unfinishedTags = tags.filter(t => !tagFinished[t.name]);
-                        const unfinishedUsers = users.filter(u => !userFinished[u.uuid]);
-                        
-                        if (unfinishedTags.length === 0 && unfinishedUsers.length === 0) {
-                            isRunning = false;
-                            log('所有任务已完成', 'success');
-                            stopLiking();
-                            return;
-                        }
-                        continue;
-                    }
-                }
-                
-                // 翻页
+                // 无论成功失败，都翻到下一页
                 userPageMap[user.uuid] = currentPage + 1;
                 log(`@${user.name} 第${currentPage + 1}页处理完成，翻到第${currentPage + 2}页`);
             } catch (error) {
@@ -1410,8 +1372,7 @@ async function startUserLikeLoop(users) {
             // except-users: 用户不检查超时，继续跑
         }
         
-        // 所有用户都完成了，但可能还有标签在跑
-        const unfinishedTagsCheck = tags.filter(t => !tagFinished[t.name]);
+        // 检查是否所有用户都完成了
         if (unfinishedUsers.length === 0 && users.length > 0) {
             if (unfinishedTagsCheck.length === 0) {
                 // 所有任务都完成了
