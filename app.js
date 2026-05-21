@@ -21,6 +21,10 @@ let currentUserConfirm = null; // 当前待确认的用户信息
 let timeoutDuration = 1; // 无增长停止时间（分钟），0 表示无截止
 let timeoutScope = 'all'; // 应用范围：'all', 'except-users', 'except-tags'
 
+// 日志标志
+let tagsFinishedLogged = false; // 标签完成日志是否已打印
+let usersFinishedLogged = false; // 用户完成日志是否已打印
+
 // ============ 工具函数 ============
 
 function getToken() {
@@ -1037,6 +1041,10 @@ function startLiking() {
         userPageMap[user.uuid] = 0;
     });
     
+    // 重置日志标志
+    tagsFinishedLogged = false;
+    usersFinishedLogged = false;
+    
     chartData = { labels: [], total: [], byTag: {} };
     tags.forEach(tag => {
         chartData.byTag[tag.name] = [];
@@ -1183,8 +1191,14 @@ async function startLikeLoop(tags) {
                 break;
             } else {
                 // 还有用户在跑
-                log('所有标签已完成，等待用户进程...', 'info');
+                if (!tagsFinishedLogged) {
+                    log('所有标签已完成，等待用户进程...', 'info');
+                    tagsFinishedLogged = true;
+                }
             }
+        } else {
+            // 还有标签在跑，重置标志
+            tagsFinishedLogged = false;
         }
         
         // 检查超时（根据设置）- 只针对标签
@@ -1379,8 +1393,14 @@ async function startUserLikeLoop(users) {
                 break;
             } else {
                 // 还有标签在跑
-                log('所有用户已完成，等待标签进程...', 'info');
+                if (!usersFinishedLogged) {
+                    log('所有用户已完成，等待标签进程...', 'info');
+                    usersFinishedLogged = true;
+                }
             }
+        } else {
+            // 还有用户在跑，重置标志
+            usersFinishedLogged = false;
         }
         
         await new Promise(r => setTimeout(r, 1000));
