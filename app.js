@@ -1192,13 +1192,16 @@ async function startLikeLoop(tags) {
             } else {
                 // 还有用户在跑
                 if (!tagsFinishedLogged) {
-                    log('所有标签已完成，等待用户进程...', 'info');
+                    // except-users 模式下，显示深蓝色日志
+                    if (timeoutScope === 'except-users') {
+                        log('标签进程结束，用户进程继续', 'warning');
+                    } else {
+                        log('所有标签已完成，等待用户进程...', 'info');
+                    }
                     tagsFinishedLogged = true;
                 }
                 // except-users 模式下，标签循环可以退出了，让用户循环继续
-                // 不要调用 stopLiking()，直接 return（不执行函数末尾的重置代码）
                 if (timeoutScope === 'except-users') {
-                    log('标签进程结束，用户进程继续', 'info');
                     return; // 直接返回，不执行函数末尾的重置代码
                 }
             }
@@ -1366,12 +1369,17 @@ async function startUserLikeLoop(users) {
             } else {
                 // 还有标签在跑
                 if (!usersFinishedLogged) {
-                    log('所有用户已完成，等待标签进程...', 'info');
+                    // except-tags 模式下，显示深蓝色日志
+                    if (timeoutScope === 'except-tags') {
+                        log('用户进程结束，标签进程继续', 'warning');
+                    } else {
+                        log('所有用户已完成，等待标签进程...', 'info');
+                    }
                     usersFinishedLogged = true;
                 }
                 // except-tags 模式下，用户循环可以退出了，让标签循环继续
                 if (timeoutScope === 'except-tags') {
-                    break;
+                    return; // 直接返回，不执行函数末尾的重置代码
                 }
             }
         } else {
