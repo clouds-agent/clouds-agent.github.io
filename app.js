@@ -1228,17 +1228,6 @@ async function startLikeLoop(tags) {
             // except-tags: 标签不检查超时，继续跑
         }
         
-        // 所有标签都完成了，检查用户
-        if (unfinishedTagsCheck.length === 0 && tags.length > 0) {
-            const unfinishedUsers = selectedUsers.filter(u => !userFinished[u.uuid]);
-            if (unfinishedUsers.length === 0) {
-                // 所有任务都完成了
-                isRunning = false;
-                log('所有任务已完成', 'success');
-                stopLiking();
-                break;
-            }
-        }
         } else {
             // 还有标签在跑，重置标志
             tagsFinishedLogged = false;
