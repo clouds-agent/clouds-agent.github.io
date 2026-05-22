@@ -98,7 +98,7 @@ async function searchUsers(keyword) {
     }
     
     try {
-        const res = await fetch(`${API_BASE}/v1/user/search?keywords=${encodeURIComponent(keyword.trim())}&page_index=0&page_size=10`, {
+        const res = await fetch(`${API_BASE}/v1/user/search?keywords=${encodeURIComponent(keyword.trim())}&page_index=0&page_size=50`, {
             headers: {
                 'x-token': token,
                 'x-platform': 'nieta-app/web'
