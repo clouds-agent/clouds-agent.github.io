@@ -2667,11 +2667,20 @@ async function loadGallery(isFirstLoad = false) {
                     mediaHtml = `<div class="gallery-item-media" style="display:flex;align-items:center;justify-content:center;background:#000;color:#fff;font-size:2rem;">🎬</div>`;
                 }
             } else {
-                // 图片用 png
-                originalUrl = `https://oss.talesofai.cn/picture/${item.uuid}.png`;
-                mediaHtml = item.status === 'SUCCESS'
-                    ? `<img src="${originalUrl}" alt="${item.uuid}" class="gallery-item-media" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="gallery-item-media" style="display:none;align-items:center;justify-content:center;color:#86868b;">❌</div>`
-                    : `<div class="gallery-item-media" style="display:flex;align-items:center;justify-content:center;color:#86868b;">❌</div>`;
+                // 图片：尝试 png、jpg、webp 三种格式
+                const pngUrl = `https://oss.talesofai.cn/picture/${item.uuid}.png`;
+                const jpgUrl = `https://oss.talesofai.cn/picture/${item.uuid}.jpg`;
+                const webpUrl = `https://oss.talesofai.cn/picture/${item.uuid}.webp`;
+                
+                if (item.status === 'SUCCESS') {
+                    // 先尝试 png，失败再尝试 jpg，最后 webp
+                    mediaHtml = `<img src="${pngUrl}" alt="${item.uuid}" class="gallery-item-media" loading="lazy" onerror="this.src='${jpgUrl}';this.onerror=function(){this.src='${webpUrl}';this.onerror=function(){this.style.display='none';this.nextElementSibling.style.display='flex'}}"/><div class="gallery-item-media" style="display:none;align-items:center;justify-content:center;color:#86868b;">❌</div>`;
+                    // 复制时用 png URL
+                    originalUrl = pngUrl;
+                } else {
+                    mediaHtml = `<div class="gallery-item-media" style="display:flex;align-items:center;justify-content:center;color:#86868b;">❌</div>`;
+                    originalUrl = pngUrl;
+                }
             }
             
             itemEl.innerHTML = `
