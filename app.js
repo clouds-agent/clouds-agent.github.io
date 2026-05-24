@@ -2678,7 +2678,7 @@ async function loadGallery(isFirstLoad = false) {
                 itemEl.addEventListener('click', async () => {
                     try {
                         await navigator.clipboard.writeText(item.url);
-                        showToast('URL 已复制');
+                        showToast('已复制 URL，点击打开→', item.url);
                     } catch (e) {
                         showToast('复制失败');
                     }
@@ -2706,14 +2706,52 @@ async function loadGallery(isFirstLoad = false) {
     }
 }
 
-function showToast(message) {
-    // 简单提示
+let toastContainer = null;
+
+function showToast(message, url = null) {
+    // 创建或复用容器
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:9999;max-width:calc(100vw - 40px);';
+        document.body.appendChild(toastContainer);
+    }
+    
     const toast = document.createElement('div');
-    toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:#fff;padding:12px 24px;border-radius:8px;z-index:9999;font-size:14px;';
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 2000);
+    toast.style.cssText = 'background:rgba(0,0,0,0.85);color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.3);animation:toastSlideIn 0.3s ease-out;cursor:' + (url ? 'pointer' : 'default') + ';';
+    
+    if (url) {
+        // 有 URL 时，显示可点击的提示
+        toast.innerHTML = `<span>${message}</span>`;
+        toast.addEventListener('click', () => {
+            window.open(url, '_blank');
+        });
+    } else {
+        toast.textContent = message;
+    }
+    
+    // 添加到容器顶部（新弹窗把旧的往上挤）
+    toastContainer.insertBefore(toast, toastContainer.firstChild);
+    
+    // 5 秒后移除
+    setTimeout(() => {
+        toast.style.animation = 'toastSlideOut 0.3s ease-out';
+        setTimeout(() => toast.remove(), 300);
+    }, 5000);
 }
+
+// 添加动画样式
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes toastSlideIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes toastSlideOut {
+        from { opacity: 1; transform: translateY(0); }
+        to { opacity: 0; transform: translateY(-20px); }
+    }
+`;
+document.head.appendChild(style);
 
 // ============ 初始化 ============
 
