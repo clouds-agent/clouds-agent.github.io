@@ -2656,25 +2656,17 @@ async function loadGallery(isFirstLoad = false) {
             itemEl.className = 'gallery-item';
             
             let mediaHtml = '';
-            let originalUrl = item.url;
+            let originalUrl = `https://oss.talesofai.cn/picture/${item.uuid}.mp4`;
             
             if (modality === 'VIDEO') {
-                // 视频：优先用 API 返回的 URL，没有则构造 MP4 URL
-                if (!originalUrl || originalUrl.includes('.webp')) {
-                    originalUrl = `https://oss.talesofai.cn/picture/${item.uuid}.mp4`;
-                }
                 if (item.status === 'SUCCESS') {
                     mediaHtml = `<video src="${originalUrl}" class="gallery-item-media" muted loop onmouseover="this.play()" onmouseout="this.pause()" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"></video><div class="gallery-item-media" style="display:none;align-items:center;justify-content:center;background:#000;color:#fff;font-size:2rem;">🎬</div>`;
                 } else {
                     mediaHtml = `<div class="gallery-item-media" style="display:flex;align-items:center;justify-content:center;background:#000;color:#fff;font-size:2rem;">🎬</div>`;
                 }
             } else {
-                // 图片：优先用 API 返回的 URL，没有则构造 PNG URL
-                if (!originalUrl || originalUrl.includes('.webp')) {
-                    originalUrl = `https://oss.talesofai.cn/picture/${item.uuid}.png`;
-                }
                 mediaHtml = item.status === 'SUCCESS'
-                    ? `<img src="${originalUrl}" alt="${item.uuid}" class="gallery-item-media" loading="lazy" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNTAiIGhlaWdodD0iMTUwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjVmNWY3Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZpbGw9IiM4Njg2OGIiIGZvbnQtc2l6ZT0iMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj7imKw8L3RleHQ+PC9zdmc+'"/>`
+                    ? `<img src="${originalUrl}" alt="${item.uuid}" class="gallery-item-media" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="gallery-item-media" style="display:none;align-items:center;justify-content:center;color:#86868b;">❌</div>`
                     : `<div class="gallery-item-media" style="display:flex;align-items:center;justify-content:center;color:#86868b;">❌</div>`;
             }
             
