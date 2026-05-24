@@ -2622,7 +2622,6 @@ async function loadGallery(isFirstLoad = false) {
     const loadingEl = document.getElementById('gallery-loading');
     const loadMoreBtn = document.getElementById('load-more-gallery');
     const gridEl = document.getElementById('gallery-grid');
-    const statsEl = document.getElementById('gallery-stats');
     const modalitySelect = document.getElementById('gallery-modality');
     
     if (loadingEl) loadingEl.style.display = 'block';
@@ -2689,17 +2688,11 @@ async function loadGallery(isFirstLoad = false) {
             gridEl.appendChild(itemEl);
         });
         
-        // 更新统计
-        if (statsEl) {
-            const loadedCount = gridEl.querySelectorAll('.gallery-item').length;
-            statsEl.textContent = `已加载 ${loadedCount} / 总计 ${galleryTotal}`;
-        }
-        
         galleryPageIndex++;
         
-        // 显示加载更多按钮（如果还有数据）
+        // 显示加载更多按钮（如果返回的数据是满的）
         if (loadMoreBtn) {
-            if (loadedCount < galleryTotal) {
+            if (list.length === pageSize) {
                 loadMoreBtn.style.display = 'block';
             }
         }
