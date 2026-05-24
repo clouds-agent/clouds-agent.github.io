@@ -2656,15 +2656,19 @@ async function loadGallery(isFirstLoad = false) {
             itemEl.className = 'gallery-item';
             
             let mediaHtml = '';
-            let originalUrl = `https://oss.talesofai.cn/picture/${item.uuid}.mp4`;
+            let originalUrl = '';
             
             if (modality === 'VIDEO') {
+                // 视频用 mp4
+                originalUrl = `https://oss.talesofai.cn/picture/${item.uuid}.mp4`;
                 if (item.status === 'SUCCESS') {
                     mediaHtml = `<video src="${originalUrl}" class="gallery-item-media" muted loop onmouseover="this.play()" onmouseout="this.pause()" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"></video><div class="gallery-item-media" style="display:none;align-items:center;justify-content:center;background:#000;color:#fff;font-size:2rem;">🎬</div>`;
                 } else {
                     mediaHtml = `<div class="gallery-item-media" style="display:flex;align-items:center;justify-content:center;background:#000;color:#fff;font-size:2rem;">🎬</div>`;
                 }
             } else {
+                // 图片用 png
+                originalUrl = `https://oss.talesofai.cn/picture/${item.uuid}.png`;
                 mediaHtml = item.status === 'SUCCESS'
                     ? `<img src="${originalUrl}" alt="${item.uuid}" class="gallery-item-media" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="gallery-item-media" style="display:none;align-items:center;justify-content:center;color:#86868b;">❌</div>`
                     : `<div class="gallery-item-media" style="display:flex;align-items:center;justify-content:center;color:#86868b;">❌</div>`;
