@@ -2656,29 +2656,35 @@ async function loadGallery(isFirstLoad = false) {
             itemEl.className = 'gallery-item';
             
             let mediaHtml = '';
+            let originalUrl = item.url;
+            
             if (modality === 'VIDEO') {
-                mediaHtml = `<div class="gallery-item-media" style="display:flex;align-items:center;justify-content:center;background:#000;color:#fff;font-size:2rem;">🎬</div>`;
+                // 视频：构造 MP4 URL
+                originalUrl = `https://oss.talesofai.cn/picture/${item.uuid}.mp4`;
+                mediaHtml = `<video src="${originalUrl}" class="gallery-item-media" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>`;
             } else {
-                mediaHtml = item.status === 'SUCCESS' && item.url 
-                    ? `<img src="${item.url}" alt="${item.uuid}" class="gallery-item-media" loading="lazy" />`
+                // 图片：构造 PNG URL
+                originalUrl = `https://oss.talesofai.cn/picture/${item.uuid}.png`;
+                mediaHtml = item.status === 'SUCCESS'
+                    ? `<img src="${originalUrl}" alt="${item.uuid}" class="gallery-item-media" loading="lazy" />`
                     : `<div class="gallery-item-media" style="display:flex;align-items:center;justify-content:center;color:#86868b;">❌</div>`;
             }
             
             itemEl.innerHTML = `
                 ${mediaHtml}
                 <div class="gallery-item-info">
-                    <div class="gallery-item-url" title="${item.url || '无 URL'}">${item.url || '生成失败'}</div>
+                    <div class="gallery-item-url" title="${originalUrl || '无 URL'}">${originalUrl || '生成失败'}</div>
                     <div class="gallery-item-time">${item.ctime || ''}</div>
                     <span class="gallery-item-status ${item.status === 'SUCCESS' ? 'success' : 'failure'}">${item.status === 'SUCCESS' ? '成功' : '失败'}</span>
                 </div>
             `;
             
             // 点击复制 URL
-            if (item.url) {
+            if (originalUrl) {
                 itemEl.addEventListener('click', async () => {
                     try {
-                        await navigator.clipboard.writeText(item.url);
-                        showToast('已复制 URL，点击打开→', item.url);
+                        await navigator.clipboard.writeText(originalUrl);
+                        showToast('已复制 URL，点击打开→', originalUrl);
                     } catch (e) {
                         showToast('复制失败');
                     }
