@@ -2712,7 +2712,7 @@ function showToast(message, url = null) {
     // 创建或复用容器
     if (!toastContainer) {
         toastContainer = document.createElement('div');
-        toastContainer.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:9999;max-width:calc(100vw - 40px);';
+        toastContainer.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:4px;z-index:9999;max-width:calc(100vw - 40px);';
         document.body.appendChild(toastContainer);
     }
     
@@ -2739,7 +2739,7 @@ function showToast(message, url = null) {
         toasts.forEach((t, index) => {
             if (index < toasts.length - 1) {
                 // 旧的弹窗向上移动
-                t.style.transform = `translateY(-${(toasts.length - 1 - index) * 60}px)`;
+                t.style.transform = `translateY(-${(toasts.length - 1 - index) * 50}px)`;
                 t.style.transition = 'transform 0.3s ease-out';
             }
         });
@@ -2753,7 +2753,7 @@ function showToast(message, url = null) {
             // 更新剩余弹窗的位置
             const toasts = toastContainer.querySelectorAll('div');
             toasts.forEach((t, index) => {
-                t.style.transform = `translateY(-${(toasts.length - 1 - index) * 60}px)`;
+                t.style.transform = `translateY(-${(toasts.length - 1 - index) * 50}px)`;
             });
             // 如果容器空了，清理容器
             if (toasts.length === 0 && toastContainer) {
