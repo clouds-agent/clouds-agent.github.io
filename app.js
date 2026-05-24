@@ -2730,13 +2730,37 @@ function showToast(message, url = null) {
         toast.textContent = message;
     }
     
-    // 添加到容器顶部（新弹窗把旧的往上挤）
-    toastContainer.insertBefore(toast, toastContainer.firstChild);
+    // 添加到容器底部（新弹窗把旧的往上挤）
+    toastContainer.appendChild(toast);
+    
+    // 更新所有弹窗的位置，添加上移动画
+    setTimeout(() => {
+        const toasts = toastContainer.querySelectorAll('div');
+        toasts.forEach((t, index) => {
+            if (index < toasts.length - 1) {
+                // 旧的弹窗向上移动
+                t.style.transform = `translateY(-${(toasts.length - 1 - index) * 60}px)`;
+                t.style.transition = 'transform 0.3s ease-out';
+            }
+        });
+    }, 10);
     
     // 5 秒后移除
     setTimeout(() => {
         toast.style.animation = 'toastSlideOut 0.3s ease-out';
-        setTimeout(() => toast.remove(), 300);
+        setTimeout(() => {
+            toast.remove();
+            // 更新剩余弹窗的位置
+            const toasts = toastContainer.querySelectorAll('div');
+            toasts.forEach((t, index) => {
+                t.style.transform = `translateY(-${(toasts.length - 1 - index) * 60}px)`;
+            });
+            // 如果容器空了，清理容器
+            if (toasts.length === 0 && toastContainer) {
+                toastContainer.remove();
+                toastContainer = null;
+            }
+        }, 300);
     }, 5000);
 }
 
@@ -2750,6 +2774,10 @@ style.textContent = `
     @keyframes toastSlideOut {
         from { opacity: 1; transform: translateY(0); }
         to { opacity: 0; transform: translateY(-20px); }
+    }
+    @keyframes toastMoveUp {
+        from { transform: translateY(0); }
+        to { transform: translateY(-60px); }
     }
 `;
 document.head.appendChild(style);
