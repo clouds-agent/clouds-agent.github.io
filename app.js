@@ -2720,8 +2720,9 @@ function showToast(message, url = null) {
     toast.style.cssText = 'background:rgba(0,0,0,0.85);color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.3);animation:toastSlideIn 0.3s ease-out;cursor:' + (url ? 'pointer' : 'default') + ';';
     
     if (url) {
-        // 有 URL 时，显示可点击的提示
-        toast.innerHTML = `<span>${message}</span>`;
+        // 有 URL 时，显示可点击的提示，"点击打开→"用蓝色按钮样式
+        const msgParts = message.split('，');
+        toast.innerHTML = `<span>${msgParts[0]}</span><span style="background:#0071e3;color:#fff;padding:2px 8px;border-radius:4px;margin-left:6px;font-weight:600;font-size:12px;">${msgParts[1] || ''}</span>`;
         toast.addEventListener('click', () => {
             window.open(url, '_blank');
         });
