@@ -40,6 +40,17 @@
                 </div>
                 <div id="selected-users" class="user-list"></div>
                 
+                <div class="like-speed-settings">
+                    <div class="setting-row">
+                        <label class="setting-label">点赞速度：</label>
+                        <input type="range" id="like-speed" class="setting-range" min="50" max="2000" step="50" value="200" />
+                        <span id="like-speed-value" class="setting-value">200ms</span>
+                    </div>
+                    <div class="setting-desc-row">
+                        <span class="setting-desc">快速 (50ms) ← → 慢速 (2000ms)</span>
+                    </div>
+                </div>
+                
                 <div class="timeout-settings">
                     <div class="setting-row">
                         <label class="setting-label">无增长停止时间：</label>
@@ -234,6 +245,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260520v34"></script>
+    <script src="app.js?v=20260520v35"></script>
 </body>
 </html>

@@ -22,6 +22,9 @@ let previousProfileData = null; // 上次用户数据（用于对比变化）
 let timeoutDuration = 1; // 无增长停止时间（分钟），0 表示无截止
 let timeoutScope = 'all'; // 应用范围：'all', 'except-users', 'except-tags'
 
+// 点赞速度
+let likeSpeed = 200; // 默认 200ms
+
 // 日志标志
 let tagsFinishedLogged = false; // 标签完成日志是否已打印
 let usersFinishedLogged = false; // 用户完成日志是否已打印
@@ -1019,6 +1022,26 @@ function setupLikeButtons() {
     const startBtn = document.getElementById('start-like');
     const pauseBtn = document.getElementById('pause-like');
     
+    // 点赞速度滑块
+    const likeSpeedSlider = document.getElementById('like-speed');
+    const likeSpeedValue = document.getElementById('like-speed-value');
+    
+    if (likeSpeedSlider && likeSpeedValue) {
+        // 从 localStorage 加载保存的速度
+        const saved = localStorage.getItem('like_speed');
+        if (saved) {
+            likeSpeed = parseInt(saved, 10);
+            likeSpeedSlider.value = likeSpeed;
+            likeSpeedValue.textContent = likeSpeed + 'ms';
+        }
+        
+        likeSpeedSlider.addEventListener('input', (e) => {
+            likeSpeed = parseInt(e.target.value, 10);
+            likeSpeedValue.textContent = likeSpeed + 'ms';
+            localStorage.setItem('like_speed', likeSpeed);
+        });
+    }
+    
     if (startBtn) {
         startBtn.addEventListener('click', () => {
             if (isRunning) {
@@ -1222,7 +1245,7 @@ async function startLikeLoop(tags) {
                     }
                     
                     updateProgress();
-                    await new Promise(r => setTimeout(r, 200));
+                    await new Promise(r => setTimeout(r, likeSpeed));
                 }
                 
                 // 无论成功失败，都翻到下一页
@@ -1391,7 +1414,7 @@ async function startUserLikeLoop(users) {
                     }
                     
                     updateProgress();
-                    await new Promise(r => setTimeout(r, 200));
+                    await new Promise(r => setTimeout(r, likeSpeed));
                 }
                 
                 // 检查是否是最后一页（返回数量 < 20）
