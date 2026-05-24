@@ -2712,7 +2712,7 @@ function showToast(message, url = null) {
     // 创建或复用容器
     if (!toastContainer) {
         toastContainer = document.createElement('div');
-        toastContainer.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:4px;z-index:9999;max-width:calc(100vw - 40px);';
+        toastContainer.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column-reverse;gap:6px;z-index:9999;max-width:calc(100vw - 40px);';
         document.body.appendChild(toastContainer);
     }
     
@@ -2730,33 +2730,16 @@ function showToast(message, url = null) {
         toast.textContent = message;
     }
     
-    // 添加到容器底部（新弹窗把旧的往上挤）
+    // 添加到容器（flex-direction: column-reverse 会自动把新的放下面）
     toastContainer.appendChild(toast);
-    
-    // 更新所有弹窗的位置，添加上移动画
-    setTimeout(() => {
-        const toasts = toastContainer.querySelectorAll('div');
-        toasts.forEach((t, index) => {
-            if (index < toasts.length - 1) {
-                // 旧的弹窗向上移动
-                t.style.transform = `translateY(-${(toasts.length - 1 - index) * 50}px)`;
-                t.style.transition = 'transform 0.3s ease-out';
-            }
-        });
-    }, 10);
     
     // 5 秒后移除
     setTimeout(() => {
         toast.style.animation = 'toastSlideOut 0.3s ease-out';
         setTimeout(() => {
             toast.remove();
-            // 更新剩余弹窗的位置
-            const toasts = toastContainer.querySelectorAll('div');
-            toasts.forEach((t, index) => {
-                t.style.transform = `translateY(-${(toasts.length - 1 - index) * 50}px)`;
-            });
             // 如果容器空了，清理容器
-            if (toasts.length === 0 && toastContainer) {
+            if (toastContainer.children.length === 0) {
                 toastContainer.remove();
                 toastContainer = null;
             }
@@ -2768,16 +2751,12 @@ function showToast(message, url = null) {
 const style = document.createElement('style');
 style.textContent = `
     @keyframes toastSlideIn {
-        from { opacity: 0; transform: translateY(20px); }
+        from { opacity: 0; transform: translateY(10px); }
         to { opacity: 1; transform: translateY(0); }
     }
     @keyframes toastSlideOut {
         from { opacity: 1; transform: translateY(0); }
-        to { opacity: 0; transform: translateY(-20px); }
-    }
-    @keyframes toastMoveUp {
-        from { transform: translateY(0); }
-        to { transform: translateY(-60px); }
+        to { opacity: 0; transform: translateY(-10px); }
     }
 `;
 document.head.appendChild(style);
