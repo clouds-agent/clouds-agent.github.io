@@ -132,6 +132,24 @@
                 </div>
                 <div id="uuid-result" class="result"></div>
             </div>
+            
+            <div class="card">
+                <h3>🖼️ 我的图库</h3>
+                <div class="gallery-controls">
+                    <div class="gallery-filter">
+                        <label class="gallery-label">类型：</label>
+                        <select id="gallery-modality" class="gallery-select">
+                            <option value="PICTURE">图片</option>
+                            <option value="VIDEO">视频</option>
+                        </select>
+                    </div>
+                    <button id="load-gallery" class="btn btn-primary">加载图库</button>
+                </div>
+                <div id="gallery-stats" class="gallery-stats"></div>
+                <div id="gallery-grid" class="gallery-grid"></div>
+                <div id="gallery-loading" class="gallery-loading" style="display:none">加载中...</div>
+                <button id="load-more-gallery" class="btn btn-secondary" style="display:none">加载更多</button>
+            </div>
         </section>
     </main>
 
@@ -245,6 +263,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260520v35"></script>
+    <script src="app.js?v=20260520v36"></script>
 </body>
 </html>

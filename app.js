@@ -29,6 +29,11 @@ let likeSpeed = 200; // 默认 200ms
 let tagsFinishedLogged = false; // 标签完成日志是否已打印
 let usersFinishedLogged = false; // 用户完成日志是否已打印
 
+// 图库相关状态
+let galleryPageIndex = 0;
+let galleryTotal = 0;
+let galleryLoading = false;
+
 // ============ 工具函数 ============
 
 function getToken() {
@@ -2575,6 +2580,148 @@ function setupStats() {
     }
 }
 
+// ============ 图库功能 ============
+
+function setupGallery() {
+    const loadBtn = document.getElementById('load-gallery');
+    const loadMoreBtn = document.getElementById('load-more-gallery');
+    const modalitySelect = document.getElementById('gallery-modality');
+    
+    if (loadBtn) {
+        loadBtn.addEventListener('click', () => {
+            galleryPageIndex = 0;
+            document.getElementById('gallery-grid').innerHTML = '';
+            loadGallery(true);
+        });
+    }
+    
+    if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', () => {
+            loadGallery(false);
+        });
+    }
+    
+    if (modalitySelect) {
+        modalitySelect.addEventListener('change', () => {
+            galleryPageIndex = 0;
+            document.getElementById('gallery-grid').innerHTML = '';
+        });
+    }
+}
+
+async function loadGallery(isFirstLoad = false) {
+    if (galleryLoading) return;
+    
+    const token = getToken();
+    if (!token) {
+        alert('请先登录');
+        return;
+    }
+    
+    galleryLoading = true;
+    const loadingEl = document.getElementById('gallery-loading');
+    const loadMoreBtn = document.getElementById('load-more-gallery');
+    const gridEl = document.getElementById('gallery-grid');
+    const statsEl = document.getElementById('gallery-stats');
+    const modalitySelect = document.getElementById('gallery-modality');
+    
+    if (loadingEl) loadingEl.style.display = 'block';
+    if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+    
+    const modality = modalitySelect ? modalitySelect.value : 'PICTURE';
+    const pageSize = 50;
+    
+    try {
+        const res = await fetch(`${API_BASE}/v1/artifact/list?page_index=${galleryPageIndex}&page_size=${pageSize}&modality=${modality}`, {
+            headers: {
+                'x-token': token,
+                'x-platform': 'nieta-app/web'
+            }
+        });
+        
+        if (!res.ok) {
+            throw new Error('加载失败');
+        }
+        
+        const data = await res.json();
+        galleryTotal = data.total || 0;
+        const list = data.list || [];
+        
+        if (isFirstLoad) {
+            gridEl.innerHTML = '';
+        }
+        
+        // 渲染图库项
+        list.forEach(item => {
+            const itemEl = document.createElement('div');
+            itemEl.className = 'gallery-item';
+            
+            let mediaHtml = '';
+            if (modality === 'VIDEO') {
+                mediaHtml = `<div class="gallery-item-media" style="display:flex;align-items:center;justify-content:center;background:#000;color:#fff;font-size:2rem;">🎬</div>`;
+            } else {
+                mediaHtml = item.status === 'SUCCESS' && item.url 
+                    ? `<img src="${item.url}" alt="${item.uuid}" class="gallery-item-media" loading="lazy" />`
+                    : `<div class="gallery-item-media" style="display:flex;align-items:center;justify-content:center;color:#86868b;">❌</div>`;
+            }
+            
+            itemEl.innerHTML = `
+                ${mediaHtml}
+                <div class="gallery-item-info">
+                    <div class="gallery-item-url" title="${item.url || '无 URL'}">${item.url || '生成失败'}</div>
+                    <div class="gallery-item-time">${item.ctime || ''}</div>
+                    <span class="gallery-item-status ${item.status === 'SUCCESS' ? 'success' : 'failure'}">${item.status === 'SUCCESS' ? '成功' : '失败'}</span>
+                </div>
+            `;
+            
+            // 点击复制 URL
+            if (item.url) {
+                itemEl.addEventListener('click', async () => {
+                    try {
+                        await navigator.clipboard.writeText(item.url);
+                        showToast('URL 已复制');
+                    } catch (e) {
+                        showToast('复制失败');
+                    }
+                });
+            }
+            
+            gridEl.appendChild(itemEl);
+        });
+        
+        // 更新统计
+        if (statsEl) {
+            const loadedCount = gridEl.querySelectorAll('.gallery-item').length;
+            statsEl.textContent = `已加载 ${loadedCount} / 总计 ${galleryTotal}`;
+        }
+        
+        galleryPageIndex++;
+        
+        // 显示加载更多按钮（如果还有数据）
+        if (loadMoreBtn) {
+            if (loadedCount < galleryTotal) {
+                loadMoreBtn.style.display = 'block';
+            }
+        }
+        
+    } catch (error) {
+        console.error('加载图库失败:', error);
+        showToast('加载失败：' + error.message);
+    } finally {
+        galleryLoading = false;
+        if (loadingEl) loadingEl.style.display = 'none';
+    }
+}
+
+function showToast(message) {
+    // 简单提示
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:#fff;padding:12px 24px;border-radius:8px;z-index:9999;font-size:14px;';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2000);
+}
+
 // ============ 初始化 ============
 
 function init() {
@@ -2590,6 +2737,7 @@ function init() {
     setupUUIDSearch();
     setupCheckin();
     setupStats();
+    setupGallery();
     loadHotTags();
     
     // 新增：用户点赞相关

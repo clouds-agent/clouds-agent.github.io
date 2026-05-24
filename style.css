@@ -707,6 +707,137 @@ input[type="password"]:focus {
     font-size: 1rem;
 }
 
+/* 图库样式 */
+.gallery-controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.gallery-filter {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.gallery-label {
+    font-size: 0.9rem;
+    color: #1d1d1f;
+}
+
+.gallery-select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d2d2d7;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background: #fff;
+    color: #1d1d1f;
+    cursor: pointer;
+}
+
+.gallery-stats {
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+    color: #86868b;
+}
+
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.gallery-item {
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+
+.gallery-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.gallery-item-media {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    background: #f5f5f7;
+}
+
+.gallery-item-info {
+    padding: 0.5rem;
+}
+
+.gallery-item-url {
+    font-size: 0.7rem;
+    color: #86868b;
+    word-break: break-all;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.gallery-item-time {
+    font-size: 0.7rem;
+    color: #86868b;
+    margin-top: 0.25rem;
+}
+
+.gallery-item-status {
+    font-size: 0.65rem;
+    padding: 2px 4px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-top: 0.25rem;
+}
+
+.gallery-item-status.success {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.gallery-item-status.failure {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.gallery-loading {
+    text-align: center;
+    padding: 2rem;
+    color: #86868b;
+}
+
+#load-more-gallery {
+    width: 100%;
+    padding: 0.75rem;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .gallery-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 0.75rem;
+    }
+    
+    .gallery-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .gallery-filter {
+        justify-content: space-between;
+    }
+}
+
 .ranking-list {
     margin-top: 1rem;
 }
