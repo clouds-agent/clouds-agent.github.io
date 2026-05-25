@@ -1045,6 +1045,31 @@ input[type="password"]:focus {
     line-height: 1.6;
 }
 
+/* 账号切换器 */
+.account-switcher {
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.account-label {
+    font-size: 0.85rem;
+    color: #1d1d1f;
+    white-space: nowrap;
+}
+
+.account-select {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d2d2d7;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background: #fff;
+    color: #1d1d1f;
+    cursor: pointer;
+}
+
 /* 个人主页 */
 .profile-modal .modal-content {
     max-width: 400px;

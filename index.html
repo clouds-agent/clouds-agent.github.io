@@ -255,6 +255,12 @@
             </div>
             <div class="login-body">
                 <p class="login-tip">打开网页版捏 ta - 个人主页左上角 - 隐私设置 - 获取 NETA TOKEN</p>
+                
+                <div id="account-switcher" class="account-switcher" style="display:none">
+                    <label class="account-label">选择账号：</label>
+                    <select id="account-select" class="account-select"></select>
+                </div>
+                
                 <input type="text" id="token-input" placeholder="输入 NETA TOKEN" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
                 <button id="login-btn" class="btn btn-primary btn-full">登录</button>
                 <div id="login-status" class="status"></div>
@@ -262,6 +268,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260520v48"></script>
+    <script src="app.js?v=20260520v49"></script>
 </body>
 </html>

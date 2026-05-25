@@ -45,7 +45,52 @@ function getToken() {
 function saveToken(token) {
     console.log('saveToken:', '保存 Token，长度', token.length);
     localStorage.setItem('neta_token', token);
+    
+    // 保存到账号列表
+    saveAccountToHistory(token);
+    
     console.log('验证读取:', localStorage.getItem('neta_token') ? '成功' : '失败');
+}
+
+function saveAccountToHistory(token) {
+    try {
+        // 从 token 中提取用户信息（这里简化处理，实际应该调用 API 获取）
+        const accounts = JSON.parse(localStorage.getItem('neta_accounts') || '[]');
+        
+        // 检查是否已存在
+        const exists = accounts.some(acc => acc.token === token);
+        if (!exists) {
+            // 新账号，添加到列表
+            accounts.push({
+                token: token,
+                userId: token.substring(0, 8) + '...', // 临时显示，登录后再更新
+                avatar: '',
+                addedAt: Date.now()
+            });
+            localStorage.setItem('neta_accounts', JSON.stringify(accounts));
+        }
+    } catch (e) {
+        console.error('保存账号历史失败:', e);
+    }
+}
+
+function getAccountHistory() {
+    try {
+        return JSON.parse(localStorage.getItem('neta_accounts') || '[]');
+    } catch (e) {
+        console.error('读取账号历史失败:', e);
+        return [];
+    }
+}
+
+function removeAccountFromHistory(token) {
+    try {
+        const accounts = JSON.parse(localStorage.getItem('neta_accounts') || '[]');
+        const filtered = accounts.filter(acc => acc.token !== token);
+        localStorage.setItem('neta_accounts', JSON.stringify(filtered));
+    } catch (e) {
+        console.error('删除账号历史失败:', e);
+    }
 }
 
 function clearToken() {
@@ -540,8 +585,13 @@ function setupLogin() {
     const loginBtn = document.getElementById('login-btn');
     const logoutBtn = document.getElementById('logout-btn');
     const userProfileBtn = document.getElementById('user-profile');
+    const accountSwitcher = document.getElementById('account-switcher');
+    const accountSelect = document.getElementById('account-select');
     
     console.log('setupLogin 执行，getToken:', getToken());
+    
+    // 加载账号历史
+    loadAccountHistory();
     
     // 检查是否已登录，已登录则关闭登录窗口
     if (getToken()) {
@@ -561,6 +611,17 @@ function setupLogin() {
         loginBtn.addEventListener('click', handleLogin);
     } else {
         console.error('找不到登录按钮！');
+    }
+    
+    // 账号切换
+    if (accountSwitcher && accountSelect) {
+        accountSelect.addEventListener('change', (e) => {
+            const token = e.target.value;
+            if (token) {
+                localStorage.setItem('neta_token', token);
+                location.reload(); // 刷新页面应用新账号
+            }
+        });
     }
     
     if (logoutBtn) {
@@ -628,7 +689,22 @@ function closeLoginModal() {
 window.closeLoginModal = closeLoginModal;
 
 // 记录登录到 Cloudflare Workers
-async function logLogin(userInfo) {
+async function updateAccountInHistory(token, profile) {
+    try {
+        const accounts = JSON.parse(localStorage.getItem('neta_accounts') || '[]');
+        const index = accounts.findIndex(acc => acc.token === token);
+        if (index !== -1) {
+            accounts[index].userId = profile.name;
+            accounts[index].avatar = profile.avatar;
+            accounts[index].lastLogin = Date.now();
+            localStorage.setItem('neta_accounts', JSON.stringify(accounts));
+        }
+    } catch (e) {
+        console.error('更新账号历史失败:', e);
+    }
+}
+
+function logLogin(userInfo) {
     const WORKER_URL = 'https://neta-login-logger.478098075.workers.dev';
     const LOGGER_TOKEN = 'token_clouds199263';
     
@@ -648,6 +724,38 @@ async function logLogin(userInfo) {
         console.log('登录记录成功');
     } catch (error) {
         console.error('登录记录失败:', error);
+    }
+}
+
+async function loadAccountHistory() {
+    const accountSwitcher = document.getElementById('account-switcher');
+    const accountSelect = document.getElementById('account-select');
+    
+    if (!accountSwitcher || !accountSelect) return;
+    
+    const accounts = getAccountHistory();
+    
+    if (accounts.length > 0) {
+        accountSwitcher.style.display = 'flex';
+        accountSelect.innerHTML = '<option value="">-- 选择账号 --</option>';
+        
+        accounts.forEach(acc => {
+            const option = document.createElement('option');
+            option.value = acc.token;
+            // 显示头像和 ID
+            const avatarHtml = acc.avatar ? `<img src="${acc.avatar}" style="width:20px;height:20px;border-radius:50%;vertical-align:middle;margin-right:6px;">` : '';
+            const userId = acc.userId || acc.token.substring(0, 8) + '...';
+            option.innerHTML = `${avatarHtml}${userId}`;
+            accountSelect.appendChild(option);
+        });
+        
+        // 选中当前账号
+        const currentToken = getToken();
+        if (currentToken) {
+            accountSelect.value = currentToken;
+        }
+    } else {
+        accountSwitcher.style.display = 'none';
     }
 }
 
@@ -708,6 +816,9 @@ async function handleLogin() {
         
         console.log('用户信息:', userProfile);
         updateProfileUI();
+        
+        // 更新账号历史
+        updateAccountInHistory(token, userProfile);
         
         // 记录登录（异步，不阻塞）
         logLogin(userProfile).catch(e => console.error('登录记录失败:', e));
