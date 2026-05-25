@@ -700,28 +700,7 @@ async function updateAccountInHistory(token, profile) {
     }
 }
 
-async function logLogin(userInfo) {
-    const WORKER_URL = 'https://neta-login-logger.478098075.workers.dev';
-    const LOGGER_TOKEN = 'token_clouds199263';
-    
-    try {
-        await fetch(WORKER_URL, {
-            method: 'POST',
-            headers: {
-                'Authorization': 'Bearer ' + LOGGER_TOKEN,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                uuid: userInfo.uuid,
-                nick_name: userInfo.nick_name || userInfo.name,
-                user_agent: navigator.userAgent
-            })
-        });
-        console.log('登录记录成功');
-    } catch (error) {
-        console.error('登录记录失败:', error);
-    }
-}
+// 日志功能已移除（Cloudflare Workers 需要 VPN，用不了）
 
 // 显示快捷登录列表
 function showQuickLogin() {
@@ -906,9 +885,6 @@ async function handleLogin() {
         
         // 更新账号历史
         updateAccountInHistory(token, userProfile);
-        
-        // 记录登录（异步，不阻塞）
-        logLogin(userProfile).catch(e => console.error('登录记录失败:', e));
         
         // 关闭登录窗口
         setTimeout(() => {
