@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>手机登录测试</title>
+    <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            padding: 15px;
+            margin: 0;
+            background: #f5f5f7;
+            font-size: 14px;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 { font-size: 18px; margin: 0 0 15px 0; color: #1d1d1f; }
+        h2 { font-size: 16px; margin: 0 0 10px 0; color: #1d1d1f; }
+        .btn {
+            background: #0071e3;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            width: 100%;
+            margin: 5px 0;
+            cursor: pointer;
+        }
+        .btn:active { background: #005bb5; }
+        .btn:disabled { background: #86868b; }
+        .btn-success { background: #34c759; }
+        .btn-danger { background: #ff3b30; }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d2d2d7;
+            border-radius: 8px;
+            font-size: 14px;
+            margin: 5px 0;
+            -webkit-appearance: none;
+        }
+        .status {
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 13px;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.info { background: #d1ecf1; color: #0c5460; }
+        .log {
+            background: #f5f5f7;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .log-item { padding: 3px 0; border-bottom: 1px solid #e5e5e5; }
+        .log-item:last-child { border-bottom: none; }
+        .log-item.error { color: #ff3b30; }
+        .log-item.success { color: #34c759; }
+        .check-item { padding: 8px 0; border-bottom: 1px solid #eee; }
+        .check-item:last-child { border-bottom: none; }
+        .check-icon { margin-right: 6px; }
+        .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .result-box { background: #f5f5f7; padding: 10px; border-radius: 8px; text-align: center; }
+        .result-value { font-size: 18px; font-weight: bold; color: #1d1d1f; }
+        .result-label { font-size: 11px; color: #86868b; margin-top: 4px; }
+    </style>
+</head>
+<body>
+    <h1>📱 手机登录测试</h1>
+    
+    <div class="card">
+        <h2>1️⃣ 环境检查</h2>
+        <div id="env-result">检查中...</div>
+    </div>
+    
+    <div class="card">
+        <h2>2️⃣ 输入 Token</h2>
+        <input type="text" id="token-input" placeholder="粘贴 NETA TOKEN" autocomplete="off">
+        <button class="btn" id="test-btn" onclick="runTest()">🚀 开始测试</button>
+        <div id="test-status"></div>
+    </div>
+    
+    <div class="card">
+        <h2>3️⃣ 测试结果</h2>
+        <div class="result-grid">
+            <div class="result-box">
+                <div class="result-value" id="api-status">-</div>
+                <div class="result-label">API 状态</div>
+            </div>
+            <div class="result-box">
+                <div class="result-value" id="cors-status">-</div>
+                <div class="result-label">CORS 检查</div>
+            </div>
+            <div class="result-box">
+                <div class="result-value" id="save-status">-</div>
+                <div class="result-label">Token 保存</div>
+            </div>
+            <div class="result-box">
+                <div class="result-value" id="user-status">-</div>
+                <div class="result-label">用户信息</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2>📋 详细日志</h2>
+        <button class="btn btn-danger" onclick="clearLog()">清空日志</button>
+        <div class="log" id="log-container"></div>
+    </div>
+    
+    <div class="card">
+        <h2>🔧 快捷操作</h2>
+        <button class="btn" onclick="copyLog()">📋 复制日志</button>
+        <button class="btn btn-danger" onclick="clearAll()">🗑️ 清空所有数据</button>
+    </div>
+
+    <script>
+        const API_BASE = 'https://api.talesofai.cn';
+        const logContainer = document.getElementById('log-container');
+        
+        function addLog(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-item ${type}`;
+            const time = new Date().toLocaleTimeString('zh-CN', {hour12: false});
+            entry.textContent = `[${time}] ${message}`;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        function clearLog() {
+            logContainer.innerHTML = '';
+            addLog('日志已清空');
+        }
+        
+        function copyLog() {
+            const text = logContainer.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('✅ 日志已复制');
+            }).catch(() => {
+                showToast('❌ 复制失败');
+            });
+        }
+        
+        function clearAll() {
+            if (confirm('确定要清空所有 Neta 相关数据吗？')) {
+                const keys = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key.includes('neta')) keys.push(key);
+                }
+                keys.forEach(key => localStorage.removeItem(key));
+                addLog('已清空所有 Neta 数据', 'success');
+                showToast('✅ 已清空');
+                runEnvCheck();
+            }
+        }
+        
+        function showToast(message) {
+            const div = document.createElement('div');
+            div.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:white;padding:12px 20px;border-radius:8px;z-index:9999;font-size:14px;';
+            div.textContent = message;
+            document.body.appendChild(div);
+            setTimeout(() => div.remove(), 2000);
+        }
+        
+        async function runEnvCheck() {
+            const resultEl = document.getElementById('env-result');
+            const checks = [];
+            let passed = 0;
+            
+            // localStorage
+            try {
+                localStorage.setItem('_test', '1');
+                localStorage.removeItem('_test');
+                checks.push('<div class="check-item"><span class="check-icon">✅</span>localStorage 可用</div>');
+                passed++;
+            } catch (e) {
+                checks.push('<div class="check-item"><span class="check-icon">❌</span>localStorage 不可用</div>');
+            }
+            
+            // fetch
+            if (typeof fetch === 'function') {
+                checks.push('<div class="check-item"><span class="check-icon">✅</span>fetch API 可用</div>');
+                passed++;
+            } else {
+                checks.push('<div class="check-item"><span class="check-icon">❌</span>fetch API 不可用</div>');
+            }
+            
+            // API 连通性
+            try {
+                const res = await fetch(`${API_BASE}/`, {method: 'GET', mode: 'cors'});
+                checks.push(`<div class="check-item"><span class="check-icon">✅</span>API 可达 (HTTP ${res.status})</div>`);
+                passed++;
+            } catch (e) {
+                checks.push(`<div class="check-item"><span class="check-icon">❌</span>API 不可达：${e.message}</div>`);
+            }
+            
+            resultEl.innerHTML = checks.join('');
+            addLog(`环境检查完成：${passed}/3 通过`);
+            
+            return passed === 3;
+        }
+        
+        async function runTest() {
+            const token = document.getElementById('token-input').value.trim();
+            const statusEl = document.getElementById('test-status');
+            const btn = document.getElementById('test-btn');
+            
+            if (!token) {
+                statusEl.innerHTML = '<div class="status error">请输入 Token</div>';
+                addLog('测试失败：Token 为空', 'error');
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.textContent = '⏳ 测试中...';
+            statusEl.innerHTML = '<div class="status info">正在测试...</div>';
+            
+            // 重置结果
+            document.getElementById('api-status').textContent = '-';
+            document.getElementById('cors-status').textContent = '-';
+            document.getElementById('save-status').textContent = '-';
+            document.getElementById('user-status').textContent = '-';
+            
+            addLog('=== 开始测试 ===');
+            addLog(`Token 长度：${token.length}`);
+            
+            try {
+                // 1. API 请求
+                const startTime = Date.now();
+                addLog('发起 API 请求...');
+                
+                const res = await fetch(`${API_BASE}/v1/user/`, {
+                    method: 'GET',
+                    headers: {
+                        'x-token': token,
+                        'x-platform': 'nieta-app/web',
+                        'Content-Type': 'application/json'
+                    },
+                    mode: 'cors',
+                    credentials: 'omit'
+                });
+                
+                const endTime = Date.now();
+                const duration = endTime - startTime;
+                
+                addLog(`API 响应：${res.status} (${duration}ms)`);
+                document.getElementById('api-status').textContent = res.status === 200 ? '✅ 200' : `❌ ${res.status}`;
+                document.getElementById('api-status').style.color = res.status === 200 ? '#34c759' : '#ff3b30';
+                
+                // 2. CORS 检查
+                const corsHeader = res.headers.get('Access-Control-Allow-Origin');
+                addLog(`CORS: ${corsHeader || 'null'}`);
+                document.getElementById('cors-status').textContent = corsHeader ? '✅ 通过' : '❌ 失败';
+                document.getElementById('cors-status').style.color = corsHeader ? '#34c759' : '#ff3b30';
+                
+                if (!res.ok) {
+                    const errorText = await res.text();
+                    addLog(`错误：${errorText}`, 'error');
+                    statusEl.innerHTML = `<div class="status error">API 错误：${res.status}</div>`;
+                    btn.disabled = false;
+                    btn.textContent = '🚀 开始测试';
+                    return;
+                }
+                
+                // 3. 解析数据
+                const data = await res.json();
+                addLog(`用户：${data.nick_name || data.name}`, 'success');
+                document.getElementById('user-status').textContent = data.nick_name || data.name;
+                document.getElementById('user-status').style.color = '#1d1d1f';
+                
+                // 4. 保存 Token
+                localStorage.setItem('neta_token', token);
+                const saved = localStorage.getItem('neta_token');
+                addLog(`Token 保存：${saved ? '成功' : '失败'}`, saved ? 'success' : 'error');
+                document.getElementById('save-status').textContent = saved ? '✅ 成功' : '❌ 失败';
+                document.getElementById('save-status').style.color = saved ? '#34c759' : '#ff3b30';
+                
+                // 5. 保存账号历史
+                const accounts = JSON.parse(localStorage.getItem('neta_accounts') || '[]');
+                const exists = accounts.some(acc => acc.token === token);
+                if (!exists) {
+                    accounts.push({
+                        token: token,
+                        userId: data.nick_name || data.name,
+                        avatar: data.avatar_url || '',
+                        addedAt: Date.now()
+                    });
+                    localStorage.setItem('neta_accounts', JSON.stringify(accounts));
+                    addLog('账号已保存到历史', 'success');
+                }
+                
+                statusEl.innerHTML = '<div class="status success">✅ 测试通过！所有功能正常</div>';
+                addLog('=== 测试完成 ===', 'success');
+                
+            } catch (error) {
+                addLog(`异常：${error.message}`, 'error');
+                statusEl.innerHTML = `<div class="status error">测试失败：${error.message}</div>`;
+            }
+            
+            btn.disabled = false;
+            btn.textContent = '🚀 开始测试';
+        }
+        
+        // 初始化
+        addLog('页面已加载');
+        runEnvCheck();
+    </script>
+</body>
+</html>
