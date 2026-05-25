@@ -1427,9 +1427,16 @@ async function startLikeLoop(tags) {
                     await new Promise(r => setTimeout(r, likeSpeed));
                 }
                 
-                // 无论成功失败，都翻到下一页
-                tagPageMap[tag.name] = currentPage + 1;
-                log(`#${tag.name} 第${currentPage + 1}页处理完成，翻到第${currentPage + 2}页`);
+                // 翻到下一页（限制最大页码为 999，即第 1000 页）
+                const nextPage = currentPage + 1;
+                if (nextPage >= 1000) {
+                    // 已达到最大页码，标记这个标签完成
+                    tagFinished[tag.name] = true;
+                    log(`#${tag.name} 已达到最大页码限制（1000 页）`, 'info');
+                } else {
+                    tagPageMap[tag.name] = nextPage;
+                    log(`#${tag.name} 第${currentPage + 1}页处理完成，翻到第${currentPage + 2}页`);
+                }
             } catch (error) {
                 log(`#${tag.name}: ${error.message}`, 'error');
             }
@@ -1596,11 +1603,15 @@ async function startUserLikeLoop(users) {
                     await new Promise(r => setTimeout(r, likeSpeed));
                 }
                 
-                // 检查是否是最后一页（返回数量 < 20）
-                if (stories.length < 20) {
+                // 检查是否是最后一页（返回数量 < 20）或达到最大页码
+                if (stories.length < 20 || currentPage + 1 >= 1000) {
                     // 最后一页了，标记完成
                     userFinished[user.uuid] = true;
-                    log(`@${user.name} 已遍历完所有作品（第 ${currentPage + 1} 页，共${stories.length}个）`, 'info');
+                    if (currentPage + 1 >= 1000) {
+                        log(`@${user.name} 已达到最大页码限制（1000 页）`, 'info');
+                    } else {
+                        log(`@${user.name} 已遍历完所有作品（第 ${currentPage + 1} 页，共${stories.length}个）`, 'info');
+                    }
                 } else {
                     // 还有更多页，继续翻
                     userPageMap[user.uuid] = currentPage + 1;
