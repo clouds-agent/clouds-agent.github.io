@@ -194,16 +194,24 @@
             
             try {
                 const startTime = Date.now();
+                addLog(`发起请求：${API_BASE}/v1/user/`);
+                addLog(`请求头：x-token=${token.substring(0, 20)}..., x-platform=nieta-app/web`);
+                
                 const res = await fetch(`${API_BASE}/v1/user/`, {
+                    method: 'GET',
                     headers: { 
                         'x-token': token, 
-                        'x-platform': 'nieta-app/web' 
-                    }
+                        'x-platform': 'nieta-app/web',
+                        'Content-Type': 'application/json'
+                    },
+                    mode: 'cors',
+                    credentials: 'omit'
                 });
                 const endTime = Date.now();
                 
                 addLog(`API 响应时间：${endTime - startTime}ms`);
                 addLog(`API 响应状态：${res.status}`);
+                addLog(`CORS 检查：Access-Control-Allow-Origin=${res.headers.get('Access-Control-Allow-Origin')}`);
                 
                 if (!res.ok) {
                     let errorText = `HTTP ${res.status}`;
@@ -269,7 +277,7 @@
         // 初始化
         checkEnv();
         showStorage();
-        addLog('调试页面已加载');
+        addLog('调试页面已加载 (v20260520v52)');
     </script>
 </body>
 </html>
