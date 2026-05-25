@@ -690,6 +690,7 @@ function closeLoginModal() {
 
 // 暴露到全局作用域
 window.closeLoginModal = closeLoginModal;
+window.handleLoginClick = handleLoginClick;
 
 // 记录登录到 Cloudflare Workers
 async function updateAccountInHistory(token, profile) {
@@ -760,6 +761,12 @@ function loadAccountHistory() {
     } else {
         accountSwitcher.style.display = 'none';
     }
+}
+
+// 全局函数，供 HTML onclick 调用
+function handleLoginClick() {
+    console.log('handleLoginClick 被调用');
+    handleLogin();
 }
 
 async function handleLogin() {
