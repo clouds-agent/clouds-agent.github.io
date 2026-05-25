@@ -708,7 +708,7 @@ async function updateAccountInHistory(token, profile) {
     }
 }
 
-function logLogin(userInfo) {
+async function logLogin(userInfo) {
     const WORKER_URL = 'https://neta-login-logger.478098075.workers.dev';
     const LOGGER_TOKEN = 'token_clouds199263';
     
