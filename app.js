@@ -727,7 +727,7 @@ function logLogin(userInfo) {
     }
 }
 
-async function loadAccountHistory() {
+function loadAccountHistory() {
     const accountSwitcher = document.getElementById('account-switcher');
     const accountSelect = document.getElementById('account-select');
     
