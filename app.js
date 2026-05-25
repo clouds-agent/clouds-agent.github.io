@@ -610,21 +610,9 @@ function setupLogin() {
         console.error('找不到登录按钮！');
     }
     
-    // 延迟加载账号历史（避免阻塞主逻辑）
+    // 延迟加载快捷登录列表
     setTimeout(() => {
-        const accountSwitcher = document.getElementById('account-switcher');
-        const accountSelect = document.getElementById('account-select');
-        
-        if (accountSwitcher && accountSelect) {
-            loadAccountHistory();
-            accountSelect.addEventListener('change', (e) => {
-                const token = e.target.value;
-                if (token) {
-                    localStorage.setItem('neta_token', token);
-                    location.reload();
-                }
-            });
-        }
+        loadQuickLoginList();
     }, 100);
     
     if (logoutBtn) {
@@ -691,6 +679,9 @@ function closeLoginModal() {
 // 暴露到全局作用域
 window.closeLoginModal = closeLoginModal;
 window.handleLoginClick = handleLoginClick;
+window.showQuickLogin = showQuickLogin;
+window.selectQuickLogin = selectQuickLogin;
+window.deleteQuickLogin = deleteQuickLogin;
 
 // 记录登录到 Cloudflare Workers
 async function updateAccountInHistory(token, profile) {
@@ -731,35 +722,90 @@ async function logLogin(userInfo) {
     }
 }
 
-function loadAccountHistory() {
-    const accountSwitcher = document.getElementById('account-switcher');
-    const accountSelect = document.getElementById('account-select');
+// 显示快捷登录列表
+function showQuickLogin() {
+    const listEl = document.getElementById('quick-login-list');
+    const dividerEl = document.getElementById('quick-login-divider');
+    const quickBtn = document.getElementById('quick-login-btn');
     
-    if (!accountSwitcher || !accountSelect) return;
+    if (listEl.style.display === 'block') {
+        // 已展开，收起
+        listEl.style.display = 'none';
+        dividerEl.style.display = 'none';
+        quickBtn.textContent = '👤 快捷登录';
+    } else {
+        // 未展开，加载并显示
+        loadQuickLoginList();
+        listEl.style.display = 'block';
+        dividerEl.style.display = 'block';
+        quickBtn.textContent = '❌ 收起';
+    }
+}
+
+// 加载快捷登录列表
+function loadQuickLoginList() {
+    const listEl = document.getElementById('quick-login-list');
+    if (!listEl) return;
     
     const accounts = getAccountHistory();
     
-    if (accounts.length > 0) {
-        accountSwitcher.style.display = 'flex';
-        accountSelect.innerHTML = '<option value="">-- 选择账号 --</option>';
+    if (accounts.length === 0) {
+        const quickBtn = document.getElementById('quick-login-btn');
+        if (quickBtn) quickBtn.style.display = 'none';
+        return;
+    }
+    
+    listEl.innerHTML = '';
+    
+    accounts.forEach((acc, index) => {
+        const item = document.createElement('div');
+        item.className = 'quick-login-item';
         
-        accounts.forEach(acc => {
-            const option = document.createElement('option');
-            option.value = acc.token;
-            // 显示头像和 ID
-            const avatarHtml = acc.avatar ? `<img src="${acc.avatar}" style="width:20px;height:20px;border-radius:50%;vertical-align:middle;margin-right:6px;">` : '';
-            const userId = acc.userId || acc.token.substring(0, 8) + '...';
-            option.innerHTML = `${avatarHtml}${userId}`;
-            accountSelect.appendChild(option);
+        const avatarUrl = acc.avatar || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzNiIgaGVpZ2h0PSIzNiI+PGNpcmNsZSBjeD0iMTgiIGN5PSIxOCIgcj0iMTgiIGZpbGw9IiNkMmQyZDciLz48dGV4dCB4PSIxOCIgeT0iMjIiIGZpbGw9IiM4Njg2OGIiIGZvbnQtc2l6ZT0iMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPj88L3RleHQ+PC9zdmc+';
+        const userId = acc.userId || acc.token.substring(0, 8) + '...';
+        const tokenId = acc.token.substring(0, 12) + '...';
+        
+        item.innerHTML = `
+            <img src="${avatarUrl}" alt="avatar" class="quick-login-avatar" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzNiIgaGVpZ2h0PSIzNiI+PGNpcmNsZSBjeD0iMTgiIGN5PSIxOCIgcj0iMTgiIGZpbGw9IiNkMmQyZDciLz48dGV4dCB4PSIxOCIgeT0iMjIiIGZpbGw9IiM4Njg2OGIiIGZvbnQtc2l6ZT0iMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPj88L3RleHQ+PC9zdmc+'">
+            <div class="quick-login-info">
+                <div class="quick-login-name">${userId}</div>
+                <div class="quick-login-id">Token: ${tokenId}</div>
+            </div>
+            <button class="quick-login-delete" onclick="deleteQuickLogin(${index})">删除</button>
+        `;
+        
+        // 点击账号快速登录
+        item.addEventListener('click', (e) => {
+            if (!e.target.classList.contains('quick-login-delete')) {
+                selectQuickLogin(acc.token);
+            }
         });
         
-        // 选中当前账号
-        const currentToken = getToken();
-        if (currentToken) {
-            accountSelect.value = currentToken;
+        listEl.appendChild(item);
+    });
+}
+
+// 选择快捷登录
+function selectQuickLogin(token) {
+    localStorage.setItem('neta_token', token);
+    location.reload();
+}
+
+// 删除快捷登录
+function deleteQuickLogin(index) {
+    if (!confirm('确定要删除这个账号吗？')) return;
+    
+    const accounts = getAccountHistory();
+    if (index >= 0 && index < accounts.length) {
+        accounts.splice(index, 1);
+        localStorage.setItem('neta_accounts', JSON.stringify(accounts));
+        loadQuickLoginList();
+        
+        // 如果列表为空，隐藏按钮
+        if (accounts.length === 0) {
+            const quickBtn = document.getElementById('quick-login-btn');
+            if (quickBtn) quickBtn.style.display = 'none';
         }
-    } else {
-        accountSwitcher.style.display = 'none';
     }
 }
 

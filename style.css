@@ -1045,29 +1045,92 @@ input[type="password"]:focus {
     line-height: 1.6;
 }
 
-/* 账号切换器 */
-.account-switcher {
+/* 快捷登录 */
+.quick-login-list {
     margin-bottom: 1rem;
-    display: none; /* 默认隐藏，JS 加载后显示 */
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.account-label {
-    font-size: 0.85rem;
-    color: #1d1d1f;
-    white-space: nowrap;
-}
-
-.account-select {
-    flex: 1;
-    padding: 0.5rem 0.75rem;
     border: 1px solid #d2d2d7;
-    border-radius: 6px;
-    font-size: 0.9rem;
+    border-radius: 8px;
+    overflow: hidden;
     background: #fff;
-    color: #1d1d1f;
+}
+
+.quick-login-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    border-bottom: 1px solid #f0f0f0;
     cursor: pointer;
+    transition: background 0.2s;
+}
+
+.quick-login-item:last-child {
+    border-bottom: none;
+}
+
+.quick-login-item:hover {
+    background: #f5f5f7;
+}
+
+.quick-login-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    margin-right: 12px;
+    object-fit: cover;
+}
+
+.quick-login-info {
+    flex: 1;
+}
+
+.quick-login-name {
+    font-size: 14px;
+    color: #1d1d1f;
+    font-weight: 500;
+}
+
+.quick-login-id {
+    font-size: 12px;
+    color: #86868b;
+    margin-top: 2px;
+}
+
+.quick-login-delete {
+    padding: 4px 8px;
+    background: #ff3b30;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.quick-login-delete:hover {
+    background: #d63229;
+}
+
+.quick-login-divider {
+    text-align: center;
+    margin: 15px 0;
+    position: relative;
+}
+
+.quick-login-divider::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 1px;
+    background: #d2d2d7;
+}
+
+.quick-login-divider span {
+    position: relative;
+    background: white;
+    padding: 0 10px;
+    color: #86868b;
+    font-size: 12px;
 }
 
 /* 个人主页 */

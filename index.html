@@ -256,9 +256,16 @@
             <div class="login-body">
                 <p class="login-tip">打开网页版捏 ta - 个人主页左上角 - 隐私设置 - 获取 NETA TOKEN</p>
                 
-                <div id="account-switcher" class="account-switcher">
-                    <label class="account-label">选择账号：</label>
-                    <select id="account-select" class="account-select"></select>
+                <!-- 快捷登录按钮 -->
+                <button id="quick-login-btn" class="btn btn-secondary btn-full" onclick="showQuickLogin()">
+                    👤 快捷登录
+                </button>
+                
+                <!-- 快捷登录列表（默认隐藏） -->
+                <div id="quick-login-list" class="quick-login-list" style="display:none"></div>
+                
+                <div id="quick-login-divider" class="quick-login-divider" style="display:none">
+                    <span>或使用 Token 登录</span>
                 </div>
                 
                 <input type="text" id="token-input" placeholder="输入 NETA TOKEN" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
@@ -268,6 +275,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260520v57"></script>
+    <script src="app.js?v=20260520v58"></script>
 </body>
 </html>
