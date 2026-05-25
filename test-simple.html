@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>极简登录测试</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: #0071e3; color: white; border: none; border-radius: 8px; font-size: 16px; }
+        #log { background: #f5f5f7; padding: 10px; margin-top: 20px; border-radius: 8px; font-size: 12px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>极简登录测试</h1>
+    <input type="text" id="token-input" placeholder="输入 Token">
+    <button id="login-btn" onclick="doLogin()">登录</button>
+    <div id="log"></div>
+
+    <script>
+        const logEl = document.getElementById('log');
+        function log(msg) {
+            const time = new Date().toLocaleTimeString();
+            logEl.textContent += `[${time}] ${msg}\n`;
+            console.log(msg);
+        }
+        
+        log('页面加载完成');
+        log('document.readyState: ' + document.readyState);
+        log('按钮元素：' + document.getElementById('login-btn'));
+        log('输入框元素：' + document.getElementById('token-input'));
+        
+        function doLogin() {
+            log('=== 点击登录按钮 ===');
+            const token = document.getElementById('token-input').value.trim();
+            log('Token: ' + (token ? token.substring(0, 20) + '...' : '空'));
+            
+            if (!token) {
+                log('错误：Token 为空');
+                return;
+            }
+            
+            log('发起请求...');
+            fetch('https://api.talesofai.cn/v1/user/', {
+                method: 'GET',
+                headers: {
+                    'x-token': token,
+                    'x-platform': 'nieta-app/web'
+                }
+            })
+            .then(res => {
+                log('响应状态：' + res.status);
+                return res.json();
+            })
+            .then(data => {
+                log('登录成功！用户：' + (data.nick_name || data.name));
+                localStorage.setItem('neta_token', token);
+                log('Token 已保存');
+            })
+            .catch(err => {
+                log('错误：' + err.message);
+            });
+        }
+    </script>
+</body>
+</html>
