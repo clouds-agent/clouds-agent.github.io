@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录调试页面</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            background: #f5f5f7;
+        }
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h2 { margin-top: 0; color: #1d1d1f; }
+        button {
+            background: #0071e3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover { background: #0077ed; }
+        button:disabled { background: #86868b; cursor: not-allowed; }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d2d2d7;
+            border-radius: 8px;
+            font-size: 14px;
+            box-sizing: border-box;
+            margin: 5px 0;
+        }
+        pre {
+            background: #f5f5f7;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .status { padding: 10px; border-radius: 8px; margin: 10px 0; }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.info { background: #d1ecf1; color: #0c5460; }
+        .log-entry { border-bottom: 1px solid #eee; padding: 5px 0; }
+        .log-entry.error { color: #dc3545; }
+        .log-entry.success { color: #28a745; }
+    </style>
+</head>
+<body>
+    <h1>🔍 登录调试页面</h1>
+    
+    <div class="section">
+        <h2>1. 环境检查</h2>
+        <div id="env-check">检查中...</div>
+    </div>
+    
+    <div class="section">
+        <h2>2. 手动登录测试</h2>
+        <input type="text" id="token-input" placeholder="输入 NETA TOKEN">
+        <button id="login-btn" onclick="manualLogin()">登录</button>
+        <div id="login-status"></div>
+    </div>
+    
+    <div class="section">
+        <h2>3. LocalStorage 状态</h2>
+        <button onclick="showStorage()">刷新</button>
+        <button onclick="clearStorage()">清空</button>
+        <pre id="storage-state">加载中...</pre>
+    </div>
+    
+    <div class="section">
+        <h2>4. 详细日志</h2>
+        <button onclick="clearLog()">清空日志</button>
+        <pre id="log-container"></pre>
+    </div>
+
+    <script>
+        const API_BASE = 'https://api.talesofai.cn';
+        const logContainer = document.getElementById('log-container');
+        
+        // 重写 console
+        const originalLog = console.log;
+        const originalError = console.error;
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addLog(args.join(' '), 'info');
+        };
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addLog(args.join(' '), 'error');
+        };
+        
+        function addLog(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        function checkEnv() {
+            const el = document.getElementById('env-check');
+            const checks = [];
+            
+            // 检查 localStorage
+            try {
+                localStorage.setItem('test', '1');
+                localStorage.removeItem('test');
+                checks.push('✅ localStorage 可用');
+            } catch (e) {
+                checks.push('❌ localStorage 不可用：' + e.message);
+            }
+            
+            // 检查 fetch
+            if (typeof fetch === 'function') {
+                checks.push('✅ fetch API 可用');
+            } else {
+                checks.push('❌ fetch API 不可用');
+            }
+            
+            // 检查 API 连通性
+            fetch(`${API_BASE}/v1/user/`, {
+                headers: { 'x-token': 'test', 'x-platform': 'nieta-app/web' }
+            }).then(res => {
+                checks.push(`✅ API 可达 (HTTP ${res.status})`);
+                el.innerHTML = checks.join('<br>');
+            }).catch(e => {
+                checks.push('❌ API 不可达：' + e.message);
+                el.innerHTML = checks.join('<br>');
+            });
+            
+            el.innerHTML = checks.join('<br>');
+        }
+        
+        function showStorage() {
+            const storage = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                if (key.includes('neta')) {
+                    storage[key] = key.includes('token') ? value.substring(0, 50) + '...' : value;
+                }
+            }
+            document.getElementById('storage-state').textContent = JSON.stringify(storage, null, 2);
+        }
+        
+        function clearStorage() {
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.includes('neta')) {
+                    keysToRemove.push(key);
+                }
+            }
+            keysToRemove.forEach(key => localStorage.removeItem(key));
+            showStorage();
+            addLog('已清空 Neta 相关 localStorage', 'success');
+        }
+        
+        function clearLog() {
+            logContainer.innerHTML = '';
+        }
+        
+        async function manualLogin() {
+            const tokenInput = document.getElementById('token-input');
+            const statusEl = document.getElementById('login-status');
+            const loginBtn = document.getElementById('login-btn');
+            
+            const token = tokenInput.value.trim();
+            
+            if (!token) {
+                statusEl.innerHTML = '<div class="status error">请输入 Token</div>';
+                addLog('登录失败：Token 为空', 'error');
+                return;
+            }
+            
+            loginBtn.disabled = true;
+            loginBtn.textContent = '登录中...';
+            statusEl.innerHTML = '<div class="status info">正在验证 Token...</div>';
+            addLog(`尝试登录，Token 长度：${token.length}`);
+            
+            try {
+                const startTime = Date.now();
+                const res = await fetch(`${API_BASE}/v1/user/`, {
+                    headers: { 
+                        'x-token': token, 
+                        'x-platform': 'nieta-app/web' 
+                    }
+                });
+                const endTime = Date.now();
+                
+                addLog(`API 响应时间：${endTime - startTime}ms`);
+                addLog(`API 响应状态：${res.status}`);
+                
+                if (!res.ok) {
+                    let errorText = `HTTP ${res.status}`;
+                    try {
+                        const errorData = await res.json();
+                        errorText = errorData.message || errorData.detail || errorText;
+                        addLog(`错误详情：${JSON.stringify(errorData)}`, 'error');
+                    } catch (e) {
+                        addLog(`无法解析错误响应：${e.message}`, 'error');
+                    }
+                    statusEl.innerHTML = `<div class="status error">登录失败：${errorText}</div>`;
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = '登录';
+                    return;
+                }
+                
+                const data = await res.json();
+                addLog(`登录成功，用户数据：${JSON.stringify({id: data.id, name: data.nick_name, uuid: data.uuid})}`, 'success');
+                
+                if (!data.id || !data.uuid) {
+                    statusEl.innerHTML = '<div class="status error">Token 验证失败：数据不完整</div>';
+                    addLog('数据不完整', 'error');
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = '登录';
+                    return;
+                }
+                
+                // 保存 Token
+                localStorage.setItem('neta_token', token);
+                addLog('Token 已保存到 localStorage', 'success');
+                
+                // 保存账号历史
+                const accounts = JSON.parse(localStorage.getItem('neta_accounts') || '[]');
+                const exists = accounts.some(acc => acc.token === token);
+                if (!exists) {
+                    accounts.push({
+                        token: token,
+                        userId: data.nick_name || data.name,
+                        avatar: data.avatar_url || '',
+                        addedAt: Date.now()
+                    });
+                    localStorage.setItem('neta_accounts', JSON.stringify(accounts));
+                    addLog('账号已保存到历史', 'success');
+                }
+                
+                statusEl.innerHTML = `<div class="status success">✓ 登录成功！用户：${data.nick_name || data.name}</div>`;
+                addLog('登录流程完成', 'success');
+                
+                showStorage();
+                
+                loginBtn.disabled = false;
+                loginBtn.textContent = '登录';
+                
+            } catch (error) {
+                addLog(`登录异常：${error.message}`, 'error');
+                addLog(`堆栈：${error.stack}`, 'error');
+                statusEl.innerHTML = `<div class="status error">登录失败：${error.message}</div>`;
+                loginBtn.disabled = false;
+                loginBtn.textContent = '登录';
+            }
+        }
+        
+        // 初始化
+        checkEnv();
+        showStorage();
+        addLog('调试页面已加载');
+    </script>
+</body>
+</html>
