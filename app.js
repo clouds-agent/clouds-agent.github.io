@@ -585,13 +585,8 @@ function setupLogin() {
     const loginBtn = document.getElementById('login-btn');
     const logoutBtn = document.getElementById('logout-btn');
     const userProfileBtn = document.getElementById('user-profile');
-    const accountSwitcher = document.getElementById('account-switcher');
-    const accountSelect = document.getElementById('account-select');
     
     console.log('setupLogin 执行，getToken:', getToken());
-    
-    // 加载账号历史
-    loadAccountHistory();
     
     // 检查是否已登录，已登录则关闭登录窗口
     if (getToken()) {
@@ -606,23 +601,31 @@ function setupLogin() {
         console.log('未登录，保持登录窗口显示');
     }
     
+    // 绑定登录按钮事件（最重要，放在最前面）
     if (loginBtn) {
         console.log('找到登录按钮，绑定事件');
         loginBtn.addEventListener('click', handleLogin);
+        console.log('登录按钮事件已绑定');
     } else {
         console.error('找不到登录按钮！');
     }
     
-    // 账号切换
-    if (accountSwitcher && accountSelect) {
-        accountSelect.addEventListener('change', (e) => {
-            const token = e.target.value;
-            if (token) {
-                localStorage.setItem('neta_token', token);
-                location.reload(); // 刷新页面应用新账号
-            }
-        });
-    }
+    // 延迟加载账号历史（避免阻塞主逻辑）
+    setTimeout(() => {
+        const accountSwitcher = document.getElementById('account-switcher');
+        const accountSelect = document.getElementById('account-select');
+        
+        if (accountSwitcher && accountSelect) {
+            loadAccountHistory();
+            accountSelect.addEventListener('change', (e) => {
+                const token = e.target.value;
+                if (token) {
+                    localStorage.setItem('neta_token', token);
+                    location.reload();
+                }
+            });
+        }
+    }, 100);
     
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
