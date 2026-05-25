@@ -4,6 +4,7 @@ const API_BASE = 'https://api.talesofai.cn';
 // 状态
 let isRunning = false; // 是否正在运行
 let isPaused = false; // 是否暂停
+let currentActivePage = 'like'; // 当前活动页面：'like' 或 'tools'
 let likeStats = { total: 0, byTag: {}, startTime: null, lastIncrease: null };
 let chartData = { labels: [], total: [], byTag: {} };
 let userProfile = null;
@@ -28,6 +29,18 @@ let likeSpeed = 200; // 默认 200ms
 // 日志标志
 let tagsFinishedLogged = false; // 标签完成日志是否已打印
 let usersFinishedLogged = false; // 用户完成日志是否已打印
+
+// 导航栏加载状态
+function updateNavbarLoading(page, isLoading) {
+    const navLink = document.querySelector(`.nav-link[href="#${page}"]`);
+    if (!navLink) return;
+    
+    if (isLoading) {
+        navLink.classList.add('loading');
+    } else {
+        navLink.classList.remove('loading');
+    }
+}
 
 // 图库相关状态
 let galleryPageIndex = 0;
@@ -1184,6 +1197,7 @@ function handleWorkerMessage(e) {
 function resetUI() {
     isRunning = false;
     isPaused = false;
+    updateNavbarLoading('like', false);
     const startBtn = document.getElementById('start-like');
     const pauseBtn = document.getElementById('pause-like');
     if (startBtn) {
@@ -1274,6 +1288,8 @@ function startLiking() {
     
     isRunning = true;
     isPaused = false;
+    currentActivePage = 'like';
+    updateNavbarLoading('like', true);
     likeStats = {
         total: 0,
         byTag: {},
@@ -2432,20 +2448,9 @@ async function loadStatsData(type, days) {
                 const todayStr = chinaNow.toISOString().split('T')[0];
                 const firstItemDate = data.list?.[0]?.ctime?.split(' ')[0];
                 
-                // 计算日期差（直接比较日期字符串，避免时区问题）
-                // API 返回的 ctime 已经是中国时区，所以直接用字符串比较
-                // 如果 firstItemDate === todayStr，说明是今天的数据（dateDiff = 0）
-                // 如果 firstItemDate 是昨天，dateDiff = 1
-                const dateDiff = (todayStr === firstItemDate) ? 0 : 1;
-                
-                if (dateDiff <= 1) {
-                    // 第 1 页是近 1 天的数据，后续用 page_size=10 加速（10 滞后约 1 天，可接受）
-                    useRealTime = false;
-                    pageSize = 10;
-                    console.log(`第 1 页是近 1 天数据 (${firstItemDate})，后续使用 page_size=10 加速`);
-                } else {
-                    console.log(`第 1 页数据滞后 (${firstItemDate})，继续使用 page_size=3`);
-                }
+                // 始终保持 page_size=3，确保数据实时性
+                // 不切换到 page_size=10，避免数据滞后
+                console.log(`第 1 页最新数据：${firstItemDate}，继续使用 page_size=3 保证实时性`);
             }
             
             if (!data.list || data.list.length === 0) {
@@ -2707,6 +2712,10 @@ async function updateStatsUI() {
     
     console.log(`[updateStatsUI] type=${currentStatsType}, range=${range}, days=${days}`);
     
+    // 设置导航栏加载状态
+    currentActivePage = 'tools';
+    updateNavbarLoading('tools', true);
+    
     const loadBtn = document.getElementById('load-stats');
     if (loadBtn) {
         loadBtn.disabled = true;
@@ -2725,6 +2734,9 @@ async function updateStatsUI() {
         loadBtn.disabled = false;
         loadBtn.textContent = '加载数据';
     }
+    
+    // 移除导航栏加载状态
+    updateNavbarLoading('tools', false);
 }
 
 function setupStats() {

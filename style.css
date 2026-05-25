@@ -79,13 +79,40 @@ body {
     color: #86868b;
     font-size: 0.95rem;
     font-weight: 500;
-    transition: color 0.2s;
+    transition: all 0.2s;
     padding: 0.5rem 0;
+    position: relative;
 }
 
 .nav-link:hover,
 .nav-link.active {
     color: #1d1d1f;
+}
+
+/* 导航栏加载状态 */
+.nav-link.loading {
+    color: #f5a623;
+    background: rgba(245, 166, 35, 0.1);
+    border-radius: 4px;
+    padding: 0.5rem 0.75rem;
+}
+
+.nav-link.loading::after {
+    content: '';
+    position: absolute;
+    right: -12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    border: 2px solid #f5a623;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: translateY(-50%) rotate(360deg); }
 }
 
 /* 容器 */
