@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>账号切换测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .test-section {
+            border: 1px solid #d2d2d7;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #0071e3;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0077ed;
+        }
+        pre {
+            background: #f5f5f7;
+            padding: 10px;
+            border-radius: 6px;
+            overflow-x: auto;
+        }
+        .account-switcher {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .account-select {
+            flex: 1;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #d2d2d7;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            background: #fff;
+            color: #1d1d1f;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>🍵 账号切换功能测试</h1>
+    
+    <div class="test-section">
+        <h3>1. 当前 Token</h3>
+        <pre id="current-token">加载中...</pre>
+        <button onclick="showCurrentToken()">刷新</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>2. 账号历史列表</h3>
+        <pre id="account-list">加载中...</pre>
+        <button onclick="showAccountList()">刷新</button>
+        <button onclick="clearAccountList()">清空</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>3. 账号切换器 UI</h3>
+        <div id="account-switcher" class="account-switcher" style="display:none">
+            <label class="account-label">选择账号：</label>
+            <select id="account-select" class="account-select"></select>
+        </div>
+        <button onclick="loadAccountHistory()">加载切换器</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>4. 测试登录 API</h3>
+        <input type="text" id="test-token" placeholder="输入 Token" style="width:100%;padding:8px;margin:5px 0;border:1px solid #d2d2d7;border-radius:6px;">
+        <button onclick="testLogin()">测试登录</button>
+        <pre id="login-result">等待测试...</pre>
+    </div>
+    
+    <div class="test-section">
+        <h3>5. 控制台日志</h3>
+        <pre id="console-log" style="max-height:200px;overflow-y:auto;"></pre>
+        <button onclick="clearLog()">清空日志</button>
+    </div>
+
+    <script>
+        const API_BASE = 'https://api.talesofai.cn';
+        
+        // 重写 console.log 以显示在页面上
+        const originalLog = console.log;
+        const logEl = document.getElementById('console-log');
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const msg = args.join(' ');
+            logEl.textContent += msg + '\n';
+            logEl.scrollTop = logEl.scrollHeight;
+        };
+        
+        function getToken() {
+            return localStorage.getItem('neta_token');
+        }
+        
+        function saveAccountToHistory(token) {
+            const accounts = JSON.parse(localStorage.getItem('neta_accounts') || '[]');
+            const exists = accounts.some(acc => acc.token === token);
+            if (!exists) {
+                accounts.push({
+                    token: token,
+                    userId: token.substring(0, 8) + '...',
+                    avatar: '',
+                    addedAt: Date.now()
+                });
+                localStorage.setItem('neta_accounts', JSON.stringify(accounts));
+            }
+        }
+        
+        function getAccountHistory() {
+            return JSON.parse(localStorage.getItem('neta_accounts') || '[]');
+        }
+        
+        function showCurrentToken() {
+            const token = getToken();
+            document.getElementById('current-token').textContent = token 
+                ? token.substring(0, 20) + '... (长度:' + token.length + ')'
+                : '未登录';
+        }
+        
+        function showAccountList() {
+            const accounts = getAccountHistory();
+            document.getElementById('account-list').textContent = JSON.stringify(accounts, null, 2);
+        }
+        
+        function clearAccountList() {
+            localStorage.removeItem('neta_accounts');
+            showAccountList();
+            console.log('已清空账号历史');
+        }
+        
+        function loadAccountHistory() {
+            const accountSwitcher = document.getElementById('account-switcher');
+            const accountSelect = document.getElementById('account-select');
+            
+            const accounts = getAccountHistory();
+            console.log('账号历史:', accounts);
+            
+            if (accounts.length > 0) {
+                accountSwitcher.style.display = 'flex';
+                accountSelect.innerHTML = '<option value="">-- 选择账号 --</option>';
+                
+                accounts.forEach(acc => {
+                    const option = document.createElement('option');
+                    option.value = acc.token;
+                    const avatarHtml = acc.avatar ? `<img src="${acc.avatar}" style="width:20px;height:20px;border-radius:50%;vertical-align:middle;margin-right:6px;">` : '';
+                    const userId = acc.userId || acc.token.substring(0, 8) + '...';
+                    option.innerHTML = `${avatarHtml}${userId}`;
+                    accountSelect.appendChild(option);
+                });
+                
+                const currentToken = getToken();
+                if (currentToken) {
+                    accountSelect.value = currentToken;
+                }
+                
+                console.log('账号切换器已加载，共', accounts.length, '个账号');
+            } else {
+                accountSwitcher.style.display = 'none';
+                console.log('账号历史为空');
+            }
+        }
+        
+        async function testLogin() {
+            const tokenInput = document.getElementById('test-token');
+            const resultEl = document.getElementById('login-result');
+            const token = tokenInput.value.trim();
+            
+            if (!token) {
+                resultEl.textContent = '请输入 Token';
+                return;
+            }
+            
+            resultEl.textContent = '登录中...';
+            console.log('尝试登录，Token 长度:', token.length);
+            
+            try {
+                const res = await fetch(`${API_BASE}/v1/user/`, {
+                    headers: {
+                        'x-token': token,
+                        'x-platform': 'nieta-app/web'
+                    }
+                });
+                
+                console.log('API 响应状态:', res.status);
+                
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+                
+                const data = await res.json();
+                console.log('登录成功，用户:', data.nick_name || data.name);
+                
+                // 保存账号
+                localStorage.setItem('neta_token', token);
+                saveAccountToHistory(token);
+                
+                resultEl.textContent = `✓ 登录成功\n用户：${data.nick_name || data.name}\nID: ${data.id}\nUUID: ${data.uuid}`;
+                
+                // 刷新显示
+                showCurrentToken();
+                showAccountList();
+                loadAccountHistory();
+                
+            } catch (error) {
+                console.error('登录失败:', error);
+                resultEl.textContent = '✗ 登录失败：' + error.message;
+            }
+        }
+        
+        function clearLog() {
+            logEl.textContent = '';
+        }
+        
+        // 初始化
+        showCurrentToken();
+        showAccountList();
+    </script>
+</body>
+</html>
