@@ -2877,24 +2877,14 @@ async function loadGallery(isFirstLoad = false) {
                 </div>
             `;
             
-            // 点击下载
+            // 点击复制 URL
             if (originalUrl) {
                 itemEl.addEventListener('click', async () => {
                     try {
-                        // 创建下载链接
-                        const a = document.createElement('a');
-                        a.href = originalUrl;
-                        a.download = '';  // 尝试触发下载
-                        a.target = '_blank';  // 跨域时需要
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        
-                        showToast('正在下载...');
+                        await navigator.clipboard.writeText(originalUrl);
+                        showToast('已复制 URL，点击打开→', originalUrl);
                     } catch (e) {
-                        // 下载失败，打开新窗口
-                        window.open(originalUrl, '_blank');
-                        showToast('已在新窗口打开，请右键保存');
+                        showToast('复制失败');
                     }
                 });
             }
