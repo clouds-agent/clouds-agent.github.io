@@ -682,6 +682,7 @@ window.handleLoginClick = handleLoginClick;
 window.showQuickLogin = showQuickLogin;
 window.selectQuickLogin = selectQuickLogin;
 window.deleteQuickLogin = deleteQuickLogin;
+window.copyToken = copyToken;
 
 // 记录登录到 Cloudflare Workers
 async function updateAccountInHistory(token, profile) {
@@ -763,13 +764,11 @@ function loadQuickLoginList() {
         
         const avatarUrl = acc.avatar || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzNiIgaGVpZ2h0PSIzNiI+PGNpcmNsZSBjeD0iMTgiIGN5PSIxOCIgcj0iMTgiIGZpbGw9IiNkMmQyZDciLz48dGV4dCB4PSIxOCIgeT0iMjIiIGZpbGw9IiM4Njg2OGIiIGZvbnQtc2l6ZT0iMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPj88L3RleHQ+PC9zdmc+';
         const userId = acc.userId || acc.token.substring(0, 8) + '...';
-        const tokenId = acc.token.substring(0, 12) + '...';
         
         item.innerHTML = `
             <img src="${avatarUrl}" alt="avatar" class="quick-login-avatar" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzNiIgaGVpZ2h0PSIzNiI+PGNpcmNsZSBjeD0iMTgiIGN5PSIxOCIgcj0iMTgiIGZpbGw9IiNkMmQyZDciLz48dGV4dCB4PSIxOCIgeT0iMjIiIGZpbGw9IiM4Njg2OGIiIGZvbnQtc2l6ZT0iMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPj88L3RleHQ+PC9zdmc+'">
             <div class="quick-login-info">
                 <div class="quick-login-name">${userId}</div>
-                <div class="quick-login-id">Token: ${tokenId}</div>
             </div>
             <button class="quick-login-delete" onclick="deleteQuickLogin(${index})">删除</button>
         `;
@@ -807,6 +806,29 @@ function deleteQuickLogin(index) {
             if (quickBtn) quickBtn.style.display = 'none';
         }
     }
+}
+
+// 复制 Token
+function copyToken() {
+    const token = getToken();
+    if (!token) {
+        showToast('未登录');
+        return;
+    }
+    navigator.clipboard.writeText(token).then(() => {
+        showToast('✅ Token 已复制');
+    }).catch(() => {
+        showToast('❌ 复制失败');
+    });
+}
+
+// 显示提示
+function showToast(message) {
+    const div = document.createElement('div');
+    div.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:white;padding:12px 20px;border-radius:8px;z-index:9999;font-size:14px;';
+    div.textContent = message;
+    document.body.appendChild(div);
+    setTimeout(() => div.remove(), 2000);
 }
 
 // 全局函数，供 HTML onclick 调用
