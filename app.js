@@ -777,11 +777,20 @@ async function handleLogin() {
     console.log('尝试登录，Token 长度:', token.length);
     
     try {
+        console.log('发起登录请求...');
         const res = await fetch(`${API_BASE}/v1/user/`, {
-            headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
+            method: 'GET',
+            headers: { 
+                'x-token': token, 
+                'x-platform': 'nieta-app/web',
+                'Content-Type': 'application/json'
+            },
+            mode: 'cors',
+            credentials: 'omit'
         });
         
         console.log('API 响应状态:', res.status);
+        console.log('CORS 检查:', res.headers.get('Access-Control-Allow-Origin'));
         
         if (!res.ok) {
             let errorText = `HTTP ${res.status}`;
