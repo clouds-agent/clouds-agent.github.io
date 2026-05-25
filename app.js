@@ -738,7 +738,7 @@ function showQuickLogin() {
         loadQuickLoginList();
         listEl.style.display = 'block';
         dividerEl.style.display = 'block';
-        quickBtn.textContent = '❌ 收起';
+        quickBtn.textContent = '收起';
     }
 }
 
