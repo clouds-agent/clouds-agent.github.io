@@ -1048,7 +1048,7 @@ input[type="password"]:focus {
 /* 账号切换器 */
 .account-switcher {
     margin-bottom: 1rem;
-    display: flex;
+    display: none; /* 默认隐藏，JS 加载后显示 */
     align-items: center;
     gap: 0.5rem;
 }
