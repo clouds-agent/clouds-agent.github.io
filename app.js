@@ -1197,6 +1197,7 @@ function handleWorkerMessage(e) {
 function resetUI() {
     isRunning = false;
     isPaused = false;
+    // 移除所有加载状态
     updateNavbarLoading('like', false);
     const startBtn = document.getElementById('start-like');
     const pauseBtn = document.getElementById('pause-like');
@@ -1288,8 +1289,11 @@ function startLiking() {
     
     isRunning = true;
     isPaused = false;
-    currentActivePage = 'like';
-    updateNavbarLoading('like', true);
+    // 只有切换到其他页面时才显示加载状态
+    const currentPage = document.querySelector('.section.active')?.id;
+    if (currentPage !== 'like') {
+        updateNavbarLoading('like', true);
+    }
     likeStats = {
         total: 0,
         byTag: {},
@@ -2712,9 +2716,22 @@ async function updateStatsUI() {
     
     console.log(`[updateStatsUI] type=${currentStatsType}, range=${range}, days=${days}`);
     
-    // 设置导航栏加载状态
-    currentActivePage = 'tools';
-    updateNavbarLoading('tools', true);
+    // 设置导航栏加载状态（只有切换到其他页面时才显示）
+    const currentPage = document.querySelector('.section.active')?.id;
+    if (currentPage !== 'tools') {
+        updateNavbarLoading('tools', true);
+    }
+    
+    // 显示加载提示
+    const chartContainer = document.getElementById('stats-chart');
+    if (chartContainer) {
+        const typeName = currentStatsType === 'fans' ? '粉丝' : currentStatsType === 'like' ? '点赞' : '捏同款';
+        const rangeName = range === 'all' ? '全部' : 
+                         range === '7' ? '最近 7 天' : 
+                         range === '14' ? '最近 14 天' : 
+                         range === '30' ? '最近 30 天' : `最近${range}天`;
+        chartContainer.innerHTML = `<div class="stats-loading">${typeName} - ${rangeName} 加载中<div class="dots"><span>.</span><span>.</span><span>.</span><span>.</span></div></div>`;
+    }
     
     const loadBtn = document.getElementById('load-stats');
     if (loadBtn) {
