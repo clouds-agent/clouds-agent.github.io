@@ -33,12 +33,15 @@ let usersFinishedLogged = false; // 用户完成日志是否已打印
 // 导航栏加载状态
 function updateNavbarLoading(page, isLoading) {
     const navLink = document.querySelector(`.nav-link[href="#${page}"]`);
+    console.log(`[updateNavbarLoading] page=${page}, isLoading=${isLoading}, navLink=${!!navLink}`);
     if (!navLink) return;
     
     if (isLoading) {
         navLink.classList.add('loading');
+        console.log(`[updateNavbarLoading] 添加 loading 类到 #${page}`);
     } else {
         navLink.classList.remove('loading');
+        console.log(`[updateNavbarLoading] 移除 #${page} 的 loading 类`);
     }
 }
 
