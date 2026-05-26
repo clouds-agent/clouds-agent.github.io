@@ -629,8 +629,8 @@ function setupNavigation() {
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             document.getElementById(target).classList.add('active');
             
-            // 手动触发 hashchange 处理逻辑
-            handleHashChange();
+            // 手动设置 hash，触发 hashchange 事件
+            window.location.hash = target;
         });
     });
 }
