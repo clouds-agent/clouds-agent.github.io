@@ -43,8 +43,7 @@ function updateNavbarLoading(page, isLoading) {
 }
 
 // 监听页面切换（锚点变化）
-window.addEventListener('hashchange', () => {
-    // 页面切换时，检查是否需要显示加载状态
+function handleHashChange() {
     const hash = window.location.hash;
     
     // 切换到工具页
@@ -61,6 +60,13 @@ window.addEventListener('hashchange', () => {
         // 移除工具页加载状态
         updateNavbarLoading('tools', false);
     }
+}
+
+window.addEventListener('hashchange', handleHashChange);
+
+// 页面加载时也检查一次
+document.addEventListener('DOMContentLoaded', () => {
+    handleHashChange();
 });
 
 // 图库相关状态
