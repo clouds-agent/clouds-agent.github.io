@@ -57,6 +57,8 @@ function handleHashChange() {
         if (isRunning) {
             console.log('[hashchange] isRunning=true，显示点赞页加载状态');
             updateNavbarLoading('like', true);
+        } else {
+            console.log('[hashchange] isRunning=false，不显示加载状态');
         }
     } 
     // 切换到点赞页
@@ -66,11 +68,13 @@ function handleHashChange() {
         updateNavbarLoading('like', false);
         // 移除工具页加载状态
         updateNavbarLoading('tools', false);
+    } else {
+        console.log('[hashchange] 未知 hash:', hash);
     }
 }
 
 window.addEventListener('hashchange', handleHashChange);
-console.log('[init] hashchange 监听器已注册');
+console.log('[init] hashchange 监听器已注册，当前 hash:', window.location.hash);
 
 // 页面加载时也检查一次
 document.addEventListener('DOMContentLoaded', () => {
