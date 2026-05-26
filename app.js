@@ -42,6 +42,19 @@ function updateNavbarLoading(page, isLoading) {
     }
 }
 
+// 监听页面切换（锚点变化）
+window.addEventListener('hashchange', () => {
+    // 页面切换时，检查是否需要显示加载状态
+    const hash = window.location.hash;
+    if (hash === '#tools' && isRunning) {
+        // 点赞页在运行，切换到工具页时显示点赞页加载状态
+        updateNavbarLoading('like', true);
+    } else if (hash === '#like') {
+        // 切换回点赞页，移除加载状态（因为能看到进度）
+        updateNavbarLoading('like', false);
+    }
+});
+
 // 图库相关状态
 let galleryPageIndex = 0;
 let galleryTotal = 0;
@@ -1289,11 +1302,6 @@ function startLiking() {
     
     isRunning = true;
     isPaused = false;
-    // 只有切换到其他页面时才显示加载状态
-    const currentPage = document.querySelector('.section.active')?.id;
-    if (currentPage !== 'like') {
-        updateNavbarLoading('like', true);
-    }
     likeStats = {
         total: 0,
         byTag: {},
