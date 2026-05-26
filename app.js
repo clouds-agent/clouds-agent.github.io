@@ -46,12 +46,20 @@ function updateNavbarLoading(page, isLoading) {
 window.addEventListener('hashchange', () => {
     // 页面切换时，检查是否需要显示加载状态
     const hash = window.location.hash;
-    if (hash === '#tools' && isRunning) {
-        // 点赞页在运行，切换到工具页时显示点赞页加载状态
-        updateNavbarLoading('like', true);
-    } else if (hash === '#like') {
-        // 切换回点赞页，移除加载状态（因为能看到进度）
+    
+    // 切换到工具页
+    if (hash === '#tools') {
+        // 点赞页在运行，显示点赞页加载状态
+        if (isRunning) {
+            updateNavbarLoading('like', true);
+        }
+    } 
+    // 切换到点赞页
+    else if (hash === '#like') {
+        // 移除点赞页加载状态（因为能看到进度）
         updateNavbarLoading('like', false);
+        // 移除工具页加载状态
+        updateNavbarLoading('tools', false);
     }
 });
 
@@ -1302,6 +1310,11 @@ function startLiking() {
     
     isRunning = true;
     isPaused = false;
+    // 如果当前在工具页，立即显示点赞页加载状态
+    const currentPage = document.querySelector('.section.active')?.id;
+    if (currentPage === 'tools') {
+        updateNavbarLoading('like', true);
+    }
     likeStats = {
         total: 0,
         byTag: {},
