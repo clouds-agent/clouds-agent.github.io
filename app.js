@@ -48,16 +48,20 @@ function updateNavbarLoading(page, isLoading) {
 // 监听页面切换（锚点变化）
 function handleHashChange() {
     const hash = window.location.hash;
+    console.log(`[hashchange] hash=${hash}, isRunning=${isRunning}`);
     
     // 切换到工具页
     if (hash === '#tools') {
+        console.log('[hashchange] 切换到工具页');
         // 点赞页在运行，显示点赞页加载状态
         if (isRunning) {
+            console.log('[hashchange] isRunning=true，显示点赞页加载状态');
             updateNavbarLoading('like', true);
         }
     } 
     // 切换到点赞页
     else if (hash === '#like') {
+        console.log('[hashchange] 切换到点赞页');
         // 移除点赞页加载状态（因为能看到进度）
         updateNavbarLoading('like', false);
         // 移除工具页加载状态
@@ -66,9 +70,11 @@ function handleHashChange() {
 }
 
 window.addEventListener('hashchange', handleHashChange);
+console.log('[init] hashchange 监听器已注册');
 
 // 页面加载时也检查一次
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('[DOMContentLoaded] 页面加载完成，检查状态');
     handleHashChange();
 });
 
@@ -1319,9 +1325,11 @@ function startLiking() {
     
     isRunning = true;
     isPaused = false;
+    console.log(`[startLiking] isRunning=true, currentPage=${document.querySelector('.section.active')?.id}`);
     // 如果当前在工具页，立即显示点赞页加载状态
     const currentPage = document.querySelector('.section.active')?.id;
     if (currentPage === 'tools') {
+        console.log('[startLiking] 当前在工具页，显示点赞页加载状态');
         updateNavbarLoading('like', true);
     }
     likeStats = {
