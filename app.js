@@ -2963,7 +2963,7 @@ async function loadGallery(isFirstLoad = false) {
             }
             
             // 生成失败的图片也要显示 URL 并可复制
-            const displayUrl = item.status === 'SUCCESS' ? pngUrl : `https://oss.talesofai.cn/picture/${item.uuid}.png`;
+            const displayUrl = item.status === 'SUCCESS' ? pngUrl : `https://oss.talesofai.cn/picture/${item.uuid}.webp`;
             
             itemEl.innerHTML = `
                 ${mediaHtml}
@@ -3019,11 +3019,7 @@ async function loadGallery(isFirstLoad = false) {
                     const urlEl = itemEl.querySelector('.gallery-item-url');
                     const urlToCopy = urlEl?.textContent || displayUrl;
                     await navigator.clipboard.writeText(urlToCopy);
-                    if (item.status === 'SUCCESS') {
-                        showToast('已复制 URL，点击打开→', urlToCopy);
-                    } else {
-                        showToast('已复制 URL（生成失败）');
-                    }
+                    showToast('已复制 URL，点击打开→', urlToCopy);
                 } catch (e) {
                     showToast('复制失败');
                 }
