@@ -2962,10 +2962,13 @@ async function loadGallery(isFirstLoad = false) {
                 }
             }
             
+            // 生成失败的图片也要显示 URL 并可复制
+            const displayUrl = item.status === 'SUCCESS' ? pngUrl : `https://oss.talesofai.cn/picture/${item.uuid}.png`;
+            
             itemEl.innerHTML = `
                 ${mediaHtml}
                 <div class="gallery-item-info">
-                    <div class="gallery-item-url">${pngUrl}</div>
+                    <div class="gallery-item-url">${displayUrl}</div>
                     <div class="gallery-item-time">${item.ctime || ''}</div>
                     <span class="gallery-item-status ${item.status === 'SUCCESS' ? 'success' : 'failure'}">${item.status === 'SUCCESS' ? '成功' : '失败'}</span>
                 </div>
@@ -3008,17 +3011,23 @@ async function loadGallery(isFirstLoad = false) {
                         this.nextElementSibling.style.display = 'flex';
                     }
                 });
-                
-                // 点击复制 URL
-                itemEl.addEventListener('click', async () => {
-                    try {
-                        await navigator.clipboard.writeText(currentUrl);
-                        showToast('已复制 URL，点击打开→', currentUrl);
-                    } catch (e) {
-                        showToast('复制失败');
-                    }
-                });
             }
+            
+            // 点击复制 URL（无论成功失败都可以复制）
+            itemEl.addEventListener('click', async () => {
+                try {
+                    const urlEl = itemEl.querySelector('.gallery-item-url');
+                    const urlToCopy = urlEl?.textContent || displayUrl;
+                    await navigator.clipboard.writeText(urlToCopy);
+                    if (item.status === 'SUCCESS') {
+                        showToast('已复制 URL，点击打开→', urlToCopy);
+                    } else {
+                        showToast('已复制 URL（生成失败）');
+                    }
+                } catch (e) {
+                    showToast('复制失败');
+                }
+            });
             
             gridEl.appendChild(itemEl);
         });
