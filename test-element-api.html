@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>元素 API 批量测试</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f5f5f7; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        h1 { color: #1d1d1f; }
+        input, button { padding: 10px 16px; font-size: 14px; border-radius: 8px; border: 1px solid #d2d2d7; }
+        input { width: 100%; box-sizing: border-box; margin-bottom: 10px; }
+        button { background: #0071e3; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0077ed; }
+        button:disabled { background: #86868b; cursor: not-allowed; }
+        .result { margin-top: 20px; }
+        .result-item { padding: 12px; margin: 8px 0; border-radius: 8px; background: #f5f5f7; }
+        .result-item.success { background: #d4edda; border-left: 4px solid #28a745; }
+        .result-item.error { background: #f8d7da; border-left: 4px solid #dc3545; }
+        .url { font-family: monospace; font-size: 12px; word-break: break-all; color: #1d1d1f; }
+        .status { font-weight: 600; margin-bottom: 4px; }
+        .status.ok { color: #28a745; }
+        .status.fail { color: #dc3545; }
+        pre { background: #1d1d1f; color: #f5f5f7; padding: 12px; border-radius: 8px; overflow-x: auto; font-size: 12px; max-height: 300px; overflow-y: auto; }
+        .copy-btn { background: #34c759; margin-top: 8px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 元素 API 批量测试</h1>
+        <p>输入元素 UUID，批量测试可能的 API 路径</p>
+        
+        <input type="text" id="element-uuid" placeholder="元素 UUID，例如：ec9caed2-4201-43c8-a969-b9e2c3755291">
+        <input type="text" id="token" placeholder="Token (可选，默认用 localStorage)">
+        <button onclick="testAPIs()" id="test-btn">开始测试</button>
+        
+        <div class="result" id="results"></div>
+    </div>
+
+    <script>
+        const API_PATHS = [
+            // /profile 变体
+            '/v2/travel/parent/{uuid}/profile',
+            '/v2/travel/parent/{uuid}/detail',
+            '/v1/travel/parent/{uuid}/profile',
+            '/v1/travel/parent/{uuid}/detail',
+            
+            // /traits 相关
+            '/v2/travel/parent/{uuid}/traits',
+            '/v1/travel/parent/{uuid}/traits',
+            '/v2/travel/parent/{uuid}/prompts',
+            '/v1/travel/parent/{uuid}/prompts',
+            
+            // /config 相关
+            '/v2/travel/parent/{uuid}/config',
+            '/v1/travel/parent/{uuid}/config',
+            '/v2/travel/parent/{uuid}/config/traits',
+            '/v1/travel/parent/{uuid}/config/traits',
+            
+            // /vtoken 相关
+            '/v1/oc_vtoken/{uuid}',
+            '/v1/travel/vtoken/{uuid}',
+            '/v2/travel/parent/{uuid}/vtoken',
+            '/v1/travel/parent/{uuid}/vtoken',
+            
+            // 直接访问
+            '/v2/travel/parent/{uuid}',
+            '/v1/travel/parent/{uuid}',
+            '/v1/elementum/{uuid}',
+            '/v1/elementum/{uuid}/detail',
+            
+            // owner_tc_uuid 相关（需要先获取 profile 中的 owner_tc_uuid）
+            '/v2/travel/parent/{tc_uuid}',
+            '/v1/travel/parent/{tc_uuid}',
+            '/v1/travel/{tc_uuid}',
+            '/v1/oc_vtoken/{tc_uuid}',
+            '/v1/travel/vtoken/{tc_uuid}',
+        ];
+
+        function getToken() {
+            const input = document.getElementById('token').value.trim();
+            if (input) return input;
+            return localStorage.getItem('neta_token') || '';
+        }
+
+        async function testAPIs() {
+            const uuid = document.getElementById('element-uuid').value.trim();
+            const token = getToken();
+            const resultsEl = document.getElementById('results');
+            const btn = document.getElementById('test-btn');
+
+            if (!uuid) {
+                alert('请输入元素 UUID');
+                return;
+            }
+
+            if (!token) {
+                alert('请输入 Token 或在工具页登录');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = '测试中...';
+            resultsEl.innerHTML = '';
+
+            let tcUuid = null;
+
+            for (const path of API_PATHS) {
+                const url = path.replace('{uuid}', uuid);
+                const fullUrl = `https://api.talesofai.cn${url}`;
+
+                const itemEl = document.createElement('div');
+                itemEl.className = 'result-item';
+                itemEl.innerHTML = `<div class="url">📡 ${url}</div><div class="status">⏳ 测试中...</div>`;
+                resultsEl.appendChild(itemEl);
+
+                try {
+                    const res = await fetch(fullUrl, {
+                        headers: {
+                            'x-token': token,
+                            'x-platform': 'nieta-app/web'
+                        }
+                    });
+
+                    const data = await res.json();
+
+                    if (res.ok && !data.detail) {
+                        itemEl.className = 'result-item success';
+                        itemEl.innerHTML = `
+                            <div class="url">✅ ${url}</div>
+                            <div class="status ok">成功！</div>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                            <button class="copy-btn" onclick="copyJson('${JSON.stringify(data, null, 2)}')">复制 JSON</button>
+                        `;
+
+                        // 如果是 profile，记录 tc_uuid 用于后续测试
+                        if (path.includes('/profile') && data.owner_tc_uuid) {
+                            tcUuid = data.owner_tc_uuid;
+                            console.log('找到 owner_tc_uuid:', tcUuid);
+                        }
+                    } else {
+                        itemEl.className = 'result-item error';
+                        itemEl.innerHTML = `
+                            <div class="url">❌ ${url}</div>
+                            <div class="status fail">失败</div>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        `;
+                    }
+                } catch (e) {
+                    itemEl.className = 'result-item error';
+                    itemEl.innerHTML = `
+                        <div class="url">❌ ${url}</div>
+                        <div class="status fail">错误：${e.message}</div>
+                    `;
+                }
+
+                // 延迟一下，避免请求太快
+                await new Promise(r => setTimeout(r, 200));
+            }
+
+            // 如果有 tc_uuid，测试 tc 相关的 API
+            if (tcUuid) {
+                const tcPaths = API_PATHS.filter(p => p.includes('{tc_uuid}'));
+                for (const path of tcPaths) {
+                    const url = path.replace('{tc_uuid}', tcUuid);
+                    const fullUrl = `https://api.talesofai.cn${url}`;
+
+                    const itemEl = document.createElement('div');
+                    itemEl.className = 'result-item';
+                    itemEl.innerHTML = `<div class="url">📡 ${url} (tc)</div><div class="status">⏳ 测试中...</div>`;
+                    resultsEl.appendChild(itemEl);
+
+                    try {
+                        const res = await fetch(fullUrl, {
+                            headers: {
+                                'x-token': token,
+                                'x-platform': 'nieta-app/web'
+                            }
+                        });
+
+                        const data = await res.json();
+
+                        if (res.ok && !data.detail) {
+                            itemEl.className = 'result-item success';
+                            itemEl.innerHTML = `
+                                <div class="url">✅ ${url} (tc)</div>
+                                <div class="status ok">成功！</div>
+                                <pre>${JSON.stringify(data, null, 2)}</pre>
+                                <button class="copy-btn" onclick="copyJson('${JSON.stringify(data, null, 2)}')">复制 JSON</button>
+                            `;
+                        } else {
+                            itemEl.className = 'result-item error';
+                            itemEl.innerHTML = `
+                                <div class="url">❌ ${url} (tc)</div>
+                                <div class="status fail">失败</div>
+                                <pre>${JSON.stringify(data, null, 2)}</pre>
+                            `;
+                        }
+                    } catch (e) {
+                        itemEl.className = 'result-item error';
+                        itemEl.innerHTML = `
+                            <div class="url">❌ ${url} (tc)</div>
+                            <div class="status fail">错误：${e.message}</div>
+                        `;
+                    }
+
+                    await new Promise(r => setTimeout(r, 200));
+                }
+            }
+
+            btn.disabled = false;
+            btn.textContent = '开始测试';
+        }
+
+        function copyJson(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('已复制 JSON');
+            });
+        }
+    </script>
+</body>
+</html>
