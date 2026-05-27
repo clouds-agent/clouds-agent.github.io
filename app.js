@@ -2956,46 +2956,64 @@ async function loadGallery(isFirstLoad = false) {
                 
                 if (item.status === 'SUCCESS') {
                     // 先尝试 png，失败再尝试 jpg，最后 webp
-                    // 用 onload 动态更新 originalUrl 为实际成功的 URL
-                    mediaHtml = `<img src="${pngUrl}" alt="${item.uuid}" class="gallery-item-media" loading="lazy" onload="this.dataset.successUrl='${pngUrl}'" onerror="this.src='${jpgUrl}';this.dataset.successUrl='${jpgUrl}';this.onerror=function(){this.src='${webpUrl}';this.dataset.successUrl='${webpUrl}';this.onerror=function(){this.style.display='none';this.nextElementSibling.style.display='flex'}}"/><div class="gallery-item-media" style="display:none;align-items:center;justify-content:center;color:#86868b;">❌</div>`;
-                    // 复制时用实际成功的 URL（在点击时读取）
-                    originalUrl = 'dynamic';
+                    mediaHtml = `<img src="${pngUrl}" alt="${item.uuid}" class="gallery-item-media" loading="lazy"/><div class="gallery-item-media" style="display:none;align-items:center;justify-content:center;color:#86868b;">❌</div>`;
                 } else {
                     mediaHtml = `<div class="gallery-item-media" style="display:flex;align-items:center;justify-content:center;color:#86868b;">❌</div>`;
-                    originalUrl = pngUrl;
                 }
             }
             
             itemEl.innerHTML = `
                 ${mediaHtml}
                 <div class="gallery-item-info">
-                    <div class="gallery-item-url" data-png="${pngUrl}" data-jpg="${jpgUrl}" data-webp="${webpUrl}" title="${pngUrl}">${pngUrl}</div>
+                    <div class="gallery-item-url">${pngUrl}</div>
                     <div class="gallery-item-time">${item.ctime || ''}</div>
                     <span class="gallery-item-status ${item.status === 'SUCCESS' ? 'success' : 'failure'}">${item.status === 'SUCCESS' ? '成功' : '失败'}</span>
                 </div>
             `;
             
-            // 图片加载成功后更新显示的 URL
+            // 图片加载逻辑：尝试 png→jpg→webp
             if (item.status === 'SUCCESS') {
                 const img = itemEl.querySelector('img');
-                if (img) {
-                    img.addEventListener('load', () => {
-                        const urlEl = itemEl.querySelector('.gallery-item-url');
-                        if (urlEl && img.dataset.successUrl) {
-                            urlEl.textContent = img.dataset.successUrl;
-                            urlEl.title = img.dataset.successUrl;
-                        }
-                    });
-                }
+                const urlEl = itemEl.querySelector('.gallery-item-url');
+                let currentUrl = pngUrl;
+                
+                // 更新显示的 URL
+                const updateUrl = (url) => {
+                    currentUrl = url;
+                    if (urlEl) {
+                        urlEl.textContent = url;
+                        urlEl.title = url;
+                    }
+                };
+                
+                // 初始设置为 png
+                updateUrl(pngUrl);
+                
+                // 加载成功
+                img.addEventListener('load', () => {
+                    updateUrl(currentUrl);
+                });
+                
+                // 加载失败，尝试下一个格式
+                img.addEventListener('error', function() {
+                    if (currentUrl === pngUrl) {
+                        this.src = jpgUrl;
+                        updateUrl(jpgUrl);
+                    } else if (currentUrl === jpgUrl) {
+                        this.src = webpUrl;
+                        updateUrl(webpUrl);
+                    } else {
+                        // 所有格式都失败
+                        this.style.display = 'none';
+                        this.nextElementSibling.style.display = 'flex';
+                    }
+                });
                 
                 // 点击复制 URL
                 itemEl.addEventListener('click', async () => {
                     try {
-                        // 读取实际加载成功的 URL
-                        const img = itemEl.querySelector('img');
-                        const urlToCopy = img?.dataset?.successUrl || pngUrl;
-                        await navigator.clipboard.writeText(urlToCopy);
-                        showToast('已复制 URL，点击打开→', urlToCopy);
+                        await navigator.clipboard.writeText(currentUrl);
+                        showToast('已复制 URL，点击打开→', currentUrl);
                     } catch (e) {
                         showToast('复制失败');
                     }
