@@ -2918,6 +2918,7 @@ async function loadGallery(isFirstLoad = false) {
             
             let mediaHtml = '';
             let originalUrl = '';
+            let pngUrl = '', jpgUrl = '', webpUrl = '';
             
             if (modality === 'VIDEO') {
                 // 视频用 mp4
@@ -2929,9 +2930,9 @@ async function loadGallery(isFirstLoad = false) {
                 }
             } else {
                 // 图片：尝试 png、jpg、webp 三种格式
-                const pngUrl = `https://oss.talesofai.cn/picture/${item.uuid}.png`;
-                const jpgUrl = `https://oss.talesofai.cn/picture/${item.uuid}.jpg`;
-                const webpUrl = `https://oss.talesofai.cn/picture/${item.uuid}.webp`;
+                pngUrl = `https://oss.talesofai.cn/picture/${item.uuid}.png`;
+                jpgUrl = `https://oss.talesofai.cn/picture/${item.uuid}.jpg`;
+                webpUrl = `https://oss.talesofai.cn/picture/${item.uuid}.webp`;
                 
                 if (item.status === 'SUCCESS') {
                     // 先尝试 png，失败再尝试 jpg，最后 webp
@@ -2955,7 +2956,7 @@ async function loadGallery(isFirstLoad = false) {
             `;
             
             // 图片加载成功后更新显示的 URL
-            if (item.status === 'SUCCESS') {
+            if (item.status === 'SUCCESS' && pngUrl) {
                 const img = itemEl.querySelector('img');
                 if (img) {
                     img.addEventListener('load', () => {
