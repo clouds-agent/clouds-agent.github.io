@@ -2935,9 +2935,10 @@ async function loadGallery(isFirstLoad = false) {
                 
                 if (item.status === 'SUCCESS') {
                     // 先尝试 png，失败再尝试 jpg，最后 webp
-                    mediaHtml = `<img src="${pngUrl}" alt="${item.uuid}" class="gallery-item-media" loading="lazy" onerror="this.src='${jpgUrl}';this.onerror=function(){this.src='${webpUrl}';this.onerror=function(){this.style.display='none';this.nextElementSibling.style.display='flex'}}"/><div class="gallery-item-media" style="display:none;align-items:center;justify-content:center;color:#86868b;">❌</div>`;
-                    // 复制时用 png URL
-                    originalUrl = pngUrl;
+                    // 用 onload 动态更新 originalUrl 为实际成功的 URL
+                    mediaHtml = `<img src="${pngUrl}" alt="${item.uuid}" class="gallery-item-media" loading="lazy" onload="this.dataset.successUrl='${pngUrl}'" onerror="this.src='${jpgUrl}';this.dataset.successUrl='${jpgUrl}';this.onerror=function(){this.src='${webpUrl}';this.dataset.successUrl='${webpUrl}';this.onerror=function(){this.style.display='none';this.nextElementSibling.style.display='flex'}}"/><div class="gallery-item-media" style="display:none;align-items:center;justify-content:center;color:#86868b;">❌</div>`;
+                    // 复制时用实际成功的 URL（在点击时读取）
+                    originalUrl = 'dynamic';
                 } else {
                     mediaHtml = `<div class="gallery-item-media" style="display:flex;align-items:center;justify-content:center;color:#86868b;">❌</div>`;
                     originalUrl = pngUrl;
@@ -2947,18 +2948,35 @@ async function loadGallery(isFirstLoad = false) {
             itemEl.innerHTML = `
                 ${mediaHtml}
                 <div class="gallery-item-info">
-                    <div class="gallery-item-url" title="${originalUrl || '无 URL'}">${originalUrl || '生成失败'}</div>
+                    <div class="gallery-item-url" data-png="${pngUrl}" data-jpg="${jpgUrl}" data-webp="${webpUrl}" title="${pngUrl}">${pngUrl}</div>
                     <div class="gallery-item-time">${item.ctime || ''}</div>
                     <span class="gallery-item-status ${item.status === 'SUCCESS' ? 'success' : 'failure'}">${item.status === 'SUCCESS' ? '成功' : '失败'}</span>
                 </div>
             `;
             
+            // 图片加载成功后更新显示的 URL
+            if (item.status === 'SUCCESS') {
+                const img = itemEl.querySelector('img');
+                if (img) {
+                    img.addEventListener('load', () => {
+                        const urlEl = itemEl.querySelector('.gallery-item-url');
+                        if (urlEl && img.dataset.successUrl) {
+                            urlEl.textContent = img.dataset.successUrl;
+                            urlEl.title = img.dataset.successUrl;
+                        }
+                    });
+                }
+            }
+            
             // 点击复制 URL
-            if (originalUrl) {
+            if (item.status === 'SUCCESS') {
                 itemEl.addEventListener('click', async () => {
                     try {
-                        await navigator.clipboard.writeText(originalUrl);
-                        showToast('已复制 URL，点击打开→', originalUrl);
+                        // 读取实际加载成功的 URL
+                        const img = itemEl.querySelector('img');
+                        const urlToCopy = img?.dataset?.successUrl || pngUrl;
+                        await navigator.clipboard.writeText(urlToCopy);
+                        showToast('已复制 URL，点击打开→', urlToCopy);
                     } catch (e) {
                         showToast('复制失败');
                     }
