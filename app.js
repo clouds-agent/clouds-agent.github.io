@@ -3023,61 +3023,6 @@ async function loadGallery(isFirstLoad = false) {
     }
 }
 
-let toastContainer = null;
-
-function showToast(message, url = null) {
-    // 创建或复用容器
-    if (!toastContainer) {
-        toastContainer = document.createElement('div');
-        toastContainer.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column-reverse;gap:6px;z-index:9999;max-width:calc(100vw - 40px);';
-        document.body.appendChild(toastContainer);
-    }
-    
-    const toast = document.createElement('div');
-    toast.style.cssText = 'background:rgba(0,0,0,0.85);color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.3);animation:toastSlideIn 0.3s ease-out;cursor:' + (url ? 'pointer' : 'default') + ';white-space:nowrap;display:flex;align-items:center;gap:6px;';
-    
-    if (url) {
-        // 有 URL 时，显示可点击的提示，"点击打开→"用蓝色按钮样式
-        const msgParts = message.split('，');
-        toast.innerHTML = `<span style="flex-shrink:0">${msgParts[0]}</span><span style="background:#0071e3;color:#fff;padding:2px 8px;border-radius:4px;font-weight:600;font-size:12px;flex-shrink:0">${msgParts[1] || ''}</span>`;
-        toast.addEventListener('click', () => {
-            window.open(url, '_blank');
-        });
-    } else {
-        toast.textContent = message;
-    }
-    
-    // 添加到容器（flex-direction: column-reverse 会自动把新的放下面）
-    toastContainer.appendChild(toast);
-    
-    // 5 秒后移除
-    setTimeout(() => {
-        toast.style.animation = 'toastSlideOut 0.3s ease-out';
-        setTimeout(() => {
-            toast.remove();
-            // 如果容器空了，清理容器
-            if (toastContainer.children.length === 0) {
-                toastContainer.remove();
-                toastContainer = null;
-            }
-        }, 300);
-    }, 5000);
-}
-
-// 添加动画样式
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes toastSlideIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes toastSlideOut {
-        from { opacity: 1; transform: translateY(0); }
-        to { opacity: 0; transform: translateY(-10px); }
-    }
-`;
-document.head.appendChild(style);
-
 // ============ 初始化 ============
 
 function init() {
