@@ -858,12 +858,32 @@ function copyToken() {
 }
 
 // 显示提示
-function showToast(message) {
-    const div = document.createElement('div');
-    div.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:white;padding:12px 20px;border-radius:8px;z-index:9999;font-size:14px;';
-    div.textContent = message;
-    document.body.appendChild(div);
-    setTimeout(() => div.remove(), 2000);
+let toastContainer = null;
+function showToast(message, url = null) {
+    // 创建或复用容器
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column-reverse;gap:6px;z-index:9999;max-width:calc(100vw - 40px);';
+        document.body.appendChild(toastContainer);
+    }
+    
+    const toast = document.createElement('div');
+    toast.style.cssText = 'background:rgba(0,0,0,0.85);color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.3);animation:toastSlideIn 0.3s ease-out;cursor:' + (url ? 'pointer' : 'default') + ';white-space:nowrap;display:flex;align-items:center;gap:6px;';
+    
+    toast.textContent = message;
+    
+    if (url) {
+        toast.addEventListener('click', () => {
+            window.open(url, '_blank');
+        });
+    }
+    
+    toastContainer.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s';
+        setTimeout(() => toast.remove(), 300);
+    }, 2000);
 }
 
 // 全局函数，供 HTML onclick 调用
@@ -2956,7 +2976,7 @@ async function loadGallery(isFirstLoad = false) {
             `;
             
             // 图片加载成功后更新显示的 URL
-            if (item.status === 'SUCCESS' && pngUrl) {
+            if (item.status === 'SUCCESS') {
                 const img = itemEl.querySelector('img');
                 if (img) {
                     img.addEventListener('load', () => {
@@ -2967,10 +2987,8 @@ async function loadGallery(isFirstLoad = false) {
                         }
                     });
                 }
-            }
-            
-            // 点击复制 URL
-            if (item.status === 'SUCCESS') {
+                
+                // 点击复制 URL
                 itemEl.addEventListener('click', async () => {
                     try {
                         // 读取实际加载成功的 URL
