@@ -2971,6 +2971,9 @@ async function loadGallery(isFirstLoad = false) {
                     <div class="gallery-item-url">${displayUrl}</div>
                     <div class="gallery-item-time">${item.ctime || ''}</div>
                     <span class="gallery-item-status ${item.status === 'SUCCESS' ? 'success' : 'failure'}">${item.status === 'SUCCESS' ? '成功' : '失败'}</span>
+                    <button class="gallery-item-search-btn" onclick="showImageDetail('${item.uuid}')" title="查看详情">
+                        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 3 13.09 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                    </button>
                 </div>
             `;
             
@@ -3117,4 +3120,95 @@ if (document.readyState === 'loading') {
 }
 
 // ============ 图片筛选 & 词条归类 ============
+
+
+// ============ 图片详情弹窗 ============
+
+async function showImageDetail(uuid) {
+    const modal = document.getElementById('image-detail-modal');
+    const modelEl = document.getElementById('detail-model');
+    const seedEl = document.getElementById('detail-seed');
+    const sizeEl = document.getElementById('detail-size');
+    const promptsEl = document.getElementById('detail-prompts');
+    
+    if (!modal || !modelEl || !seedEl || !sizeEl || !promptsEl) {
+        console.error('图片详情弹窗元素不存在');
+        return;
+    }
+    
+    // 显示加载状态
+    modelEl.textContent = '加载中...';
+    seedEl.textContent = '-';
+    sizeEl.textContent = '-';
+    promptsEl.textContent = '';
+    modal.classList.add('show');
+    
+    try {
+        const token = getToken();
+        if (!token) {
+            promptsEl.textContent = '请先登录';
+            return;
+        }
+        
+        // 调用详情 API
+        const res = await fetch(`https://api.talesofai.cn/v1/artifact/artifact-detail?uuids=${uuid}&is_brief_only=false`, {
+            headers: {
+                'x-token': token,
+                'x-platform': 'nieta-app/web'
+            }
+        });
+        
+        const data = await res.json();
+        if (!data || !data[0]) {
+            promptsEl.textContent = '未找到图片详情';
+            return;
+        }
+        
+        const detail = data[0];
+        const input = detail.input || {};
+        
+        // 显示模型
+        modelEl.textContent = input.context_model_series || '未知';
+        
+        // 显示种子
+        seedEl.textContent = input.seed !== undefined ? input.seed : '未知';
+        
+        // 显示尺寸
+        const width = detail.image_detail?.width || input.width || '未知';
+        const height = detail.image_detail?.height || input.height || '未知';
+        sizeEl.textContent = `${width} x ${height}`;
+        
+        // 显示词条
+        const rawPrompt = input.rawPrompt || [];
+        const freetextPrompts = rawPrompt
+            .filter(p => p.type === 'freetext')
+            .map(p => p.value)
+            .filter(v => v);
+        
+        if (freetextPrompts.length === 0) {
+            promptsEl.textContent = '无词条';
+        } else {
+            promptsEl.textContent = freetextPrompts.join('\n');
+        }
+        
+    } catch (e) {
+        console.error('获取图片详情失败:', e);
+        promptsEl.textContent = `获取失败：${e.message}`;
+    }
+}
+
+function closeImageDetail() {
+    const modal = document.getElementById('image-detail-modal');
+    if (modal) {
+        modal.classList.remove('show');
+    }
+}
+
+// 点击弹窗外部关闭
+document.addEventListener('click', (e) => {
+    const modal = document.getElementById('image-detail-modal');
+    if (modal && e.target === modal) {
+        closeImageDetail();
+    }
+});
 
