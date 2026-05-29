@@ -1763,37 +1763,23 @@ input[type="password"]:focus {
     position: absolute;
     bottom: 6px;
     right: 6px;
-    width: 1.5em;
-    height: 1.5em;
-    min-width: 20px;
-    min-height: 20px;
-    max-width: 28px;
-    max-height: 28px;
-    border-radius: 50%;
+    font-size: 12px;
     background: rgba(255, 255, 255, 0.9);
     border: none;
     color: #1d1d1f;
     cursor: pointer;
-    transition: background 0.2s, transform 0.2s, color 0.2s;
+    transition: background 0.2s, color 0.2s;
     z-index: 10;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
+    padding: 4px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
 }
 
 .gallery-item-search-btn:hover {
     background: #fff;
     color: #0071e3;
-    transform: scale(1.1);
 }
 
 .gallery-item-search-btn:active {
-    transform: scale(0.95);
-}
-
-.gallery-item-search-btn svg {
-    width: 60%;
-    height: 60%;
-    fill: currentColor;
+    opacity: 0.8;
 }
