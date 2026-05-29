@@ -149,47 +149,6 @@
                 <div id="gallery-loading" class="gallery-loading" style="display:none">加载中...</div>
                 <button id="load-more-gallery" class="btn btn-secondary" style="display:none">加载更多</button>
             </div>
-            
-            <div class="card">
-                <h3>🔍 图片筛选 & 词条归类</h3>
-                <div class="filter-controls">
-                    <div class="filter-row">
-                        <label class="filter-label">关键词匹配：</label>
-                        <input type="text" id="filter-keywords" class="filter-input" placeholder="输入关键词，用逗号分隔" />
-                        <select id="filter-match-mode" class="filter-select">
-                            <option value="any">包含任一</option>
-                            <option value="all">包含全部</option>
-                        </select>
-                    </div>
-                    <div class="filter-row">
-                        <label class="filter-label">收藏状态：</label>
-                        <select id="filter-starred" class="filter-select">
-                            <option value="all">全部</option>
-                            <option value="true">已收藏</option>
-                            <option value="false">未收藏</option>
-                        </select>
-                        <label class="filter-label" style="margin-left:16px">模型：</label>
-                        <select id="filter-model" class="filter-select">
-                            <option value="all">全部</option>
-                            <option value="3_noobxl">模型三</option>
-                            <option value="9_image_edit_bravo">捏捏</option>
-                            <option value="8_image_edit">旧捏捏</option>
-                        </select>
-                    </div>
-                    <div class="filter-row">
-                        <label class="filter-label">词条归类：</label>
-                        <label class="filter-checkbox-label">
-                            <input type="checkbox" id="filter-group-by-prompt" />
-                            启用 KMP 词条归类
-                        </label>
-                        <span id="group-info" class="group-info" style="display:none"></span>
-                    </div>
-                    <button id="apply-filter" class="btn btn-primary">应用筛选</button>
-                    <button id="clear-filter" class="btn btn-secondary">清除</button>
-                </div>
-                <div id="filter-result" class="filter-result"></div>
-                <div id="filter-groups" class="filter-groups"></div>
-            </div>
         </section>
     </main>
 
@@ -317,6 +276,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260520v85"></script>
+    <script src="app.js?v=20260520v86"></script>
 </body>
 </html>
