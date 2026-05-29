@@ -2975,8 +2975,8 @@ async function loadGallery(isFirstLoad = false) {
                 </div>
             `;
             
-            // 图片加载逻辑：尝试 png→jpg→webp
-            if (item.status === 'SUCCESS') {
+            // 图片加载逻辑：尝试 png→jpg→webp（仅图片模式）
+            if (item.status === 'SUCCESS' && modality === 'PICTURE') {
                 const img = itemEl.querySelector('img');
                 const urlEl = itemEl.querySelector('.gallery-item-url');
                 let currentUrl = pngUrl;
@@ -2994,24 +2994,26 @@ async function loadGallery(isFirstLoad = false) {
                 updateUrl(pngUrl);
                 
                 // 加载成功
-                img.addEventListener('load', () => {
-                    updateUrl(currentUrl);
-                });
-                
-                // 加载失败，尝试下一个格式
-                img.addEventListener('error', function() {
-                    if (currentUrl === pngUrl) {
-                        this.src = jpgUrl;
-                        updateUrl(jpgUrl);
-                    } else if (currentUrl === jpgUrl) {
-                        this.src = webpUrl;
-                        updateUrl(webpUrl);
-                    } else {
-                        // 所有格式都失败
-                        this.style.display = 'none';
-                        this.nextElementSibling.style.display = 'flex';
-                    }
-                });
+                if (img) {
+                    img.addEventListener('load', () => {
+                        updateUrl(currentUrl);
+                    });
+                    
+                    // 加载失败，尝试下一个格式
+                    img.addEventListener('error', function() {
+                        if (currentUrl === pngUrl) {
+                            this.src = jpgUrl;
+                            updateUrl(jpgUrl);
+                        } else if (currentUrl === jpgUrl) {
+                            this.src = webpUrl;
+                            updateUrl(webpUrl);
+                        } else {
+                            // 所有格式都失败
+                            this.style.display = 'none';
+                            this.nextElementSibling.style.display = 'flex';
+                        }
+                    });
+                }
             }
             
             // 点击复制 URL（无论成功失败都可以复制），但搜索按钮除外
@@ -3176,17 +3178,17 @@ async function showImageDetail(uuid, event) {
         const detail = data[0];
         const input = detail.input || {};
         
-        // 显示模型（从 meta.entrance 推断）
-        const entrance = input.meta?.entrance || '';
+        // 显示模型（从 context_model_series 推断）
+        const modelSeries = input.context_model_series || '';
         let modelText = '未知';
-        if (entrance.includes('BRAVO')) {
-            modelText = '捏捏';
-        } else if (entrance.includes('NOOB')) {
-            modelText = '模型三';
-        } else if (entrance.includes('PURE')) {
-            modelText = 'PURE';
-        } else {
-            modelText = entrance || '未知';
+        if (modelSeries === '9_image_edit_bravo') {
+            modelText = '捏捏 9_image_edit_bravo';
+        } else if (modelSeries === '8_image_edit') {
+            modelText = '旧捏捏 8_image_edit';
+        } else if (modelSeries === '3_noobxl') {
+            modelText = '模型三 3_noobxl';
+        } else if (modelSeries) {
+            modelText = modelSeries;
         }
         modelEl.textContent = modelText;
         

@@ -1763,16 +1763,17 @@ input[type="password"]:focus {
     position: absolute;
     bottom: 6px;
     right: 6px;
-    font-size: 12px;
+    font-size: 11px;
     background: #fff;
     border: 1px solid #d2d2d7;
     color: #1d1d1f;
     cursor: pointer;
     transition: background 0.2s, border-color 0.2s;
     z-index: 10;
-    padding: 4px 10px;
+    padding: 3px 8px;
     border-radius: 6px;
     white-space: nowrap;
+    line-height: 1.2;
 }
 
 .gallery-item-search-btn:hover {
