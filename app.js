@@ -3136,16 +3136,18 @@ async function showImageDetail(uuid, event) {
     }
     
     const modal = document.getElementById('image-detail-modal');
+    const modelEl = document.getElementById('detail-model');
     const seedEl = document.getElementById('detail-seed');
     const promptsEl = document.getElementById('detail-prompts');
     
-    if (!modal || !seedEl || !promptsEl) {
+    if (!modal || !modelEl || !seedEl || !promptsEl) {
         console.error('图片详情弹窗元素不存在');
         return;
     }
     
     // 显示加载状态
-    seedEl.textContent = '加载中...';
+    modelEl.textContent = '加载中...';
+    seedEl.textContent = '-';
     promptsEl.textContent = '';
     currentPromptsText = '';
     modal.classList.add('show');
@@ -3173,6 +3175,20 @@ async function showImageDetail(uuid, event) {
         
         const detail = data[0];
         const input = detail.input || {};
+        
+        // 显示模型（从 meta.entrance 推断）
+        const entrance = input.meta?.entrance || '';
+        let modelText = '未知';
+        if (entrance.includes('BRAVO')) {
+            modelText = '捏捏';
+        } else if (entrance.includes('NOOB')) {
+            modelText = '模型三';
+        } else if (entrance.includes('PURE')) {
+            modelText = 'PURE';
+        } else {
+            modelText = entrance || '未知';
+        }
+        modelEl.textContent = modelText;
         
         // 显示种子
         seedEl.textContent = input.seed !== undefined ? input.seed : '未知';
