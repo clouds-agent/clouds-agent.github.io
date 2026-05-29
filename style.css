@@ -821,6 +821,7 @@ input[type="password"]:focus {
 
 .gallery-item-info {
     padding: 0.5rem;
+    position: relative;
 }
 
 .gallery-item-url {
@@ -832,6 +833,7 @@ input[type="password"]:focus {
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+    padding-right: 36px;
 }
 
 .gallery-item-time {
@@ -846,6 +848,82 @@ input[type="password"]:focus {
     border-radius: 4px;
     display: inline-block;
     margin-top: 0.25rem;
+}
+
+/* 图片详情弹窗 */
+.image-detail-modal {
+    max-width: 500px;
+}
+
+.image-detail-body {
+    padding: 1.5rem;
+}
+
+.detail-prompts-row {
+    margin-top: 16px;
+}
+
+.detail-prompts-label {
+    font-size: 14px;
+    color: #86868b;
+    font-weight: 500;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.detail-prompts-box {
+    background: #f5f5f7;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    padding: 12px;
+    height: 150px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    font-size: 13px;
+    color: #1d1d1f;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* 图库搜索按钮 */
+.gallery-item-search-btn {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.7);
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s, background 0.2s, transform 0.2s;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.gallery-item:hover .gallery-item-search-btn {
+    opacity: 1;
+}
+
+.gallery-item-search-btn:hover {
+    background: rgba(0, 113, 227, 0.95);
+    transform: scale(1.1);
+}
+
+.gallery-item-search-btn:active {
+    transform: scale(0.95);
+}
+
+.gallery-item-search-btn svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
 }
 
 .gallery-item-status.success {
@@ -1620,117 +1698,3 @@ input[type="password"]:focus {
 }
 
 @media (max-width: 768px) {
-    .stats-tabs {
-        flex-wrap: wrap;
-    }
-    
-    .stats-tab {
-        flex: 1;
-        min-width: 80px;
-        text-align: center;
-    }
-    
-    .stats-controls {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .stats-select {
-        width: 100%;
-    }
-    
-    .stats-summary {
-        grid-template-columns: 1fr;
-    }
-    
-    .chart-wrapper {
-        padding: 0.5rem;
-        height: 350px;
-    }
-    
-    #stats-chart {
-        min-width: 400px;
-    }
-}
-
-
-/* 图片详情弹窗 */
-.image-detail-modal {
-    max-width: 500px;
-}
-
-.image-detail-body {
-    padding: 1.5rem;
-}
-
-.detail-row {
-    margin-bottom: 12px;
-}
-
-.detail-label {
-    font-size: 14px;
-    color: #86868b;
-    font-weight: 500;
-    display: block;
-    margin-bottom: 4px;
-}
-
-.detail-value {
-    font-size: 14px;
-    color: #1d1d1f;
-    background: #f5f5f7;
-    padding: 6px 10px;
-    border-radius: 6px;
-    display: inline-block;
-}
-
-.detail-prompts-box {
-    background: #f5f5f7;
-    border: 1px solid #e5e5e5;
-    border-radius: 8px;
-    padding: 12px;
-    max-height: 150px;
-    overflow-y: auto;
-    overflow-x: hidden;
-    font-size: 13px;
-    color: #1d1d1f;
-    line-height: 1.6;
-    white-space: pre-wrap;
-    word-break: break-word;
-}
-
-/* 图库搜索按钮 */
-.gallery-item-search-btn {
-    position: absolute;
-    bottom: 6px;
-    right: 6px;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: rgba(0, 0, 0, 0.6);
-    border: 2px solid rgba(255, 255, 255, 0.8);
-    color: #fff;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    opacity: 0;
-    transition: opacity 0.2s, background 0.2s;
-    z-index: 2;
-}
-
-.gallery-item:hover .gallery-item-search-btn {
-    opacity: 1;
-}
-
-.gallery-item-search-btn:hover {
-    background: rgba(0, 113, 227, 0.9);
-    border-color: #fff;
-}
-
-.gallery-item-search-btn svg {
-    width: 14px;
-    height: 14px;
-    fill: currentColor;
-}

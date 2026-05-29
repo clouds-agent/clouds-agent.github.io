@@ -3016,8 +3016,13 @@ async function loadGallery(isFirstLoad = false) {
                 });
             }
             
-            // 点击复制 URL（无论成功失败都可以复制）
-            itemEl.addEventListener('click', async () => {
+            // 点击复制 URL（无论成功失败都可以复制），但搜索按钮除外
+            itemEl.addEventListener('click', async (e) => {
+                // 如果点击的是搜索按钮，不复制 URL
+                if (e.target.closest('.gallery-item-search-btn')) {
+                    return;
+                }
+                
                 try {
                     const urlEl = itemEl.querySelector('.gallery-item-url');
                     const urlToCopy = urlEl?.textContent || displayUrl;
@@ -3124,23 +3129,22 @@ if (document.readyState === 'loading') {
 
 // ============ 图片详情弹窗 ============
 
-async function showImageDetail(uuid) {
+async function showImageDetail(uuid, event) {
+    // 阻止事件冒泡，避免触发 URL 复制
+    if (event) {
+        event.stopPropagation();
+    }
+    
     const modal = document.getElementById('image-detail-modal');
-    const modelEl = document.getElementById('detail-model');
-    const seedEl = document.getElementById('detail-seed');
-    const sizeEl = document.getElementById('detail-size');
     const promptsEl = document.getElementById('detail-prompts');
     
-    if (!modal || !modelEl || !seedEl || !sizeEl || !promptsEl) {
+    if (!modal || !promptsEl) {
         console.error('图片详情弹窗元素不存在');
         return;
     }
     
     // 显示加载状态
-    modelEl.textContent = '加载中...';
-    seedEl.textContent = '-';
-    sizeEl.textContent = '-';
-    promptsEl.textContent = '';
+    promptsEl.textContent = '加载中...';
     modal.classList.add('show');
     
     try {
@@ -3166,17 +3170,6 @@ async function showImageDetail(uuid) {
         
         const detail = data[0];
         const input = detail.input || {};
-        
-        // 显示模型
-        modelEl.textContent = input.context_model_series || '未知';
-        
-        // 显示种子
-        seedEl.textContent = input.seed !== undefined ? input.seed : '未知';
-        
-        // 显示尺寸
-        const width = detail.image_detail?.width || input.width || '未知';
-        const height = detail.image_detail?.height || input.height || '未知';
-        sizeEl.textContent = `${width} x ${height}`;
         
         // 显示词条
         const rawPrompt = input.rawPrompt || [];
