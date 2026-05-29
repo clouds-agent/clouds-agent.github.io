@@ -1770,11 +1770,11 @@ input[type="password"]:focus {
     max-width: 28px;
     max-height: 28px;
     border-radius: 50%;
-    background: transparent;
+    background: rgba(255, 255, 255, 0.9);
     border: none;
-    color: #fff;
+    color: #1d1d1f;
     cursor: pointer;
-    transition: background 0.2s, transform 0.2s;
+    transition: background 0.2s, transform 0.2s, color 0.2s;
     z-index: 10;
     display: flex;
     align-items: center;
@@ -1783,7 +1783,8 @@ input[type="password"]:focus {
 }
 
 .gallery-item-search-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: #fff;
+    color: #0071e3;
     transform: scale(1.1);
 }
 
