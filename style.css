@@ -894,11 +894,11 @@ input[type="password"]:focus {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: rgba(0, 113, 227, 0.8);
+    background: rgba(0, 0, 0, 0.7);
     border: none;
     color: #fff;
     cursor: pointer;
-    opacity: 0.9;
+    opacity: 1;
     transition: background 0.2s, transform 0.2s;
     z-index: 10;
     display: flex;
@@ -908,7 +908,7 @@ input[type="password"]:focus {
 }
 
 .gallery-item-search-btn:hover {
-    background: rgba(0, 113, 227, 1);
+    background: rgba(0, 0, 0, 0.95);
     transform: scale(1.1);
 }
 
@@ -1711,4 +1711,35 @@ input[type="password"]:focus {
     padding: 4px 8px;
     border-radius: 4px;
     margin-left: 4px;
+}
+
+.btn-copy-prompts {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin-left: 8px;
+    background: rgba(0, 113, 227, 0.8);
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+    vertical-align: middle;
+}
+
+.btn-copy-prompts:hover {
+    background: rgba(0, 113, 227, 1);
+    transform: scale(1.05);
+}
+
+.btn-copy-prompts:active {
+    transform: scale(0.95);
+}
+
+.btn-copy-prompts svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
 }

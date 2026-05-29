@@ -3129,6 +3129,8 @@ if (document.readyState === 'loading') {
 
 // ============ 图片详情弹窗 ============
 
+let currentPromptsText = '';
+
 async function showImageDetail(uuid, event) {
     // 阻止事件冒泡，避免触发 URL 复制
     if (event) {
@@ -3136,19 +3138,18 @@ async function showImageDetail(uuid, event) {
     }
     
     const modal = document.getElementById('image-detail-modal');
-    const modelEl = document.getElementById('detail-model');
     const seedEl = document.getElementById('detail-seed');
     const promptsEl = document.getElementById('detail-prompts');
     
-    if (!modal || !modelEl || !seedEl || !promptsEl) {
+    if (!modal || !seedEl || !promptsEl) {
         console.error('图片详情弹窗元素不存在');
         return;
     }
     
     // 显示加载状态
-    modelEl.textContent = '加载中...';
-    seedEl.textContent = '-';
+    seedEl.textContent = '加载中...';
     promptsEl.textContent = '';
+    currentPromptsText = '';
     modal.classList.add('show');
     
     try {
@@ -3175,13 +3176,10 @@ async function showImageDetail(uuid, event) {
         const detail = data[0];
         const input = detail.input || {};
         
-        // 显示模型
-        modelEl.textContent = input.context_model_series || '未知';
-        
         // 显示种子
         seedEl.textContent = input.seed !== undefined ? input.seed : '未知';
         
-        // 显示词条
+        // 显示词条（用中文逗号隔开）
         const rawPrompt = input.rawPrompt || [];
         const freetextPrompts = rawPrompt
             .filter(p => p.type === 'freetext')
@@ -3190,14 +3188,29 @@ async function showImageDetail(uuid, event) {
         
         if (freetextPrompts.length === 0) {
             promptsEl.textContent = '无词条';
+            currentPromptsText = '无词条';
         } else {
-            promptsEl.textContent = freetextPrompts.join('\n');
+            currentPromptsText = freetextPrompts.join('，');
+            promptsEl.textContent = currentPromptsText;
         }
         
     } catch (e) {
         console.error('获取图片详情失败:', e);
         promptsEl.textContent = `获取失败：${e.message}`;
     }
+}
+
+function copyPrompts() {
+    if (!currentPromptsText) {
+        showToast('暂无可复制的词条');
+        return;
+    }
+    
+    navigator.clipboard.writeText(currentPromptsText).then(() => {
+        showToast('已复制词条');
+    }).catch(() => {
+        showToast('复制失败');
+    });
 }
 
 function closeImageDetail() {

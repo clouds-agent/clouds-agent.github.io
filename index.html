@@ -161,13 +161,14 @@
             </div>
             <div class="image-detail-body">
                 <div class="detail-info-row">
-                    <span class="detail-info-label">模型：</span>
-                    <span id="detail-model" class="detail-info-value">-</span>
-                    <span class="detail-info-label" style="margin-left: 16px;">种子：</span>
+                    <span class="detail-info-label">种子：</span>
                     <span id="detail-seed" class="detail-info-value">-</span>
                 </div>
                 <div class="detail-prompts-row">
                     <span class="detail-prompts-label">词条</span>
+                    <button id="copy-prompts-btn" class="btn-copy-prompts" onclick="copyPrompts()" title="复制词条">
+                        <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                    </button>
                     <div class="detail-prompts-box" id="detail-prompts"></div>
                 </div>
             </div>
@@ -298,6 +299,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260520v89"></script>
+    <script src="app.js?v=20260520v90"></script>
 </body>
 </html>
