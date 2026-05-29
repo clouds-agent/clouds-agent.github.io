@@ -2971,7 +2971,7 @@ async function loadGallery(isFirstLoad = false) {
                     <div class="gallery-item-url">${displayUrl}</div>
                     <div class="gallery-item-time">${item.ctime || ''}</div>
                     <span class="gallery-item-status ${item.status === 'SUCCESS' ? 'success' : 'failure'}">${item.status === 'SUCCESS' ? '成功' : '失败'}</span>
-                    <button class="gallery-item-search-btn" onclick="showImageDetail('${item.uuid}', event)" title="查看详情">▸ 详情</button>
+                    <button class="gallery-item-search-btn" onclick="showImageDetail('${item.uuid}', event)" title="查看详情">详情</button>
                 </div>
             `;
             
