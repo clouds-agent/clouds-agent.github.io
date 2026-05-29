@@ -3179,11 +3179,20 @@ async function showImageDetail(uuid, event) {
         // 显示种子
         seedEl.textContent = input.seed !== undefined ? input.seed : '未知';
         
-        // 显示词条（用中文逗号隔开）
+        // 显示词条（用中文逗号隔开，带权重）
         const rawPrompt = input.rawPrompt || [];
         const freetextPrompts = rawPrompt
             .filter(p => p.type === 'freetext')
-            .map(p => p.value)
+            .map(p => {
+                const value = p.value || '';
+                const weight = p.weight;
+                // 权重不为 1 时显示权重
+                if (weight !== undefined && weight !== 1 && weight !== 1.0) {
+                    const weightStr = parseFloat(weight.toFixed(1));
+                    return `(${value}:${weightStr})`;
+                }
+                return value;
+            })
             .filter(v => v);
         
         if (freetextPrompts.length === 0) {
