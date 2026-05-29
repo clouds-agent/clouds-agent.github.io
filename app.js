@@ -2971,8 +2971,8 @@ async function loadGallery(isFirstLoad = false) {
                     <div class="gallery-item-url">${displayUrl}</div>
                     <div class="gallery-item-time">${item.ctime || ''}</div>
                     <span class="gallery-item-status ${item.status === 'SUCCESS' ? 'success' : 'failure'}">${item.status === 'SUCCESS' ? '成功' : '失败'}</span>
-                    <button class="gallery-item-search-btn" onclick="showImageDetail('${item.uuid}')" title="查看详情">
-                        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 3 13.09 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                    <button class="gallery-item-search-btn" onclick="showImageDetail('${item.uuid}', event)" title="查看详情">
+                        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 3 13.09 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/><path d="M12 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
                     </button>
                 </div>
             `;
@@ -3136,15 +3136,19 @@ async function showImageDetail(uuid, event) {
     }
     
     const modal = document.getElementById('image-detail-modal');
+    const modelEl = document.getElementById('detail-model');
+    const seedEl = document.getElementById('detail-seed');
     const promptsEl = document.getElementById('detail-prompts');
     
-    if (!modal || !promptsEl) {
+    if (!modal || !modelEl || !seedEl || !promptsEl) {
         console.error('图片详情弹窗元素不存在');
         return;
     }
     
     // 显示加载状态
-    promptsEl.textContent = '加载中...';
+    modelEl.textContent = '加载中...';
+    seedEl.textContent = '-';
+    promptsEl.textContent = '';
     modal.classList.add('show');
     
     try {
@@ -3170,6 +3174,12 @@ async function showImageDetail(uuid, event) {
         
         const detail = data[0];
         const input = detail.input || {};
+        
+        // 显示模型
+        modelEl.textContent = input.context_model_series || '未知';
+        
+        // 显示种子
+        seedEl.textContent = input.seed !== undefined ? input.seed : '未知';
         
         // 显示词条
         const rawPrompt = input.rawPrompt || [];
