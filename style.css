@@ -1693,8 +1693,8 @@ input[type="password"]:focus {
     height: 100%;
 }
 
-@media (max-width: 768px) {
 
+/* 图片详情弹窗 */
 .detail-info-row {
     margin-bottom: 12px;
     font-size: 14px;
@@ -1717,6 +1717,7 @@ input[type="password"]:focus {
     display: flex;
     align-items: center;
     gap: 8px;
+    margin-top: 12px;
 }
 
 .detail-prompts-label {
@@ -1754,5 +1755,44 @@ input[type="password"]:focus {
 .btn-copy-prompts svg {
     width: 14px;
     height: 14px;
+    fill: currentColor;
+}
+
+/* 图库搜索按钮 */
+.gallery-item-search-btn {
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    width: 1.5em;
+    height: 1.5em;
+    min-width: 20px;
+    min-height: 20px;
+    max-width: 28px;
+    max-height: 28px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.gallery-item-search-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+.gallery-item-search-btn:active {
+    transform: scale(0.95);
+}
+
+.gallery-item-search-btn svg {
+    width: 60%;
+    height: 60%;
     fill: currentColor;
 }
