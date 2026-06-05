@@ -77,7 +77,6 @@ body {
     position: sticky;
     top: 0;
     z-index: 100;
-    position: relative;
 }
 
 .nav-link {
@@ -104,12 +103,13 @@ body {
 /* Kards 按钮 - 定位到最右边 */
 #kards-btn {
     position: absolute;
-    right: 1.5rem;
+    right: 0;
     top: 50%;
     transform: translateY(-50%);
     width: 28px;
     height: 28px;
     padding: 0;
+    margin-right: 1.5rem;
     background-image: url('images/kards-icon.png');
     background-repeat: no-repeat;
     background-position: center center;
