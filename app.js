@@ -3254,7 +3254,7 @@ async function showImageDetail(uuid, event) {
                 if (p.type === 'oc_vtoken_adaptor') {
                     // 角色引用：@角色名
                     text = `@${p.name || ''}`;
-                } else if (p.type === 'elementum_vtoken_adaptor') {
+                } else if (p.type === 'elementum') {
                     // 元素引用：/元素名
                     text = `/${p.name || ''}`;
                 } else if (p.type === 'freetext') {
