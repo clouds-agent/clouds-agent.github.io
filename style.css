@@ -99,6 +99,27 @@ body {
     outline: none;
 }
 
+/* Kards 按钮 */
+.kards-btn {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background-image: url('images/kards-icon.png');
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: contain;
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.2s;
+}
+
+.kards-btn.loaded {
+    opacity: 1;
+}
+
+.kards-btn:hover {
+    transform: scale(1.1);
+}
+
 /* 导航栏加载状态 */
 .nav-link.loading {
     color: #007aff;
@@ -1797,3 +1818,30 @@ input[type="password"]:focus {
 
 
 
+
+/* Kards 弹窗样式 */
+.modal-simple .modal-body {
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.modal-desc {
+    color: #86868b;
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+}
+
+.kards-modal-link {
+    display: inline-block;
+    padding: 1rem 1.5rem;
+    background: #f5f5f7;
+    border-radius: 8px;
+    color: #0071e3;
+    text-decoration: none;
+    font-size: 1rem;
+    transition: background 0.2s;
+}
+
+.kards-modal-link:hover {
+    background: #e8e8ed;
+}

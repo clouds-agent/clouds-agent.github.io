@@ -364,6 +364,12 @@ function closeUserConfirmModal() {
     currentUserConfirm = null;
 }
 
+// Kards 弹窗
+function closeKardsModal() {
+    const modal = document.getElementById('kards-modal');
+    if (modal) modal.classList.remove('show');
+}
+
 function initUserConfirm() {
     const addBtn = document.getElementById('confirm-add-user');
     if (addBtn) {
@@ -644,6 +650,44 @@ function setupNavigation() {
             }
         });
     });
+    
+    // Kards 按钮双击
+    const kardsBtn = document.getElementById('kards-btn');
+    if (kardsBtn) {
+        let kardsClickTimeout = null;
+        let kardsLastClickTime = 0;
+        
+        // 加载图标
+        const iconImg = new Image();
+        iconImg.src = 'images/kards-icon.png';
+        iconImg.onload = function() {
+            kardsBtn.classList.add('loaded');
+        };
+        iconImg.onerror = function() {
+            kardsBtn.style.display = 'none';
+        };
+        
+        kardsBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const now = Date.now();
+            
+            if (now - kardsLastClickTime < 300) {
+                if (kardsClickTimeout) {
+                    clearTimeout(kardsClickTimeout);
+                    kardsClickTimeout = null;
+                }
+                // 双击，打开弹窗
+                const modal = document.getElementById('kards-modal');
+                if (modal) modal.classList.add('show');
+            } else {
+                kardsClickTimeout = setTimeout(() => {
+                    kardsClickTimeout = null;
+                }, 300);
+            }
+            
+            kardsLastClickTime = now;
+        });
+    }
 }
 
 // ============ 登录/登出 ============

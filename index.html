@@ -19,6 +19,7 @@
     <nav class="navbar">
         <button class="nav-link active" data-page="like">点赞</button>
         <button class="nav-link" data-page="tools">工具</button>
+        <button class="nav-link kards-btn" id="kards-btn" title="双击打开 Kards 工具"></button>
     </nav>
 
     <main class="container">
@@ -276,6 +277,22 @@
         </div>
     </div>
 
+    <!-- Kards 工具弹窗 -->
+    <div id="kards-modal" class="modal">
+        <div class="modal-content modal-simple">
+            <div class="modal-header">
+                <h3>Kards DIY 工具</h3>
+                <button class="modal-close" onclick="closeKardsModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-desc">点击下方链接访问 Kards 卡牌 DIY 制作器</p>
+                <a href="https://ohminecraftlauncher.github.io/DIY/" target="_blank" class="modal-link">
+                    🎴 https://ohminecraftlauncher.github.io/DIY/
+                </a>
+            </div>
+        </div>
+    </div>
+
     <!-- Token 登录悬浮窗 -->
     <div id="login-modal" class="modal show">
         <div class="modal-content modal-login">
@@ -305,6 +322,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260520v106"></script>
+    <script src="app.js?v=20260520v107"></script>
 </body>
 </html>
