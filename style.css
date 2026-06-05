@@ -1816,10 +1816,29 @@ input[type="password"]:focus {
     position: relative;
 }
 
-/* Kards 页面容器 - 直接使用原网站样式 */
-#kards-wrapper {
-    padding: 2rem 0;
-    background: transparent;
+/* Kards 页面 - 独立容器，防止溢出 */
+.kards-section {
+    position: relative;
+    min-height: 800px;
+    overflow: hidden;
+}
+
+#kards-standalone {
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+    margin: 80px auto 0;
+    background: #1a1a1a;
+    overflow: hidden;
+}
+
+/* 确保 #main 在容器内正确定位 */
+#kards-standalone #main {
+    position: relative !important;
+    top: 0 !important;
+    left: 0 !important;
+    transform: none !important;
+    margin: 0 auto;
 }
 
 /* 响应式 */
@@ -1828,5 +1847,10 @@ input[type="password"]:focus {
         width: 28px;
         height: 28px;
         right: 1rem;
+    }
+    
+    #kards-standalone {
+        max-width: 100%;
+        margin: 60px auto 0;
     }
 }
