@@ -35,6 +35,12 @@ const attack = document.getElementById("attack");
 const defense = document.getElementById("defense");
 const EditButton = document.getElementById("EditButton");
 
+// 移除卡牌上的点击事件（改为下方按钮控制）
+type_board.style.pointerEvents = "none";
+rarity.style.pointerEvents = "none";
+set.style.pointerEvents = "none";
+faction.style.pointerEvents = "none";
+
 function onTypeClick()
 {
 	cur_type++;

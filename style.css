@@ -1816,29 +1816,99 @@ input[type="password"]:focus {
     position: relative;
 }
 
-/* Kards 页面 - 独立容器，防止溢出 */
+/* Kards 页面容器 */
 .kards-section {
     position: relative;
-    min-height: 800px;
-    overflow: hidden;
+    padding: 20px 0;
+    overflow-x: hidden;
 }
 
-#kards-standalone {
+.kards-container {
     position: relative;
     width: 100%;
-    max-width: 600px;
-    margin: 80px auto 0;
+    max-width: 550px;
+    margin: 0 auto;
     background: #1a1a1a;
-    overflow: hidden;
+    border-radius: 12px;
+    overflow: visible;
 }
 
-/* 确保 #main 在容器内正确定位 */
-#kards-standalone #main {
-    position: relative !important;
-    top: 0 !important;
-    left: 0 !important;
-    transform: none !important;
-    margin: 0 auto;
+/* #main 保持原网站的 absolute 定位 */
+.kards-container #main {
+    position: relative;
+    width: 500px;
+    height: 702px;
+    margin: 20px auto;
+}
+
+/* 移除 hover 绿色边框效果 */
+.kards-container #type:hover,
+.kards-container #rarity:hover,
+.kards-container #set:hover,
+.kards-container #faction-container:hover,
+.kards-container #b-text:hover,
+.kards-container #title:hover,
+.kards-container #kredit:hover,
+.kards-container #opredit:hover,
+.kards-container #attack:hover,
+.kards-container #defense:hover {
+    border: none !important;
+}
+
+.kards-container .type-board-unit:hover,
+.kards-container .type-board-order:hover {
+    border: none !important;
+}
+
+/* 控制按钮区域 */
+.kards-controls {
+    padding: 0 20px 20px;
+    text-align: center;
+}
+
+.control-row {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.control-btn {
+    padding: 8px 16px;
+    background: #4a4d46;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.3s;
+}
+
+.control-btn:hover {
+    background: #3a3d36;
+}
+
+.control-btn.save-btn {
+    background: #4CAF50;
+}
+
+.control-btn.save-btn:hover {
+    background: #228700;
+}
+
+#temporary-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    padding: 1rem 2rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    z-index: 1000;
+    display: none;
 }
 
 /* 响应式 */
@@ -1849,8 +1919,23 @@ input[type="password"]:focus {
         right: 1rem;
     }
     
-    #kards-standalone {
+    .kards-container {
         max-width: 100%;
-        margin: 60px auto 0;
+    }
+    
+    .kards-container #main {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 500 / 702;
+    }
+    
+    .control-row {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .control-btn {
+        width: 100%;
+        max-width: 200px;
     }
 }
