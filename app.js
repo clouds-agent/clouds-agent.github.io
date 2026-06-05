@@ -3252,24 +3252,26 @@ async function showImageDetail(uuid, event) {
                 
                 // 根据类型格式化
                 if (p.type === 'oc_vtoken_adaptor') {
-                    // 角色引用：@角色名
+                    // 角色引用：@角色名（不加括号）
                     text = `@${p.name || ''}`;
                 } else if (p.type === 'elementum') {
-                    // 元素引用：/元素名
+                    // 元素引用：/元素名（不加括号）
                     text = `/${p.name || ''}`;
                 } else if (p.type === 'freetext') {
                     // 自由文本
                     text = p.value || '';
+                    // 权重不为 1 时显示权重（加括号）
+                    if (weight !== undefined && weight !== 1 && weight !== 1.0) {
+                        const weightStr = parseFloat(weight.toFixed(1));
+                        return `(${text}:${weightStr})`;
+                    }
+                    return text;
                 } else {
                     // 其他类型跳过
                     return null;
                 }
                 
-                // 权重不为 1 时显示权重
-                if (weight !== undefined && weight !== 1 && weight !== 1.0) {
-                    const weightStr = parseFloat(weight.toFixed(1));
-                    return `(${text}:${weightStr})`;
-                }
+                // 角色和元素不显示权重（直接返回）
                 return text;
             })
             .filter(v => v);
