@@ -57,43 +57,47 @@ function updateNavbarLoading(page, isLoading) {
     }
 }
 
-// 监听页面切换
-function handleHashChange() {
-    const hash = window.location.hash;
+// 页面切换
+function switchPage(pageName) {
+    // 移除所有 active 类
+    document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(section => section.classList.remove('active'));
     
-    // 阻止自动滚动到顶部
-    window.scrollTo(0, 0);
+    // 添加 active 到当前页面
+    const activeLink = document.querySelector(`.nav-link[data-page="${pageName}"]`);
+    const activeSection = document.getElementById(pageName);
     
-    // 切换到点赞页，移除所有加载状态（因为能看到进度）
-    if (hash === '#like') {
+    if (activeLink) activeLink.classList.add('active');
+    if (activeSection) activeSection.classList.add('active');
+    
+    currentActivePage = pageName;
+    
+    // 切换到点赞页，移除所有加载状态
+    if (pageName === 'like') {
         updateNavbarLoading('like', false);
         updateNavbarLoading('tools', false);
     }
-    // 切换到工具页，移除工具页加载状态
-    else if (hash === '#tools') {
+    // 切换到工具页
+    else if (pageName === 'tools') {
         updateNavbarLoading('tools', false);
-        // 点赞页在运行，显示点赞页加载状态
         if (isRunning) {
             updateNavbarLoading('like', true);
         }
     }
 }
 
-// 监听 hash 变化
-window.addEventListener('hashchange', handleHashChange);
-
-// 阻止锚点链接的默认滚动行为
-document.addEventListener('click', function(e) {
-    const target = e.target.closest('a[href^="#"]');
-    if (target) {
-        e.preventDefault();
-        const hash = target.getAttribute('href');
-        if (hash && hash !== '#') {
-            history.pushState(null, '', hash);
-            handleHashChange();
-        }
-    }
-});
+// 初始化导航点击事件
+function setupNavigation() {
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const pageName = this.getAttribute('data-page');
+            if (pageName) {
+                switchPage(pageName);
+            }
+        });
+    });
+}
 
 // 图库相关状态
 let galleryPageIndex = 0;
@@ -634,19 +638,10 @@ function setupNavigation() {
     document.querySelectorAll('.nav-link').forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
-            const target = e.target.getAttribute('href').substring(1);
-            
-            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-            e.target.classList.add('active');
-            
-            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-            document.getElementById(target).classList.add('active');
-            
-            // 手动设置 hash
-            window.location.hash = target;
-            
-            // 更新加载状态
-            handleHashChange();
+            const pageName = link.getAttribute('data-page');
+            if (pageName) {
+                switchPage(pageName);
+            }
         });
     });
 }
