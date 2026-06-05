@@ -71,6 +71,7 @@ body {
     background: #fff;
     padding: 0.75rem 1.5rem;
     display: flex;
+    align-items: center;
     gap: 1.5rem;
     border-bottom: 1px solid #e5e5e5;
     position: sticky;
@@ -100,7 +101,8 @@ body {
 }
 
 /* Kards 按钮 */
-.kards-btn {
+#kards-btn {
+    display: block;
     width: 28px;
     height: 28px;
     padding: 0;
@@ -110,6 +112,8 @@ body {
     background-size: contain;
     opacity: 0;
     transition: opacity 0.3s, transform 0.2s;
+    border: none;
+    cursor: pointer;
 }
 
 .kards-btn.loaded {
@@ -118,6 +122,10 @@ body {
 
 .kards-btn:hover {
     transform: scale(1.1);
+}
+
+.kards-btn:focus {
+    outline: none;
 }
 
 /* 导航栏加载状态 */
