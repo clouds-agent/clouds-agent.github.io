@@ -3264,6 +3264,17 @@ function initKardsTab() {
     const kardsTab = document.getElementById('kards-tab');
     if (!kardsTab) return;
     
+    // 加载图标，成功后显示
+    const iconImg = new Image();
+    iconImg.src = 'images/kards-icon.png';
+    iconImg.onload = function() {
+        kardsTab.classList.add('loaded');
+    };
+    iconImg.onerror = function() {
+        // 加载失败，保持隐藏
+        kardsTab.style.display = 'none';
+    };
+    
     kardsTab.addEventListener('click', function(e) {
         e.preventDefault();
         const now = Date.now();
