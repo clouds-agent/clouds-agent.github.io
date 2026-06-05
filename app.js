@@ -364,12 +364,6 @@ function closeUserConfirmModal() {
     currentUserConfirm = null;
 }
 
-// Kards 弹窗
-function closeKardsModal() {
-    const modal = document.getElementById('kards-modal');
-    if (modal) modal.classList.remove('show');
-}
-
 function initUserConfirm() {
     const addBtn = document.getElementById('confirm-add-user');
     if (addBtn) {
@@ -676,9 +670,8 @@ function setupNavigation() {
                     clearTimeout(kardsClickTimeout);
                     kardsClickTimeout = null;
                 }
-                // 双击，打开弹窗
-                const modal = document.getElementById('kards-modal');
-                if (modal) modal.classList.add('show');
+                // 双击，切换到 Kards 页面
+                switchPage('kards');
             } else {
                 kardsClickTimeout = setTimeout(() => {
                     kardsClickTimeout = null;

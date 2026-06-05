@@ -77,6 +77,7 @@ body {
     position: sticky;
     top: 0;
     z-index: 100;
+    position: relative;
 }
 
 .nav-link {
@@ -100,9 +101,12 @@ body {
     outline: none;
 }
 
-/* Kards 按钮 */
+/* Kards 按钮 - 定位到最右边 */
 #kards-btn {
-    display: block;
+    position: absolute;
+    right: 1.5rem;
+    top: 50%;
+    transform: translateY(-50%);
     width: 28px;
     height: 28px;
     padding: 0;
@@ -1851,5 +1855,28 @@ input[type="password"]:focus {
 }
 
 .kards-modal-link:hover {
+    background: #e8e8ed;
+}
+
+/* Kards 页面样式 */
+.kards-desc {
+    color: #86868b;
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+}
+
+.kards-link {
+    display: inline-block;
+    padding: 1rem 1.5rem;
+    background: #f5f5f7;
+    border-radius: 8px;
+    color: #0071e3;
+    text-decoration: none;
+    font-size: 1rem;
+    transition: background 0.2s;
+    word-break: break-all;
+}
+
+.kards-link:hover {
     background: #e8e8ed;
 }
