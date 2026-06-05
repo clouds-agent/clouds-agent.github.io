@@ -3252,10 +3252,10 @@ async function showImageDetail(uuid, event) {
                 
                 // 根据类型格式化
                 if (p.type === 'oc_vtoken_adaptor') {
-                    // 角色引用：@角色名（不加括号）
+                    // 角色引用：@角色名：权重（不加括号）
                     text = `@${p.name || ''}`;
                 } else if (p.type === 'elementum') {
-                    // 元素引用：/元素名（不加括号）
+                    // 元素引用：/元素名：权重（不加括号）
                     text = `/${p.name || ''}`;
                 } else if (p.type === 'freetext') {
                     // 自由文本
@@ -3271,7 +3271,11 @@ async function showImageDetail(uuid, event) {
                     return null;
                 }
                 
-                // 角色和元素不显示权重（直接返回）
+                // 角色和元素：权重不为 1 时显示权重（不加括号）
+                if (weight !== undefined && weight !== 1 && weight !== 1.0) {
+                    const weightStr = parseFloat(weight.toFixed(1));
+                    return `${text}:${weightStr}`;
+                }
                 return text;
             })
             .filter(v => v);
