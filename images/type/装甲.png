@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>页面未找到 - 一个小站</title>
+    <style>
+        :root {
+            --main-color: #03c9a9;
+            --text-color: #333;
+            --bg-color: #f5f5f5;
+            --accent-color: #ff6b6b;
+        }
+        body, html {
+            height: 100%;
+            margin: 0;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow: hidden;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            height: 100%;
+        }
+        .left-panel {
+            background-color: var(--main-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .circle {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .circle-1 {
+            width: 300px;
+            height: 300px;
+            top: -50px;
+            left: -50px;
+            border-radius: 0 0 300px 0;
+        }
+        .circle-2 {
+            width: 200px;
+            height: 200px;
+            bottom: 50px;
+            right: 50px;
+            border-radius: 200px 0 0 0;
+        }
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 10% 10%;
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+        }
+        .background-text {
+            position: absolute;
+            font-size: 180px;
+            font-weight: bold;
+            color: rgba(0, 0, 0, 0.03);
+            white-space: nowrap;
+            right: 20px;
+            bottom: 20px;
+            transform: none;
+        }
+        .logo {
+            width: 100px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            font-size: 4em;
+            margin-bottom: 0.2em;
+            color: var(--accent-color);
+            position: relative;
+        }
+        h2 {
+            font-size: 1.5em;
+            margin-top: 0;
+            margin-bottom: 1em;
+            color: var(--main-color);
+            font-weight: 500;
+        }
+        p {
+            font-size: 1.1em;
+            line-height: 1.6;
+            margin-bottom: 2em;
+            position: relative;
+        }
+        .quote {
+            font-style: italic;
+            color: var(--accent-color);
+            text-align: center;
+            margin: 2em 0;
+            padding: 1em;
+            border-top: 1px solid #eee;
+            border-bottom: 1px solid #eee;
+        }
+        .homepage-link {
+            margin-top: 20px;
+            color: var(--main-color);
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .homepage-link:hover {
+            text-decoration: underline;
+        }
+        .debug-info {
+            font-size: 0.75em;
+            color: #888;
+            margin-top: 2em;
+            padding: 1em;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            line-height: 1.4;
+        }
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            .left-panel {
+                display: none;
+            }
+            .right-panel {
+                padding: 10% 5%;
+            }
+            .background-text {
+                font-size: 120px;
+                right: 10px;
+                bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="left-panel">
+            <div class="circle circle-1"></div>
+            <div class="circle circle-2"></div>
+        </div>
+        <div class="right-panel">
+            <div class="background-text">404</div>
+            <img src="https://cdn-bitiful-s4.ygxz.xyz/in/logo_clip.svg" alt="一个小站 Logo" class="logo">
+            <h1>404</h1>
+            <h2>页面未找到</h2>
+            <p>很抱歉，您要访问的页面似乎已经迷路了。不过别担心，我们一起来找找其他有趣的内容吧！</p>
+            <div class="quote" id="randomQuote"></div>
+            <a href="https://www.ygxz.in/" class="homepage-link">返回首页</a>
+            <div class="debug-info" id="debugInfo"></div>
+        </div>
+    </div>
+    <script>
+        const quotes = [
+            "失之东隅，收之桑榆。",
+            "柳暗花明又一村。",
+            "山重水复疑无路，柳暗花明又一村。",
+            "不以物喜，不以己悲。",
+            "404虽阻路，乐趣仍无穷。",
+            "页面虽未寻，欢乐不曾散。",
+            "一页难觅，千般精彩。",
+            "路有不通，我们同行。",
+            "迷途未必迷人，前方自有惊喜。"
+        ];
+        
+        function getRandomQuote() {
+            return quotes[Math.floor(Math.random() * quotes.length)];
+        }
+        
+        document.getElementById('randomQuote').textContent = getRandomQuote();
+
+        // Debug信息
+        function getDebugInfo() {
+            const debugInfo = {
+                "请求ID": "1780623203514291000001",
+                "时间": "2026-06-05T09:33:23.559+08:00",
+                "客户端": "  / curl 7.88.1",
+                "IP及位置": "47.254.31.20 (美国 加利福尼亚 圣克拉拉 - 阿里云)",
+                "请求详情": "GET /gh/ohminecraftlauncher/ohminecraftlauncher.github.io/DIY/images/type/装甲.png",
+                "Referer": "",
+                "CDN节点": "US L2 (29)",
+                "缓存状态": "MISS",
+                "响应状态": "404 Not Found",
+                "响应时间": "0.000000ms"
+            };
+            return Object.entries(debugInfo)
+                .map(([key, value]) => `<strong>${key}:</strong> ${value}`)
+                .join('<br>');
+        }
+
+        document.getElementById('debugInfo').innerHTML = getDebugInfo();
+
+        // Prevent scrolling on mobile devices
+        document.body.addEventListener('touchmove', function(e) {
+            e.preventDefault();
+        }, { passive: false });
+
+        // Ensure content fits on screen
+        function adjustContentSize() {
+            const container = document.querySelector('.container');
+            const rightPanel = document.querySelector('.right-panel');
+            const scale = Math.min(container.clientHeight / rightPanel.scrollHeight, 1);
+            rightPanel.style.transform = `scale(${scale})`;
+            rightPanel.style.transformOrigin = 'center top';
+        }
+
+        window.addEventListener('resize', adjustContentSize);
+        window.addEventListener('load', adjustContentSize);
+    </script>
+</body>
+</html>

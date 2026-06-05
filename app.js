@@ -3253,3 +3253,59 @@ document.addEventListener('click', (e) => {
     }
 });
 
+
+// ============ Kards 卡牌制作器双击打开 ============
+
+let kardsClickTimeout = null;
+let kardsLastClickTime = 0;
+
+// 初始化 Kards 标签页双击
+function initKardsTab() {
+    const kardsTab = document.getElementById('kards-tab');
+    if (!kardsTab) return;
+    
+    kardsTab.addEventListener('click', function(e) {
+        e.preventDefault();
+        const now = Date.now();
+        
+        // 检查是否是双击（间隔小于 300ms）
+        if (now - kardsLastClickTime < 300) {
+            // 双击，打开 Kards 页面
+            if (kardsClickTimeout) {
+                clearTimeout(kardsClickTimeout);
+                kardsClickTimeout = null;
+            }
+            window.location.hash = '#kards';
+        } else {
+            // 单击，设置定时器等待第二次点击
+            kardsClickTimeout = setTimeout(() => {
+                // 超时，视为单击，不执行任何操作
+                kardsClickTimeout = null;
+            }, 300);
+        }
+        
+        kardsLastClickTime = now;
+    });
+}
+
+// 页面加载时初始化
+document.addEventListener('DOMContentLoaded', function() {
+    initKardsTab();
+});
+
+// Kards 页面切换处理
+window.addEventListener('hashchange', function() {
+    const hash = window.location.hash;
+    
+    if (hash === '#kards') {
+        // 切换到 Kards 页面
+        document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+        
+        const kardsSection = document.getElementById('kards');
+        const kardsTab = document.getElementById('kards-tab');
+        
+        if (kardsSection) kardsSection.classList.add('active');
+        if (kardsTab) kardsTab.classList.add('active');
+    }
+});
