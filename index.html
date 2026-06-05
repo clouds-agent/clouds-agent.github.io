@@ -152,39 +152,39 @@
             </div>
         </section>
 
-        <!-- Kards 卡牌制作器 -->
+        <!-- Kards 卡牌制作器 - 直接使用原网站代码 -->
         <section id="kards" class="section">
-            <div class="kards-container">
-                <div id="kards-main">
-                    <div class="picture-unit">
-                        <img id="kards-picture-img" alt="img" src="" draggable="false"/>
+            <div id="kards-wrapper">
+                <div id="main">
+                    <div id="picture" class="picture-unit">
+                        <img id="picture-img" alt="img" src="" draggable="false"/>
                     </div>
-                    <div id="kards-title-body"></div>
-                    <img id="kards-body" src="images/body/底 - 单位.png" alt="底" onerror="this.src='https://jsd-proxy.ygxz.in/gh/ohminecraftlauncher/ohminecraftlauncher.github.io/DIY/images/body/底 - 单位.png'"/>
-                    <img id="kards-K" class="K-1" src="images/body/K.png" alt="K" onerror="this.src='https://raw.githubusercontent.com/ohminecraftlauncher/ohminecraftlauncher.github.io/master/DIY/images/body/K.png'"/>
-                    <div id="kards-type-board" class="type-board-unit" onclick="onTypeClick()">
-                        <img id="kards-type" src="images/type/步兵.png" alt="类型" onerror="this.src='https://jsd-proxy.ygxz.in/gh/ohminecraftlauncher/ohminecraftlauncher.github.io/DIY/images/type/步兵.png'"/>
+                    <div id="title-body"></div>
+                    <img id="body" src="images/body/底 - 单位.png" alt="底" onerror="this.src='https://jsd-proxy.ygxz.in/gh/ohminecraftlauncher/ohminecraftlauncher.github.io/DIY/images/body/底 - 单位.png'"/>
+                    <img id="K" class="K-1" src="images/body/K.png" alt="K" onerror="this.src='https://raw.githubusercontent.com/ohminecraftlauncher/ohminecraftlauncher.github.io/master/DIY/images/body/K.png'"/>
+                    <div id="type-board" class="type-board-unit" onclick="onTypeClick()">
+                        <img id="type" src="images/type/步兵.png" alt="类型" onerror="this.src='https://jsd-proxy.ygxz.in/gh/ohminecraftlauncher/ohminecraftlauncher.github.io/DIY/images/type/步兵.png'"/>
                     </div>
-                    <img id="kards-rarity" src="images/rarity/普通.png" alt="稀有度" onclick="onRarityClick()" onerror="this.src='https://jsd-proxy.ygxz.in/gh/ohminecraftlauncher/ohminecraftlauncher.github.io/DIY/images/rarity/普通.png'"/>
-                    <img id="kards-set" src="images/set/基础.png" alt="套装" onclick="onSetClick()" onerror="this.src='https://jsd-proxy.ygxz.in/gh/ohminecraftlauncher/ohminecraftlauncher.github.io/DIY/images/set/基础.png'"/>
-                    <div id="kards-faction-container">
-                        <img id="kards-faction" src="images/faction/germany.png" alt="国家" onclick="onFactionClick()" onerror="this.src='https://jsd-proxy.ygxz.in/gh/ohminecraftlauncher/ohminecraftlauncher.github.io/DIY/images/faction/germany.png'"/>
+                    <img id="rarity" src="images/rarity/普通.png" alt="稀有度" onclick="onRarityClick()" onerror="this.src='https://jsd-proxy.ygxz.in/gh/ohminecraftlauncher/ohminecraftlauncher.github.io/DIY/images/rarity/普通.png'"/>
+                    <img id="set" src="images/set/基础.png" alt="套装" onclick="onSetClick()" onerror="this.src='https://jsd-proxy.ygxz.in/gh/ohminecraftlauncher/ohminecraftlauncher.github.io/DIY/images/set/基础.png'"/>
+                    <div id="faction-container">
+                        <img id="faction" src="images/faction/germany.png" alt="国家" onclick="onFactionClick()" onerror="this.src='https://jsd-proxy.ygxz.in/gh/ohminecraftlauncher/ohminecraftlauncher.github.io/DIY/images/faction/germany.png'"/>
                     </div>
-                    <div id="kards-b-text" class="text-unit" contenteditable="true"></div>
-                    <div id="kards-kredit" contenteditable="true" oninput="onKreditInput()"></div>
-                    <div id="kards-opredit" class="opredit-1" contenteditable="true" oninput="onOpeditInput()"></div>
-                    <div id="kards-attack" class="attack-1" contenteditable="true" oninput="onAttackInput()"></div>
-                    <div id="kards-defense" class="defense-1" contenteditable="true" oninput="onDefenseInput()"></div>
-                    <div id="kards-title" class="title-unit" contenteditable="true"></div>
-                    <button id="kards-IFSBtn" class="BTBtn" onclick="increaseBTextFontSize()" data-html2canvas-ignore>↑</button>
-                    <button id="kards-DFSBtn" class="BTBtn" onclick="decreaseBTextFontSize()" data-html2canvas-ignore>↓</button>
-                    <button id="kards-boldBtn" class="BTBtn" onclick="BoldText()" data-html2canvas-ignore>B</button>
-                    <button id="kards-TIFSBtn" class="BTBtn TIFSBtn-unit" onclick="increaseTitleFontSize()" data-html2canvas-ignore>↑</button>
-                    <button id="kards-TDFSBtn" class="BTBtn TDFSBtn-unit" onclick="decreaseTitleFontSize()" data-html2canvas-ignore>↓</button>
+                    <div id="b-text" class="text-unit" contenteditable="true"></div>
+                    <div id="kredit" contenteditable="true" oninput="onKreditInput()"></div>
+                    <div id="opredit" class="opredit-1" contenteditable="true" oninput="onOpeditInput()"></div>
+                    <div id="attack" class="attack-1" contenteditable="true" oninput="onAttackInput()"></div>
+                    <div id="defense" class="defense-1" contenteditable="true" oninput="onDefenseInput()"></div>
+                    <div id="title" class="title-unit" contenteditable="true"></div>
+                    <button id="IFSBtn" class="BTBtn" onclick="increaseBTextFontSize()" data-html2canvas-ignore>↑</button>
+                    <button id="DFSBtn" class="BTBtn" onclick="decreaseBTextFontSize()" data-html2canvas-ignore>↓</button>
+                    <button id="boldBtn" class="BTBtn" onclick="BoldText()" data-html2canvas-ignore>B</button>
+                    <button id="TIFSBtn" class="BTBtn TIFSBtn-unit" onclick="increaseTitleFontSize()" data-html2canvas-ignore>↑</button>
+                    <button id="TDFSBtn" class="BTBtn TDFSBtn-unit" onclick="decreaseTitleFontSize()" data-html2canvas-ignore>↓</button>
                 </div>
-                <button id="kards-EditButton" class="action-btn edit-btn" onclick="onEditBClick()">隐藏编辑按钮</button>
-                <button id="kards-SaveButton" class="action-btn save-btn" onclick="onSaveBClick()">导出卡图</button>
-                <div id="kards-temporary-message"></div>
+                <button id="EditButton" class="action-btn edit-btn" onclick="onEditBClick()">隐藏编辑按钮</button>
+                <button id="SaveButton" class="action-btn save-btn" onclick="onSaveBClick()">导出卡图</button>
+                <div id="temporary-message"></div>
             </div>
         </section>
     </main>
@@ -340,10 +340,10 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260520v100"></script>
+    <script src="app.js?v=20260520v101"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
     <script src="script/stackblur.min.js"></script>
-    <script src="script/kards-img.js"></script>
-    <script src="script/kards.js"></script>
+    <script src="script/kards-original.js"></script>
+    <link rel="stylesheet" type="text/css" href="css/kards-original.css">
 </body>
 </html>
