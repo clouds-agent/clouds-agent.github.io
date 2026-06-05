@@ -3245,25 +3245,40 @@ async function showImageDetail(uuid, event) {
         
         // 显示词条（用中文逗号隔开，带权重）
         const rawPrompt = input.rawPrompt || [];
-        const freetextPrompts = rawPrompt
-            .filter(p => p.type === 'freetext')
+        const formattedPrompts = rawPrompt
             .map(p => {
-                const value = p.value || '';
                 const weight = p.weight;
+                let text = '';
+                
+                // 根据类型格式化
+                if (p.type === 'oc_vtoken_adaptor') {
+                    // 角色引用：@角色名
+                    text = `@${p.name || ''}`;
+                } else if (p.type === 'elementum_vtoken_adaptor') {
+                    // 元素引用：/元素名
+                    text = `/${p.name || ''}`;
+                } else if (p.type === 'freetext') {
+                    // 自由文本
+                    text = p.value || '';
+                } else {
+                    // 其他类型跳过
+                    return null;
+                }
+                
                 // 权重不为 1 时显示权重
                 if (weight !== undefined && weight !== 1 && weight !== 1.0) {
                     const weightStr = parseFloat(weight.toFixed(1));
-                    return `(${value}:${weightStr})`;
+                    return `(${text}:${weightStr})`;
                 }
-                return value;
+                return text;
             })
             .filter(v => v);
         
-        if (freetextPrompts.length === 0) {
+        if (formattedPrompts.length === 0) {
             promptsEl.textContent = '无词条';
             currentPromptsText = '无词条';
         } else {
-            currentPromptsText = freetextPrompts.join('，');
+            currentPromptsText = formattedPrompts.join('，');
             promptsEl.textContent = currentPromptsText;
         }
         
