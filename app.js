@@ -61,6 +61,9 @@ function updateNavbarLoading(page, isLoading) {
 function handleHashChange() {
     const hash = window.location.hash;
     
+    // 阻止自动滚动到顶部
+    window.scrollTo(0, 0);
+    
     // 切换到点赞页，移除所有加载状态（因为能看到进度）
     if (hash === '#like') {
         updateNavbarLoading('like', false);
@@ -78,6 +81,19 @@ function handleHashChange() {
 
 // 监听 hash 变化
 window.addEventListener('hashchange', handleHashChange);
+
+// 阻止锚点链接的默认滚动行为
+document.addEventListener('click', function(e) {
+    const target = e.target.closest('a[href^="#"]');
+    if (target) {
+        e.preventDefault();
+        const hash = target.getAttribute('href');
+        if (hash && hash !== '#') {
+            history.pushState(null, '', hash);
+            handleHashChange();
+        }
+    }
+});
 
 // 图库相关状态
 let galleryPageIndex = 0;
@@ -3254,69 +3270,4 @@ document.addEventListener('click', (e) => {
 });
 
 
-// ============ Kards 卡牌制作器双击打开 ============
 
-let kardsClickTimeout = null;
-let kardsLastClickTime = 0;
-
-// 初始化 Kards 标签页双击
-function initKardsTab() {
-    const kardsTab = document.getElementById('kards-tab');
-    if (!kardsTab) return;
-    
-    // 加载图标，成功后显示
-    const iconImg = new Image();
-    iconImg.src = 'images/kards-icon.png';
-    iconImg.onload = function() {
-        kardsTab.classList.add('loaded');
-    };
-    iconImg.onerror = function() {
-        // 加载失败，保持隐藏
-        kardsTab.style.display = 'none';
-    };
-    
-    kardsTab.addEventListener('click', function(e) {
-        e.preventDefault();
-        const now = Date.now();
-        
-        // 检查是否是双击（间隔小于 300ms）
-        if (now - kardsLastClickTime < 300) {
-            // 双击，打开 Kards 页面
-            if (kardsClickTimeout) {
-                clearTimeout(kardsClickTimeout);
-                kardsClickTimeout = null;
-            }
-            window.location.hash = '#kards';
-        } else {
-            // 单击，设置定时器等待第二次点击
-            kardsClickTimeout = setTimeout(() => {
-                // 超时，视为单击，不执行任何操作
-                kardsClickTimeout = null;
-            }, 300);
-        }
-        
-        kardsLastClickTime = now;
-    });
-}
-
-// 页面加载时初始化
-document.addEventListener('DOMContentLoaded', function() {
-    initKardsTab();
-});
-
-// Kards 页面切换处理
-window.addEventListener('hashchange', function() {
-    const hash = window.location.hash;
-    
-    if (hash === '#kards') {
-        // 切换到 Kards 页面
-        document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
-        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
-        
-        const kardsSection = document.getElementById('kards');
-        const kardsTab = document.getElementById('kards-tab');
-        
-        if (kardsSection) kardsSection.classList.add('active');
-        if (kardsTab) kardsTab.classList.add('active');
-    }
-});

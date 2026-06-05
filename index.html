@@ -19,7 +19,6 @@
     <nav class="navbar">
         <a href="#like" class="nav-link active">点赞</a>
         <a href="#tools" class="nav-link">工具</a>
-        <a href="#kards" class="nav-link" id="kards-tab" title="双击打开 Kards 卡牌制作器"></a>
     </nav>
 
     <main class="container">
@@ -152,54 +151,7 @@
             </div>
         </section>
 
-        <!-- Kards 卡牌制作器 -->
-        <section id="kards" class="section kards-section">
-            <div class="kards-container">
-                <!-- 卡牌区域 -->
-                <div id="main">
-                    <div id="picture" class="picture-unit">
-                        <img id="picture-img" alt="img" src="" draggable="false"/>
-                    </div>
-                    <div id="title-body"></div>
-                    <img id="body" src="images/body/底 - 单位.png" alt="底" onerror="this.src='https://jsd-proxy.ygxz.in/gh/ohminecraftlauncher/ohminecraftlauncher.github.io/DIY/images/body/底 - 单位.png'"/>
-                    <img id="K" class="K-1" src="images/body/K.png" alt="K" onerror="this.src='https://raw.githubusercontent.com/ohminecraftlauncher/ohminecraftlauncher.github.io/master/DIY/images/body/K.png'"/>
-                    <div id="type-board" class="type-board-unit">
-                        <img id="type" src="images/type/步兵.png" alt="类型" onerror="this.src='https://jsd-proxy.ygxz.in/gh/ohminecraftlauncher/ohminecraftlauncher.github.io/DIY/images/type/步兵.png'"/>
-                    </div>
-                    <img id="rarity" src="images/rarity/普通.png" alt="稀有度" onerror="this.src='https://jsd-proxy.ygxz.in/gh/ohminecraftlauncher/ohminecraftlauncher.github.io/DIY/images/rarity/普通.png'"/>
-                    <img id="set" src="images/set/基础.png" alt="套装" onerror="this.src='https://jsd-proxy.ygxz.in/gh/ohminecraftlauncher/ohminecraftlauncher.github.io/DIY/images/set/基础.png'"/>
-                    <div id="faction-container">
-                        <img id="faction" src="images/faction/germany.png" alt="国家" onerror="this.src='https://jsd-proxy.ygxz.in/gh/ohminecraftlauncher/ohminecraftlauncher.github.io/DIY/images/faction/germany.png'"/>
-                    </div>
-                    <div id="b-text" class="text-unit" contenteditable="true"></div>
-                    <div id="kredit" contenteditable="true" oninput="onKreditInput()"></div>
-                    <div id="opredit" class="opredit-1" contenteditable="true" oninput="onOpeditInput()"></div>
-                    <div id="attack" class="attack-1" contenteditable="true" oninput="onAttackInput()"></div>
-                    <div id="defense" class="defense-1" contenteditable="true" oninput="onDefenseInput()"></div>
-                    <div id="title" class="title-unit" contenteditable="true"></div>
-                    <button id="IFSBtn" class="BTBtn" onclick="increaseBTextFontSize()" data-html2canvas-ignore>↑</button>
-                    <button id="DFSBtn" class="BTBtn" onclick="decreaseBTextFontSize()" data-html2canvas-ignore>↓</button>
-                    <button id="boldBtn" class="BTBtn" onclick="BoldText()" data-html2canvas-ignore>B</button>
-                    <button id="TIFSBtn" class="BTBtn TIFSBtn-unit" onclick="increaseTitleFontSize()" data-html2canvas-ignore>↑</button>
-                    <button id="TDFSBtn" class="BTBtn TDFSBtn-unit" onclick="decreaseTitleFontSize()" data-html2canvas-ignore>↓</button>
-                </div>
-                
-                <!-- 控制按钮区域（卡牌下方） -->
-                <div class="kards-controls">
-                    <div class="control-row">
-                        <button class="control-btn" onclick="onTypeClick()">🎴 切换类型</button>
-                        <button class="control-btn" onclick="onRarityClick()">⭐ 切换稀有度</button>
-                        <button class="control-btn" onclick="onSetClick()">📦 切换套装</button>
-                        <button class="control-btn" onclick="onFactionClick()">🚩 切换国家</button>
-                    </div>
-                    <div class="control-row">
-                        <button class="control-btn" onclick="onEditBClick()">✏️ 显示/隐藏编辑按钮</button>
-                        <button class="control-btn save-btn" onclick="onSaveBClick()">💾 导出卡图</button>
-                    </div>
-                    <div id="temporary-message"></div>
-                </div>
-            </div>
-        </section>
+
     </main>
 
     <!-- 图片详情弹窗 -->
@@ -353,10 +305,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260520v103"></script>
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
-    <script src="script/stackblur.min.js"></script>
-    <script src="script/kards-original.js"></script>
-    <link rel="stylesheet" type="text/css" href="css/kards-original.css">
+    <script src="app.js?v=20260520v104"></script>
 </body>
 </html>
