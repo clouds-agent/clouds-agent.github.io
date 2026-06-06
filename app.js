@@ -3370,18 +3370,20 @@ async function convertChineseToTags(chinese) {
     statusEl.style.display = 'block';
     
     try {
-        // 注意：这里需要配置实际的 API 端点
-        // 目前使用占位符，CLOUDS 需要配置 OpenClaw Gateway 或外部 API
+        // 使用 OpenClaw Gateway API
+        // Gateway 地址：本地访问用 localhost，公网访问需要配置 Gateway 的 publicUrl
+        const gatewayUrl = window.location.hostname === 'localhost' || 
+                          window.location.hostname === '127.0.0.1' ?
+            'http://localhost:18789' : 
+            'http://10.187.114.130:18789';  // CLOUDS 的 Gateway 地址
         
-        // 方案 A: 使用外部 API (OpenAI)
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        const response = await fetch(`${gatewayUrl}/api/chat/completions`, {
             method: 'POST',
             headers: {
-                'Authorization': 'Bearer YOUR_OPENAI_API_KEY',  // CLOUDS 需要替换
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: 'gpt-3.5-turbo',
+                model: 'gpt-3.5-turbo',  // 使用 Gateway 配置的模型
                 messages: [
                     { role: 'system', content: DANBOORU_SYSTEM_PROMPT },
                     { role: 'user', content: chinese }
@@ -3392,17 +3394,21 @@ async function convertChineseToTags(chinese) {
         });
         
         if (!response.ok) {
-            throw new Error(`API 请求失败：${response.status}`);
+            throw new Error(`Gateway 请求失败：${response.status}`);
         }
         
         const data = await response.json();
-        const tags = data.choices[0].message.content.trim();
+        const tags = data.choices?.[0]?.message?.content?.trim();
+        
+        if (!tags) {
+            throw new Error('Gateway 返回空结果');
+        }
         
         return tags;
         
     } catch (e) {
         console.error('转换失败:', e);
-        statusEl.textContent = `转换失败：${e.message}`;
+        statusEl.textContent = `转换失败：${e.message}。请确保 OpenClaw Gateway 正在运行且可访问。`;
         return null;
     }
 }
