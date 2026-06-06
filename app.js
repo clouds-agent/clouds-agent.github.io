@@ -3370,12 +3370,8 @@ async function convertChineseToTags(chinese) {
     statusEl.style.display = 'block';
     
     try {
-        // 使用 OpenClaw Gateway API
-        // Gateway 地址：本地访问用 localhost，公网访问需要配置 Gateway 的 publicUrl
-        const gatewayUrl = window.location.hostname === 'localhost' || 
-                          window.location.hostname === '127.0.0.1' ?
-            'http://localhost:18789' : 
-            'http://10.187.114.130:18789';  // CLOUDS 的 Gateway 地址
+        // 使用 OpenClaw Gateway API（仅 CLOUDS 可用，内网地址）
+        const gatewayUrl = 'http://10.187.114.130:18789';
         
         const response = await fetch(`${gatewayUrl}/api/chat/completions`, {
             method: 'POST',
