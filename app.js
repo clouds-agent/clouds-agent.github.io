@@ -3118,6 +3118,7 @@ function init() {
     setupCheckin();
     setupStats();
     setupGallery();
+    setupDanbooruConverter();
     loadHotTags();
     
     // 新增：用户点赞相关
@@ -3324,3 +3325,231 @@ document.addEventListener('click', (e) => {
 
 
 
+
+// ============ D 站 tag 转换 ============
+
+let validatedTagsCache = [];
+
+// 系统提示词
+const DANBOORU_SYSTEM_PROMPT = `你是一个专业的 Danbooru 标签生成器。
+
+任务：将中文自然语言描述拆解成 Danbooru 风格的英文标签。
+
+规则：
+1. 理解描述的核心概念
+2. 拆解成多个视觉属性（服装、发型、姿势、材质等）
+3. 优先使用现有 Danbooru 标签
+4. 如果没有现成标签，创造合理的复合标签（用下划线连接）
+5. 输出格式：tag1, tag2, tag3, ...
+6. 不要输出任何解释，只输出标签列表
+
+示例 1:
+输入："穿着生态瓶形状裙子的女孩"
+输出："1girl, dress, terrarium_dress, glass_dress, transparent_dress, plant_print, inside_dress, miniature_garden, bell-shaped_skirt, voluminous_skirt, nature_motif"
+
+示例 2:
+输入："白发红瞳的龙女仆拿着剑"
+输出："1girl, dragon_girl, maid_dress, white_hair, red_eyes, holding, sword, dragon_tail, dragon_horns, maid_headdress"
+
+示例 3:
+输入："头上带有血条的呆萌 RPG 士兵女孩"
+输出："1girl, soldier, military_uniform, cute, moe, health_bar, hp_bar, above_head, game_ui, ui_element, weapon, helmet, military, video_game_elements, rpg_theme"
+
+现在请处理用户的输入。`;
+
+// 转换中文为 Danbooru 标签
+async function convertChineseToTags(chinese) {
+    const statusEl = document.getElementById('convert-status');
+    
+    if (!chinese || !chinese.trim()) {
+        showToast('请输入中文描述');
+        return null;
+    }
+    
+    statusEl.textContent = '正在转换...';
+    statusEl.style.display = 'block';
+    
+    try {
+        // 注意：这里需要配置实际的 API 端点
+        // 目前使用占位符，CLOUDS 需要配置 OpenClaw Gateway 或外部 API
+        
+        // 方案 A: 使用外部 API (OpenAI)
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer YOUR_OPENAI_API_KEY',  // CLOUDS 需要替换
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: 'gpt-3.5-turbo',
+                messages: [
+                    { role: 'system', content: DANBOORU_SYSTEM_PROMPT },
+                    { role: 'user', content: chinese }
+                ],
+                temperature: 0.7,
+                max_tokens: 500
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`API 请求失败：${response.status}`);
+        }
+        
+        const data = await response.json();
+        const tags = data.choices[0].message.content.trim();
+        
+        return tags;
+        
+    } catch (e) {
+        console.error('转换失败:', e);
+        statusEl.textContent = `转换失败：${e.message}`;
+        return null;
+    }
+}
+
+// 验证标签是否存在
+async function validateTags(tags) {
+    const tagList = tags.split(',').map(t => t.trim()).filter(t => t);
+    
+    statusEl.textContent = `正在验证标签 (0/${tagList.length})...`;
+    
+    // 并行请求所有标签
+    const results = await Promise.all(
+        tagList.map(async (tag, index) => {
+            try {
+                const res = await fetch(
+                    `https://danbooru.donmai.us/tags.json?search[name]=${encodeURIComponent(tag)}`
+                );
+                const data = await res.json();
+                
+                statusEl.textContent = `正在验证标签 (${index + 1}/${tagList.length})...`;
+                
+                if (data.length > 0) {
+                    return {
+                        tag: tag,
+                        exists: true,
+                        count: data[0].count,
+                        category: data[0].category,
+                        category_name: getCategoryName(data[0].category)
+                    };
+                } else {
+                    return {
+                        tag: tag,
+                        exists: false,
+                        count: 0,
+                        category: null,
+                        category_name: '自定义'
+                    };
+                }
+            } catch (e) {
+                console.error(`验证标签 ${tag} 失败:`, e);
+                return {
+                    tag: tag,
+                    exists: false,
+                    count: 0,
+                    category: null,
+                    category_name: '验证失败',
+                    error: e.message
+                };
+            }
+        })
+    );
+    
+    return results;
+}
+
+function getCategoryName(category) {
+    const names = {
+        0: '一般',
+        1: '画师',
+        2: '角色',
+        3: '版权',
+        4: '元标签'
+    };
+    return names[category] || '未知';
+}
+
+// 显示验证结果
+function showValidationResult(validatedTags) {
+    const outputContainer = document.getElementById('output-container');
+    const validationEl = document.getElementById('validation-result');
+    const existsTagsEl = document.getElementById('exists-tags');
+    const customTagsEl = document.getElementById('custom-tags');
+    
+    const exists = validatedTags.filter(t => t.exists);
+    const custom = validatedTags.filter(t => !t.exists);
+    
+    existsTagsEl.textContent = exists.map(t => t.tag).join(', ');
+    customTagsEl.textContent = custom.map(t => t.tag).join(', ');
+    
+    if (exists.length > 0 || custom.length > 0) {
+        validationEl.style.display = 'block';
+    }
+    
+    validatedTagsCache = validatedTags;
+}
+
+// 复制标签
+function copyTags() {
+    const outputEl = document.getElementById('tag-output');
+    if (outputEl && outputEl.value) {
+        navigator.clipboard.writeText(outputEl.value);
+        showToast('标签已复制');
+    }
+}
+
+// 仅复制存在的标签
+function copyExistsTags() {
+    if (validatedTagsCache.length > 0) {
+        const exists = validatedTagsCache.filter(t => t.exists);
+        if (exists.length > 0) {
+            const text = exists.map(t => t.tag).join(', ');
+            navigator.clipboard.writeText(text);
+            showToast(`已复制 ${exists.length} 个存在的标签`);
+        } else {
+            showToast('没有存在的标签');
+        }
+    }
+}
+
+// 初始化 D 站 tag 转换
+function setupDanbooruConverter() {
+    const convertBtn = document.getElementById('convert-btn');
+    const chineseInput = document.getElementById('chinese-input');
+    const tagOutput = document.getElementById('tag-output');
+    const outputContainer = document.getElementById('output-container');
+    const validationEl = document.getElementById('validation-result');
+    const statusEl = document.getElementById('convert-status');
+    
+    if (!convertBtn || !chineseInput || !tagOutput) {
+        console.warn('D 站 tag 转换元素不存在');
+        return;
+    }
+    
+    convertBtn.addEventListener('click', async () => {
+        const chinese = chineseInput.value.trim();
+        
+        if (!chinese) {
+            showToast('请输入中文描述');
+            return;
+        }
+        
+        // 转换
+        const tags = await convertChineseToTags(chinese);
+        
+        if (tags) {
+            tagOutput.value = tags;
+            outputContainer.style.display = 'block';
+            statusEl.textContent = '转换完成！';
+            
+            // 验证标签
+            const validated = await validateTags(tags);
+            showValidationResult(validated);
+            
+            statusEl.textContent = `验证完成！${validated.filter(t => t.exists).length} 个标签存在，${validated.filter(t => !t.exists).length} 个自定义标签`;
+        }
+    });
+}
+
+// 在 init 函数中调用
+// setupDanbooruConverter();

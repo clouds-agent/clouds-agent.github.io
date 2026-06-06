@@ -19,6 +19,7 @@
     <nav class="navbar">
         <button class="nav-link active" data-page="like">点赞</button>
         <button class="nav-link" data-page="tools">工具</button>
+        <button class="nav-link" data-page="danbooru">D 站 tag</button>
         <button class="nav-link" id="kards-btn"></button>
     </nav>
 
@@ -152,7 +153,43 @@
             </div>
         </section>
 
-
+        <!-- D 站 tag 转换页 -->
+        <section id="danbooru" class="section">
+            <div class="card">
+                <h3>🏷️ 中文转 Danbooru 标签</h3>
+                <p class="danbooru-desc">输入中文描述，自动转换成 Danbooru 风格的英文标签</p>
+                
+                <div class="danbooru-input-group">
+                    <label>中文描述：</label>
+                    <textarea id="chinese-input" placeholder="例如：穿着生态瓶形状裙子的女孩，坐在樱花树下"></textarea>
+                </div>
+                
+                <button id="convert-btn" class="btn btn-primary">🔄 转换</button>
+                
+                <div class="danbooru-output-group" id="output-container" style="display:none">
+                    <label>转换结果：</label>
+                    <textarea id="tag-output" readonly></textarea>
+                    
+                    <div class="validation-result" id="validation-result" style="display:none">
+                        <div class="tag-category">
+                            <span class="badge success">✅ 存在的标签</span>
+                            <div class="tag-list" id="exists-tags"></div>
+                        </div>
+                        <div class="tag-category">
+                            <span class="badge warning">⚠️ 自定义标签</span>
+                            <div class="tag-list" id="custom-tags"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="button-group">
+                        <button onclick="copyTags()" class="btn">📋 复制全部</button>
+                        <button onclick="copyExistsTags()" class="btn">📋 仅复制存在的</button>
+                    </div>
+                </div>
+                
+                <div id="convert-status" class="status"></div>
+            </div>
+        </section>
     </main>
 
     <!-- 图片详情弹窗 -->
@@ -318,6 +355,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260520v114"></script>
+    <script src="app.js?v=20260520v115"></script>
 </body>
 </html>
