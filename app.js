@@ -3397,8 +3397,12 @@ async function showPostDetailModal(postId) {
     selectedTagsSet.clear();
     updateSelectedTagsTextarea();
     
-    statusEl.textContent = '加载详情中...';
+    // 先显示弹窗
     modal.style.display = 'block';
+    statusEl.textContent = '加载详情中...';
+    
+    // 清空旧图片，避免闪烁
+    document.getElementById('detail-image').src = '';
     
     try {
         const post = await getPostDetail(postId);
@@ -3517,7 +3521,7 @@ function updateDanbooruPagination() {
     if (countEl) countEl.textContent = `已加载 ${danbooruCurrentPage} 页，共 ${danbooruAllPosts.length} 张图片`;
 }
 
-// 加载指定页
+// 加载指定页（严格分页，只显示当前页）
 async function loadDanbooruPage(page) {
     if (page < 1) page = 1;
     
@@ -3533,12 +3537,11 @@ async function loadDanbooruPage(page) {
             return;
         }
         
-        // 累积所有帖子
-        danbooruAllPosts.push(...posts);
+        // 只保留当前页（严格分页）
         danbooruCurrentPage = page;
         
         // 渲染
-        renderPostGrid(danbooruAllPosts);
+        renderPostGrid(posts);
         updateDanbooruPagination();
         
         statusEl.textContent = '';
