@@ -3567,10 +3567,15 @@ async function searchTagSuggestions(query) {
     }
     
     try {
-        const url = `https://safebooru.donmai.us/tags.json?search[name_matches]=${encodeURIComponent(query)}*&limit=10`;
-        console.log('搜索标签:', url);
+        // 使用 CORS 代理避免跨域问题
+        const apiUrl = `https://safebooru.donmai.us/tags.json?search[name_matches]=${encodeURIComponent(query)}*&limit=10`;
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`;
         
-        const response = await fetch(url);
+        console.log('搜索标签:', proxyUrl);
+        
+        const response = await fetch(proxyUrl, {
+            timeout: 5000
+        });
         
         if (!response.ok) {
             console.error('标签 API 失败:', response.status);
@@ -3579,6 +3584,11 @@ async function searchTagSuggestions(query) {
         
         const tags = await response.json();
         console.log('标签结果:', tags);
+        
+        if (tags.length === 0) {
+            console.log('没有联想结果');
+        }
+        
         return tags;
     } catch (e) {
         console.error('搜索标签失败:', e);
