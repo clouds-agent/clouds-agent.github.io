@@ -3671,42 +3671,57 @@ function setupDanbooruExplorer() {
 
 // ============ 翻译功能 ============
 
-// 翻译文本（使用 Google Translate 非官方 API）
+// 翻译文本（优先 Google，失败时切换 MyMemory）
 async function translateText(text, from, to) {
     if (!text || !text.trim()) {
         return '';
     }
     
-    // 自动识别时使用 auto
-    const sourceLang = from === 'auto' ? 'auto' : from;
-    const url = `https://translate.googleapis.com/translate_a/t?client=gtx&sl=${sourceLang}&tl=${to}&q=${encodeURIComponent(text)}`;
-    
-    console.log('翻译请求:', url);
-    
+    // 尝试 1: Google Translate（质量好）
     try {
-        const response = await fetch(url);
+        const sourceLang = from === 'auto' ? 'auto' : from;
+        const googleUrl = `https://translate.googleapis.com/translate_a/t?client=gtx&sl=${sourceLang}&tl=${to}&q=${encodeURIComponent(text)}`;
+        
+        console.log('翻译请求 (Google):', googleUrl);
+        
+        const response = await fetch(googleUrl, { timeout: 5000 });
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
         
         const data = await response.json();
-        console.log('翻译响应:', data);
+        console.log('Google 翻译响应:', data);
         
-        // Google 返回格式：["翻译结果"] 或 [["翻译结果", "原文"], ...]
         if (Array.isArray(data) && data.length > 0) {
-            if (Array.isArray(data[0])) {
-                // 详细格式：[[translation, original], ...]
-                return data[0][0] || '';
-            } else {
-                // 简单格式：["translation"]
-                return data[0] || '';
-            }
+            const result = Array.isArray(data[0]) ? data[0][0] : data[0];
+            if (result) return result;
         }
         
-        throw new Error('翻译结果为空');
+        throw new Error('Google 翻译结果为空');
     } catch (e) {
-        console.error('翻译失败:', e);
+        console.log('Google 翻译失败，切换到 MyMemory:', e.message);
+    }
+    
+    // 尝试 2: MyMemory（备用，可访问性更好）
+    try {
+        const sourceLang = from === 'auto' ? 'autodetect' : from;
+        const myMemoryUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${sourceLang}|${to}`;
+        
+        console.log('翻译请求 (MyMemory):', myMemoryUrl);
+        
+        const response = await fetch(myMemoryUrl, { timeout: 5000 });
+        const data = await response.json();
+        
+        console.log('MyMemory 翻译响应:', data);
+        
+        if (data.responseStatus === 200 && data.responseData) {
+            return data.responseData.translatedText || '';
+        }
+        
+        throw new Error(data.responseDetails || 'MyMemory 翻译失败');
+    } catch (e) {
+        console.error('MyMemory 翻译失败:', e);
         throw e;
     }
 }
@@ -3751,6 +3766,9 @@ async function doTranslate() {
             status.textContent = '翻译完成 ✓';
             status.style.color = '#34c759';
         }
+        
+        // 记录使用的 API（调试用）
+        console.log('最终翻译结果:', result);
     } catch (e) {
         status.textContent = `翻译失败：${e.message}`;
         status.style.color = '#ff3b30';
