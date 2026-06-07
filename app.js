@@ -3390,8 +3390,14 @@ function renderPostGrid(posts) {
 async function showPostDetailModal(postId) {
     const modal = document.getElementById('danbooru-detail-modal');
     const statusEl = document.getElementById('detail-status');
+    const detailTagsEl = document.getElementById('detail-tags');
+    const fullTagsEl = document.getElementById('full-tags-display');
     
     if (!modal) return;
+    
+    // 隐藏旧内容，避免闪烁
+    detailTagsEl.style.display = 'none';
+    fullTagsEl.style.display = 'none';
     
     // 重置已选词条
     selectedTagsSet.clear();
@@ -3401,7 +3407,7 @@ async function showPostDetailModal(postId) {
     modal.style.display = 'block';
     statusEl.textContent = '加载详情中...';
     
-    // 清空旧图片，避免闪烁
+    // 清空旧图片
     document.getElementById('detail-image').src = '';
     
     try {
@@ -3425,7 +3431,7 @@ async function showPostDetailModal(postId) {
             { name: '元标签', tags: (post.tag_string_meta || '').split(' ').filter(t => t) }
         ];
         
-        // 渲染词条（每个词条独占一行，可点击）
+        // 渲染词条
         let tagsHTML = '';
         for (const cat of categories) {
             if (cat.tags.length > 0) {
@@ -3439,11 +3445,13 @@ async function showPostDetailModal(postId) {
                 `;
             }
         }
-        document.getElementById('detail-tags').innerHTML = tagsHTML;
+        detailTagsEl.innerHTML = tagsHTML;
+        detailTagsEl.style.display = 'block';
         
         // 完整标签显示
         const allTagsFlat = categories.flatMap(c => c.tags);
-        document.getElementById('full-tags-display').textContent = allTagsFlat.join(', ');
+        fullTagsEl.textContent = allTagsFlat.join(', ');
+        fullTagsEl.style.display = 'block';
         
         // 复制已选按钮
         document.getElementById('copy-selected-tags-btn').onclick = () => {
@@ -3518,7 +3526,7 @@ function updateDanbooruPagination() {
     
     if (pageEl) pageEl.textContent = danbooruCurrentPage;
     if (inputEl) inputEl.value = danbooruCurrentPage;
-    if (countEl) countEl.textContent = `已加载 ${danbooruCurrentPage} 页，共 ${danbooruAllPosts.length} 张图片`;
+    if (countEl) countEl.textContent = `第 ${danbooruCurrentPage} 页`;
 }
 
 // 加载指定页（严格分页，只显示当前页）

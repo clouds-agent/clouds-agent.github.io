@@ -2082,11 +2082,20 @@ input[type="password"]:focus {
     font-size: 0.95rem;
 }
 
+.danbooru-pagination-bottom #danbooru-page-input {
+    background: #ffffff;
+    color: #1d1d1f;
+}
+
 @media (prefers-color-scheme: dark) {
     #danbooru-page-input {
         background: rgba(255,255,255,0.1);
         color: #ffffff;
         border-color: rgba(255,255,255,0.3);
+    }
+    .danbooru-pagination-bottom #danbooru-page-input {
+        background: rgba(255,255,255,0.1);
+        color: #ffffff;
     }
 }
 
@@ -2186,25 +2195,36 @@ input[type="password"]:focus {
 
 .tag-item {
     padding: 6px 12px;
-    background: rgba(0, 122, 255, 0.2);
+    background: rgba(0, 122, 255, 0.3);
     border-radius: 16px;
     font-size: 0.85rem;
-    color: #ffffff;
+    color: #1d1d1f;
     cursor: pointer;
     transition: all 0.2s;
     user-select: none;
     display: inline-block;
     margin: 4px;
+    font-weight: 500;
 }
 
 .tag-item:hover {
-    background: rgba(0, 122, 255, 0.4);
+    background: rgba(0, 122, 255, 0.5);
     transform: translateY(-1px);
 }
 
 .tag-item.selected {
-    background: rgba(52, 199, 89, 0.6);
+    background: rgba(52, 199, 89, 0.7);
     color: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+    .tag-item {
+        background: rgba(0, 122, 255, 0.2);
+        color: #ffffff;
+    }
+    .tag-item:hover {
+        background: rgba(0, 122, 255, 0.4);
+    }
 }
 
 /* 已选词条区域 */
@@ -2252,6 +2272,28 @@ input[type="password"]:focus {
     line-height: 1.6;
     max-height: 200px;
     overflow-y: auto;
+}
+
+/* 分页按钮特定样式 */
+.danbooru-pagination-bottom .btn {
+    background: #f5f5f7;
+    color: #1d1d1f;
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+.danbooru-pagination-bottom .btn:hover {
+    background: #e8e8ed;
+}
+
+@media (prefers-color-scheme: dark) {
+    .danbooru-pagination-bottom .btn {
+        background: rgba(255,255,255,0.1);
+        color: #ffffff;
+        border-color: rgba(255,255,255,0.2);
+    }
+    .danbooru-pagination-bottom .btn:hover {
+        background: rgba(255,255,255,0.15);
+    }
 }
 
 /* 响应式 */
