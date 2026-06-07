@@ -3779,12 +3779,44 @@ function copyTranslateResult() {
 function setupTranslate() {
     const translateBtn = document.getElementById('translate-btn');
     const copyBtn = document.getElementById('translate-copy-btn');
+    const formatBtn = document.getElementById('translate-format-btn');
     const swapBtn = document.getElementById('translate-swap-btn');
     const fromSelect = document.getElementById('translate-from');
     const toSelect = document.getElementById('translate-to');
+    const input = document.getElementById('translate-input');
     
     if (translateBtn) translateBtn.addEventListener('click', doTranslate);
     if (copyBtn) copyBtn.addEventListener('click', copyTranslateResult);
+    
+    // 易译转化按钮
+    if (formatBtn && input) {
+        formatBtn.addEventListener('click', () => {
+            const originalText = input.value;
+            
+            // 检测当前格式
+            const hasUnderscore = originalText.includes('_');
+            const hasUppercase = /[A-Z]/.test(originalText);
+            
+            let formattedText;
+            
+            if (hasUnderscore || hasUppercase) {
+                // 转换为易译格式：大写→小写，下划线→空格
+                formattedText = originalText
+                    .replace(/_/g, ' ')
+                    .toLowerCase();
+                formatBtn.textContent = '🔠 还原格式';
+                formatBtn.classList.add('btn-primary');
+            } else {
+                // 还原原始格式：空格→下划线，首字母大写（简单处理）
+                formattedText = originalText
+                    .replace(/\s+/g, '_');
+                formatBtn.textContent = '🔠 易译转化';
+                formatBtn.classList.remove('btn-primary');
+            }
+            
+            input.value = formattedText;
+        });
+    }
     
     // 交换语言
     if (swapBtn && fromSelect && toSelect) {
@@ -3813,7 +3845,6 @@ function setupTranslate() {
     updateSwapButton();
     
     // Ctrl+Enter 快捷翻译
-    const input = document.getElementById('translate-input');
     if (input) {
         input.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.key === 'Enter') {
