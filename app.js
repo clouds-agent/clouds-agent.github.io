@@ -3775,6 +3775,9 @@ function copyTranslateResult() {
     status.textContent = '已复制到剪贴板';
 }
 
+// 翻译页原始文本缓存（用于易译转化还原）
+let translateOriginalText = null;
+
 // 初始化翻译功能
 function setupTranslate() {
     const translateBtn = document.getElementById('translate-btn');
@@ -3791,30 +3794,28 @@ function setupTranslate() {
     // 易译转化按钮
     if (formatBtn && input) {
         formatBtn.addEventListener('click', () => {
-            const originalText = input.value;
-            
-            // 检测当前格式
-            const hasUnderscore = originalText.includes('_');
-            const hasUppercase = /[A-Z]/.test(originalText);
-            
-            let formattedText;
-            
-            if (hasUnderscore || hasUppercase) {
-                // 转换为易译格式：大写→小写，下划线→空格
-                formattedText = originalText
+            if (translateOriginalText === null) {
+                // 保存原始文本，转换为易译格式
+                translateOriginalText = input.value;
+                input.value = translateOriginalText
                     .replace(/_/g, ' ')
                     .toLowerCase();
                 formatBtn.textContent = '🔠 还原格式';
                 formatBtn.classList.add('btn-primary');
             } else {
-                // 还原原始格式：空格→下划线，首字母大写（简单处理）
-                formattedText = originalText
-                    .replace(/\s+/g, '_');
+                // 还原原始文本
+                input.value = translateOriginalText;
+                translateOriginalText = null;
                 formatBtn.textContent = '🔠 易译转化';
                 formatBtn.classList.remove('btn-primary');
             }
-            
-            input.value = formattedText;
+        });
+        
+        // 输入框内容变化时重置缓存
+        input.addEventListener('input', () => {
+            translateOriginalText = null;
+            formatBtn.textContent = '🔠 易译转化';
+            formatBtn.classList.remove('btn-primary');
         });
     }
     
