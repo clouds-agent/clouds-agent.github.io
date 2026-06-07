@@ -3671,24 +3671,42 @@ function setupDanbooruExplorer() {
 
 // ============ 翻译功能 ============
 
-// 翻译文本（优先 Google，失败时切换 MyMemory）
+// 翻译文本（根据用户选择使用 API）
 async function translateText(text, from, to) {
     if (!text || !text.trim()) {
         return '';
     }
     
-    // 尝试 1: Google Translate（质量好）
+    // 根据用户选择决定使用哪个 API
+    if (translateApiChoice === 'google') {
+        // 只用 Google
+        return await translateWithGoogle(text, from, to);
+    } else if (translateApiChoice === 'mymemory') {
+        // 只用 MyMemory
+        return await translateWithMyMemory(text, from, to);
+    } else {
+        // 自动：优先 Google，失败切换 MyMemory
+        try {
+            return await translateWithGoogle(text, from, to);
+        } catch (e) {
+            console.log('Google 失败，切换到 MyMemory:', e.message);
+            return await translateWithMyMemory(text, from, to);
+        }
+    }
+}
+
+// Google Translate
+async function translateWithGoogle(text, from, to) {
+    const sourceLang = from === 'auto' ? 'auto' : from;
+    const url = `https://translate.googleapis.com/translate_a/t?client=gtx&sl=${sourceLang}&tl=${to}&q=${encodeURIComponent(text)}`;
+    
+    console.log('翻译请求 (Google):', url);
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    
     try {
-        const sourceLang = from === 'auto' ? 'auto' : from;
-        const googleUrl = `https://translate.googleapis.com/translate_a/t?client=gtx&sl=${sourceLang}&tl=${to}&q=${encodeURIComponent(text)}`;
-        
-        console.log('翻译请求 (Google):', googleUrl);
-        
-        // 10 秒超时（给手机网络更多时间）
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
-        
-        const response = await fetch(googleUrl, {
+        const response = await fetch(url, {
             signal: controller.signal,
             headers: { 'Accept': 'application/json' }
         });
@@ -3709,30 +3727,28 @@ async function translateText(text, from, to) {
         
         throw new Error('Google 翻译结果为空');
     } catch (e) {
-        console.log('Google 翻译失败，切换到 MyMemory:', e.message);
-    }
-    
-    // 尝试 2: MyMemory（备用，可访问性更好）
-    try {
-        const sourceLang = from === 'auto' ? 'autodetect' : from;
-        const myMemoryUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${sourceLang}|${to}`;
-        
-        console.log('翻译请求 (MyMemory):', myMemoryUrl);
-        
-        const response = await fetch(myMemoryUrl, { timeout: 5000 });
-        const data = await response.json();
-        
-        console.log('MyMemory 翻译响应:', data);
-        
-        if (data.responseStatus === 200 && data.responseData) {
-            return data.responseData.translatedText || '';
-        }
-        
-        throw new Error(data.responseDetails || 'MyMemory 翻译失败');
-    } catch (e) {
-        console.error('MyMemory 翻译失败:', e);
+        clearTimeout(timeoutId);
         throw e;
     }
+}
+
+// MyMemory
+async function translateWithMyMemory(text, from, to) {
+    const sourceLang = from === 'auto' ? 'autodetect' : from;
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${sourceLang}|${to}`;
+    
+    console.log('翻译请求 (MyMemory):', url);
+    
+    const response = await fetch(url, { timeout: 5000 });
+    const data = await response.json();
+    
+    console.log('MyMemory 翻译响应:', data);
+    
+    if (data.responseStatus === 200 && data.responseData) {
+        return data.responseData.translatedText || '';
+    }
+    
+    throw new Error(data.responseDetails || 'MyMemory 翻译失败');
 }
 
 // 执行翻译
@@ -3808,11 +3824,15 @@ function copyTranslateResult() {
 // 翻译页原始文本缓存（用于易译转化还原）
 let translateOriginalText = null;
 
+// 翻译 API 选择：'auto' | 'google' | 'mymemory'
+let translateApiChoice = 'auto';
+
 // 初始化翻译功能
 function setupTranslate() {
     const translateBtn = document.getElementById('translate-btn');
     const copyBtn = document.getElementById('translate-copy-btn');
     const formatBtn = document.getElementById('translate-format-btn');
+    const apiBtn = document.getElementById('translate-api-btn');
     const swapBtn = document.getElementById('translate-swap-btn');
     const fromSelect = document.getElementById('translate-from');
     const toSelect = document.getElementById('translate-to');
@@ -3820,6 +3840,25 @@ function setupTranslate() {
     
     if (translateBtn) translateBtn.addEventListener('click', doTranslate);
     if (copyBtn) copyBtn.addEventListener('click', copyTranslateResult);
+    
+    // API 切换按钮
+    if (apiBtn) {
+        apiBtn.addEventListener('click', () => {
+            // 循环切换：auto → google → mymemory → auto
+            if (translateApiChoice === 'auto') {
+                translateApiChoice = 'google';
+                apiBtn.textContent = 'API: Google';
+            } else if (translateApiChoice === 'google') {
+                translateApiChoice = 'mymemory';
+                apiBtn.textContent = 'API: MyMemory';
+            } else {
+                translateApiChoice = 'auto';
+                apiBtn.textContent = 'API: 自动';
+            }
+            apiBtn.classList.add('btn-primary');
+            setTimeout(() => apiBtn.classList.remove('btn-primary'), 300);
+        });
+    }
     
     // 易译转化按钮
     if (formatBtn && input) {
@@ -3830,13 +3869,13 @@ function setupTranslate() {
                 input.value = translateOriginalText
                     .replace(/_/g, ' ')
                     .toLowerCase();
-                formatBtn.textContent = '🔠 还原格式';
+                formatBtn.textContent = '还原格式';
                 formatBtn.classList.add('btn-primary');
             } else {
                 // 还原原始文本
                 input.value = translateOriginalText;
                 translateOriginalText = null;
-                formatBtn.textContent = '🔠 易译转化';
+                formatBtn.textContent = '格式转换';
                 formatBtn.classList.remove('btn-primary');
             }
         });
@@ -3844,7 +3883,7 @@ function setupTranslate() {
         // 输入框内容变化时重置缓存
         input.addEventListener('input', () => {
             translateOriginalText = null;
-            formatBtn.textContent = '🔠 易译转化';
+            formatBtn.textContent = '格式转换';
             formatBtn.classList.remove('btn-primary');
         });
     }

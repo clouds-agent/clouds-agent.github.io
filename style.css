@@ -2031,6 +2031,34 @@ input[type="password"]:focus {
     align-items: flex-end;
 }
 
+.translate-buttons {
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.translate-buttons .btn {
+    flex: 1;
+    min-width: calc(50% - 5px);
+    padding: 12px 16px;
+    font-size: 0.95rem;
+    white-space: nowrap;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+    .translate-buttons {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    
+    .translate-buttons .btn {
+        min-width: auto;
+        padding: 14px 12px;
+        font-size: 0.9rem;
+    }
+}
+
 .translate-box {
     flex: 1;
     display: flex;
