@@ -3566,19 +3566,26 @@ async function searchTagSuggestions(query) {
         return [];
     }
     
+    const apiUrl = `https://safebooru.donmai.us/tags.json?search[name_matches]=${encodeURIComponent(query)}*&limit=10`;
+    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(apiUrl)}`;
+    
+    console.log('搜索标签:', proxyUrl);
+    
+    // 使用 AbortController 实现超时
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
     try {
-        // 使用 CORS 代理避免跨域问题
-        const apiUrl = `https://safebooru.donmai.us/tags.json?search[name_matches]=${encodeURIComponent(query)}*&limit=10`;
-        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(apiUrl)}`;
-        
-        console.log('搜索标签:', proxyUrl);
-        
         const response = await fetch(proxyUrl, {
             headers: {
                 'Accept': 'application/json'
             },
-            timeout: 5000
+            signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
+        
+        console.log('API 响应状态:', response.status);
         
         if (!response.ok) {
             console.error('标签 API 失败:', response.status);
@@ -3594,7 +3601,8 @@ async function searchTagSuggestions(query) {
         
         return tags;
     } catch (e) {
-        console.error('搜索标签失败:', e);
+        clearTimeout(timeoutId);
+        console.error('搜索标签失败:', e.message);
         return [];
     }
 }
