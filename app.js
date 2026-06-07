@@ -3684,7 +3684,16 @@ async function translateText(text, from, to) {
         
         console.log('翻译请求 (Google):', googleUrl);
         
-        const response = await fetch(googleUrl, { timeout: 5000 });
+        // 10 秒超时（给手机网络更多时间）
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        
+        const response = await fetch(googleUrl, {
+            signal: controller.signal,
+            headers: { 'Accept': 'application/json' }
+        });
+        
+        clearTimeout(timeoutId);
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
@@ -3774,6 +3783,9 @@ async function doTranslate() {
         status.style.color = '#ff3b30';
         console.error('翻译错误:', e);
     }
+    
+    // 显示 API 使用提示（仅调试）
+    console.log('翻译完成，检查控制台日志了解使用的 API');
 }
 
 // 复制翻译结果
