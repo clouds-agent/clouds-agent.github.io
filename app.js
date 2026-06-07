@@ -3656,7 +3656,11 @@ async function translateText(text, from, to) {
         return '';
     }
     
-    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${from}|${to}`;
+    // 自动识别时使用空字符串作为源语言
+    const sourceLang = from === 'auto' ? '' : from;
+    const langPair = sourceLang ? `${sourceLang}|${to}` : `|${to}`;
+    
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${langPair}`;
     
     try {
         const response = await fetch(url);
