@@ -3468,6 +3468,11 @@ async function showPostDetailModal(postId) {
         document.getElementById('clear-selected-tags-btn').onclick = () => {
             selectedTagsSet.clear();
             updateSelectedTagsTextarea();
+            
+            // 移除所有词条的选中状态
+            document.querySelectorAll('.tag-item.selected').forEach(el => {
+                el.classList.remove('selected');
+            });
         };
         
         // 复制全标签按钮
