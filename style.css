@@ -2060,43 +2060,17 @@ input[type="password"]:focus {
     display: flex;
     align-items: center;
     gap: 8px;
-    color: #1d1d1f;
+    color: #000000;
     font-weight: 500;
-}
-
-@media (prefers-color-scheme: dark) {
-    .danbooru-pagination-bottom {
-        border-top-color: rgba(255,255,255,0.2);
-    }
-    .danbooru-page-info {
-        color: #ffffff;
-    }
 }
 
 #danbooru-page-input {
     padding: 6px 10px;
-    border: 1px solid rgba(150,150,150,0.5);
+    border: 1px solid rgba(0,0,0,0.2);
     border-radius: 6px;
     background: #ffffff;
-    color: #1d1d1f;
+    color: #000000;
     font-size: 0.95rem;
-}
-
-.danbooru-pagination-bottom #danbooru-page-input {
-    background: #ffffff;
-    color: #1d1d1f;
-}
-
-@media (prefers-color-scheme: dark) {
-    #danbooru-page-input {
-        background: rgba(255,255,255,0.1);
-        color: #ffffff;
-        border-color: rgba(255,255,255,0.3);
-    }
-    .danbooru-pagination-bottom #danbooru-page-input {
-        background: rgba(255,255,255,0.1);
-        color: #ffffff;
-    }
 }
 
 .danbooru-grid {
@@ -2195,10 +2169,10 @@ input[type="password"]:focus {
 
 .tag-item {
     padding: 6px 12px;
-    background: rgba(0, 122, 255, 0.3);
+    background: rgba(0, 122, 255, 0.25);
     border-radius: 16px;
     font-size: 0.85rem;
-    color: #1d1d1f;
+    color: #000000;
     cursor: pointer;
     transition: all 0.2s;
     user-select: none;
@@ -2208,23 +2182,13 @@ input[type="password"]:focus {
 }
 
 .tag-item:hover {
-    background: rgba(0, 122, 255, 0.5);
+    background: rgba(0, 122, 255, 0.4);
     transform: translateY(-1px);
 }
 
 .tag-item.selected {
-    background: rgba(52, 199, 89, 0.7);
+    background: rgba(52, 199, 89, 0.6);
     color: #ffffff;
-}
-
-@media (prefers-color-scheme: dark) {
-    .tag-item {
-        background: rgba(0, 122, 255, 0.2);
-        color: #ffffff;
-    }
-    .tag-item:hover {
-        background: rgba(0, 122, 255, 0.4);
-    }
 }
 
 /* 已选词条区域 */
@@ -2276,24 +2240,13 @@ input[type="password"]:focus {
 
 /* 分页按钮特定样式 */
 .danbooru-pagination-bottom .btn {
-    background: #f5f5f7;
-    color: #1d1d1f;
-    border: 1px solid rgba(0,0,0,0.1);
+    background: #e8e8ed;
+    color: #000000;
+    border: 1px solid rgba(0,0,0,0.15);
 }
 
 .danbooru-pagination-bottom .btn:hover {
-    background: #e8e8ed;
-}
-
-@media (prefers-color-scheme: dark) {
-    .danbooru-pagination-bottom .btn {
-        background: rgba(255,255,255,0.1);
-        color: #ffffff;
-        border-color: rgba(255,255,255,0.2);
-    }
-    .danbooru-pagination-bottom .btn:hover {
-        background: rgba(255,255,255,0.15);
-    }
+    background: #d0d0d5;
 }
 
 /* 响应式 */

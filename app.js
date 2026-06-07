@@ -3534,14 +3534,12 @@ async function loadDanbooruPage(page) {
     if (page < 1) page = 1;
     
     const statusEl = document.getElementById('danbooru-status');
-    statusEl.textContent = `加载中 (第 ${page} 页)...`;
     
     try {
         const posts = await searchDanbooruPosts(danbooruCurrentTags, page);
         
         if (posts.length === 0) {
             showToast('已经是最后一页了');
-            statusEl.textContent = '';
             return;
         }
         
@@ -3551,8 +3549,6 @@ async function loadDanbooruPage(page) {
         // 渲染
         renderPostGrid(posts);
         updateDanbooruPagination();
-        
-        statusEl.textContent = '';
         
     } catch (e) {
         console.error('加载失败:', e);
