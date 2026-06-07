@@ -3708,7 +3708,7 @@ async function translateWithGoogle(text, from, to) {
     console.log('翻译请求 (Google):', url);
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
     
     try {
         const response = await fetch(url, {
@@ -3744,6 +3744,8 @@ async function translateWithLibre(text, from, to) {
         'https://translate.asterisk.xyz/translate'
     ];
     
+    let lastError = null;
+    
     for (const baseUrl of instances) {
         try {
             console.log('翻译请求 (LibreTranslate):', baseUrl);
@@ -3773,16 +3775,20 @@ async function translateWithLibre(text, from, to) {
             console.log('LibreTranslate 响应:', data);
             
             if (data.translatedText) {
+                console.log('LibreTranslate 翻译成功:', baseUrl);
                 return data.translatedText;
             }
             
-            throw new Error('LibreTranslate 返回空结果');
+            throw new Error('返回空结果');
         } catch (e) {
-            console.log(`LibreTranslate ${baseUrl} 失败，尝试下一个：${e.message}`);
+            lastError = e;
+            console.log(`LibreTranslate ${baseUrl} 失败：${e.message}`);
+            // 继续尝试下一个实例
         }
     }
     
-    throw new Error('所有 LibreTranslate 实例都失败');
+    // 所有实例都失败
+    throw new Error(`LibreTranslate 所有实例失败：${lastError?.message || '未知错误'}`);
 }
 
 // MyMemory
