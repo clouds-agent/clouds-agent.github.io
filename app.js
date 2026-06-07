@@ -3476,6 +3476,27 @@ async function showPostDetailModal(postId) {
             });
         };
         
+        // 转翻译按钮
+        document.getElementById('translate-selected-tags-btn').onclick = () => {
+            const text = Array.from(selectedTagsSet).join(', ');
+            if (!text.trim()) {
+                showToast('没有已选词条');
+                return;
+            }
+            
+            // 切换到翻译页
+            switchPage('translate');
+            
+            // 填充文本并自动翻译
+            setTimeout(() => {
+                const input = document.getElementById('translate-input');
+                if (input) {
+                    input.value = text;
+                    doTranslate();
+                }
+            }, 300);
+        };
+        
         // 复制全标签按钮
         document.getElementById('copy-all-tags-btn').onclick = () => {
             const text = allTagsFlat.join(', ');
