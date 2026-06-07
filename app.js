@@ -3119,6 +3119,7 @@ function init() {
     setupStats();
     setupGallery();
     setupDanbooruExplorer();
+    setupTranslate();
     loadHotTags();
     
     // 新增：用户点赞相关
@@ -3643,6 +3644,95 @@ function setupDanbooruExplorer() {
     if (input) {
         input.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') searchDanbooru();
+        });
+    }
+}
+
+// ============ 翻译功能 ============
+
+// 翻译文本
+async function translateText(text, from, to) {
+    if (!text || !text.trim()) {
+        return '';
+    }
+    
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${from}|${to}`;
+    
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.responseStatus === 200 && data.responseData) {
+            return data.responseData.translatedText;
+        } else {
+            throw new Error(data.responseDetails || '翻译失败');
+        }
+    } catch (e) {
+        console.error('翻译失败:', e);
+        throw e;
+    }
+}
+
+// 执行翻译
+async function doTranslate() {
+    const input = document.getElementById('translate-input');
+    const output = document.getElementById('translate-output');
+    const status = document.getElementById('translate-status');
+    const fromLang = document.getElementById('translate-from').value;
+    const toLang = document.getElementById('translate-to').value;
+    
+    if (!input || !output || !status) return;
+    
+    const text = input.value.trim();
+    if (!text) {
+        status.textContent = '请输入要翻译的内容';
+        return;
+    }
+    
+    status.textContent = '翻译中...';
+    output.value = '';
+    
+    try {
+        const result = await translateText(text, fromLang, toLang);
+        output.value = result;
+        status.textContent = '翻译完成';
+    } catch (e) {
+        status.textContent = `翻译失败：${e.message}`;
+    }
+}
+
+// 复制翻译结果
+function copyTranslateResult() {
+    const output = document.getElementById('translate-output');
+    const status = document.getElementById('translate-status');
+    
+    if (!output || !status) return;
+    
+    const text = output.value.trim();
+    if (!text) {
+        status.textContent = '没有可复制的内容';
+        return;
+    }
+    
+    navigator.clipboard.writeText(text);
+    status.textContent = '已复制到剪贴板';
+}
+
+// 初始化翻译功能
+function setupTranslate() {
+    const translateBtn = document.getElementById('translate-btn');
+    const copyBtn = document.getElementById('translate-copy-btn');
+    
+    if (translateBtn) translateBtn.addEventListener('click', doTranslate);
+    if (copyBtn) copyBtn.addEventListener('click', copyTranslateResult);
+    
+    // Ctrl+Enter 快捷翻译
+    const input = document.getElementById('translate-input');
+    if (input) {
+        input.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') {
+                doTranslate();
+            }
         });
     }
 }
