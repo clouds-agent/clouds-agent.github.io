@@ -3868,6 +3868,7 @@ function setupTranslate() {
                 translateOriginalText = input.value;
                 input.value = translateOriginalText
                     .replace(/_/g, ' ')
+                    .replace(/,/g, ',')  // 中文逗号转英文逗号
                     .toLowerCase();
                 formatBtn.textContent = '还原格式';
                 formatBtn.classList.add('btn-primary');
@@ -3875,7 +3876,7 @@ function setupTranslate() {
                 // 还原原始文本
                 input.value = translateOriginalText;
                 translateOriginalText = null;
-                formatBtn.textContent = '格式转换';
+                formatBtn.textContent = '易译转化';
                 formatBtn.classList.remove('btn-primary');
             }
         });
@@ -3883,7 +3884,7 @@ function setupTranslate() {
         // 输入框内容变化时重置缓存
         input.addEventListener('input', () => {
             translateOriginalText = null;
-            formatBtn.textContent = '格式转换';
+            formatBtn.textContent = '易译转化';
             formatBtn.classList.remove('btn-primary');
         });
     }
