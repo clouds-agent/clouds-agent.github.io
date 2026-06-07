@@ -1975,3 +1975,170 @@ input[type="password"]:focus {
         flex: 100%;
     }
 }
+
+/* 隐藏工具页面样式 */
+.hidden-links {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.hidden-link-item {
+    padding: 1.5rem;
+    background: rgba(255,255,255,0.03);
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.hidden-link-item h4 {
+    margin: 0 0 0.5rem 0;
+    color: #ffffff;
+    font-size: 1.1rem;
+}
+
+.hidden-link-item p {
+    margin: 0 0 1rem 0;
+    color: #86868b;
+    font-size: 0.9rem;
+}
+
+.hidden-link {
+    display: block;
+    padding: 0.75rem 1rem;
+    background: rgba(0,122,255,0.1);
+    border-radius: 8px;
+    color: #007aff;
+    text-decoration: none;
+    word-break: break-all;
+    transition: all 0.2s;
+}
+
+.hidden-link:hover {
+    background: rgba(0,122,255,0.2);
+    color: #007aff;
+}
+
+/* Danbooru 探索页面样式 */
+.danbooru-search-box {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 1.5rem;
+}
+
+#danbooru-search-input {
+    flex: 1;
+    padding: 0.75rem;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    font-size: 1rem;
+}
+
+.danbooru-pagination {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.danbooru-page-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #86868b;
+}
+
+#danbooru-page-input {
+    padding: 4px 8px;
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+    background: #1d1d1f;
+    color: #ffffff;
+}
+
+.danbooru-count {
+    color: #86868b;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.danbooru-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+}
+
+.danbooru-item {
+    aspect-ratio: 1;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.danbooru-item:hover {
+    transform: scale(1.05);
+}
+
+.danbooru-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Danbooru 详情弹窗 */
+.danbooru-detail-modal {
+    max-width: 900px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.danbooru-detail-body {
+    padding: 24px;
+}
+
+#detail-image {
+    width: 100%;
+    max-height: 60vh;
+    object-fit: contain;
+    border-radius: 8px;
+    background: #000;
+}
+
+.detail-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin: 16px 0;
+    padding: 16px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 8px;
+}
+
+.detail-info-grid strong {
+    color: #86868b;
+}
+
+.detail-tags {
+    margin: 16px 0;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .danbooru-search-box {
+        flex-direction: column;
+    }
+    
+    .danbooru-pagination {
+        flex-wrap: wrap;
+    }
+    
+    .danbooru-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    }
+    
+    .detail-info-grid {
+        grid-template-columns: 1fr;
+    }
+}

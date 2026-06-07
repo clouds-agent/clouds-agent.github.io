@@ -3118,7 +3118,7 @@ function init() {
     setupCheckin();
     setupStats();
     setupGallery();
-    setupDanbooruConverter();
+    setupDanbooruExplorer();
     loadHotTags();
     
     // 新增：用户点赞相关
@@ -3326,232 +3326,258 @@ document.addEventListener('click', (e) => {
 
 
 
-// ============ D 站 tag 转换 ============
+// ============ Danbooru 标签探索 ============
 
-let validatedTagsCache = [];
+let danbooruCurrentPage = 1;
+let danbooruCurrentTags = [];
+let danbooruAllPosts = [];
+const DANBOoru_POSTS_PER_PAGE = 20;
+const DANBOORU_MAX_POSTS = 200;
 
-// 系统提示词
-const DANBOORU_SYSTEM_PROMPT = `你是一个专业的 Danbooru 标签生成器。
-
-任务：将中文自然语言描述拆解成 Danbooru 风格的英文标签。
-
-规则：
-1. 理解描述的核心概念
-2. 拆解成多个视觉属性（服装、发型、姿势、材质等）
-3. 优先使用现有 Danbooru 标签
-4. 如果没有现成标签，创造合理的复合标签（用下划线连接）
-5. 输出格式：tag1, tag2, tag3, ...
-6. 不要输出任何解释，只输出标签列表
-
-示例 1:
-输入："穿着生态瓶形状裙子的女孩"
-输出："1girl, dress, terrarium_dress, glass_dress, transparent_dress, plant_print, inside_dress, miniature_garden, bell-shaped_skirt, voluminous_skirt, nature_motif"
-
-示例 2:
-输入："白发红瞳的龙女仆拿着剑"
-输出："1girl, dragon_girl, maid_dress, white_hair, red_eyes, holding, sword, dragon_tail, dragon_horns, maid_headdress"
-
-示例 3:
-输入："头上带有血条的呆萌 RPG 士兵女孩"
-输出："1girl, soldier, military_uniform, cute, moe, health_bar, hp_bar, above_head, game_ui, ui_element, weapon, helmet, military, video_game_elements, rpg_theme"
-
-现在请处理用户的输入。`;
-
-// 转换中文为 Danbooru 标签
-async function convertChineseToTags(chinese) {
-    const statusEl = document.getElementById('convert-status');
-    
-    if (!chinese || !chinese.trim()) {
-        showToast('请输入中文描述');
-        return null;
-    }
-    
-    statusEl.textContent = '正在转换...';
-    statusEl.style.display = 'block';
-    
-    try {
-        // 使用 OpenClaw Gateway API（仅 CLOUDS 可用，内网地址）
-        const gatewayUrl = 'http://10.187.114.130:18789';
-        
-        const response = await fetch(`${gatewayUrl}/api/chat/completions`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                model: 'gpt-3.5-turbo',  // 使用 Gateway 配置的模型
-                messages: [
-                    { role: 'system', content: DANBOORU_SYSTEM_PROMPT },
-                    { role: 'user', content: chinese }
-                ],
-                temperature: 0.7,
-                max_tokens: 500
-            })
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Gateway 请求失败：${response.status}`);
-        }
-        
-        const data = await response.json();
-        const tags = data.choices?.[0]?.message?.content?.trim();
-        
-        if (!tags) {
-            throw new Error('Gateway 返回空结果');
-        }
-        
-        return tags;
-        
-    } catch (e) {
-        console.error('转换失败:', e);
-        statusEl.textContent = `转换失败：${e.message}。请确保 OpenClaw Gateway 正在运行且可访问。`;
-        return null;
-    }
-}
-
-// 验证标签是否存在
-async function validateTags(tags) {
-    const tagList = tags.split(',').map(t => t.trim()).filter(t => t);
-    
-    statusEl.textContent = `正在验证标签 (0/${tagList.length})...`;
-    
-    // 并行请求所有标签
-    const results = await Promise.all(
-        tagList.map(async (tag, index) => {
-            try {
-                const res = await fetch(
-                    `https://danbooru.donmai.us/tags.json?search[name]=${encodeURIComponent(tag)}`
-                );
-                const data = await res.json();
-                
-                statusEl.textContent = `正在验证标签 (${index + 1}/${tagList.length})...`;
-                
-                if (data.length > 0) {
-                    return {
-                        tag: tag,
-                        exists: true,
-                        count: data[0].count,
-                        category: data[0].category,
-                        category_name: getCategoryName(data[0].category)
-                    };
-                } else {
-                    return {
-                        tag: tag,
-                        exists: false,
-                        count: 0,
-                        category: null,
-                        category_name: '自定义'
-                    };
-                }
-            } catch (e) {
-                console.error(`验证标签 ${tag} 失败:`, e);
-                return {
-                    tag: tag,
-                    exists: false,
-                    count: 0,
-                    category: null,
-                    category_name: '验证失败',
-                    error: e.message
-                };
-            }
-        })
+// 搜索图片
+async function searchDanbooruPosts(tags, page = 1) {
+    const response = await fetch(
+        `https://danbooru.donmai.us/posts.json?tags=${tags.join('+')}&limit=${DANBOoru_POSTS_PER_PAGE}&page=${page}`
     );
     
-    return results;
-}
-
-function getCategoryName(category) {
-    const names = {
-        0: '一般',
-        1: '画师',
-        2: '角色',
-        3: '版权',
-        4: '元标签'
-    };
-    return names[category] || '未知';
-}
-
-// 显示验证结果
-function showValidationResult(validatedTags) {
-    const outputContainer = document.getElementById('output-container');
-    const validationEl = document.getElementById('validation-result');
-    const existsTagsEl = document.getElementById('exists-tags');
-    const customTagsEl = document.getElementById('custom-tags');
-    
-    const exists = validatedTags.filter(t => t.exists);
-    const custom = validatedTags.filter(t => !t.exists);
-    
-    existsTagsEl.textContent = exists.map(t => t.tag).join(', ');
-    customTagsEl.textContent = custom.map(t => t.tag).join(', ');
-    
-    if (exists.length > 0 || custom.length > 0) {
-        validationEl.style.display = 'block';
+    if (!response.ok) {
+        throw new Error(`API 请求失败：${response.status}`);
     }
     
-    validatedTagsCache = validatedTags;
+    const posts = await response.json();
+    return posts;
 }
 
-// 复制标签
-function copyTags() {
-    const outputEl = document.getElementById('tag-output');
-    if (outputEl && outputEl.value) {
-        navigator.clipboard.writeText(outputEl.value);
-        showToast('标签已复制');
-    }
-}
-
-// 仅复制存在的标签
-function copyExistsTags() {
-    if (validatedTagsCache.length > 0) {
-        const exists = validatedTagsCache.filter(t => t.exists);
-        if (exists.length > 0) {
-            const text = exists.map(t => t.tag).join(', ');
-            navigator.clipboard.writeText(text);
-            showToast(`已复制 ${exists.length} 个存在的标签`);
-        } else {
-            showToast('没有存在的标签');
-        }
-    }
-}
-
-// 初始化 D 站 tag 转换
-function setupDanbooruConverter() {
-    const convertBtn = document.getElementById('convert-btn');
-    const chineseInput = document.getElementById('chinese-input');
-    const tagOutput = document.getElementById('tag-output');
-    const outputContainer = document.getElementById('output-container');
-    const validationEl = document.getElementById('validation-result');
-    const statusEl = document.getElementById('convert-status');
+// 获取帖子详情
+async function getPostDetail(postId) {
+    const response = await fetch(
+        `https://danbooru.donmai.us/posts/${postId}.json`
+    );
     
-    if (!convertBtn || !chineseInput || !tagOutput) {
-        console.warn('D 站 tag 转换元素不存在');
-        return;
+    if (!response.ok) {
+        throw new Error(`获取详情失败：${response.status}`);
     }
     
-    convertBtn.addEventListener('click', async () => {
-        const chinese = chineseInput.value.trim();
+    return await response.json();
+}
+
+// 渲染图片网格
+function renderPostGrid(posts) {
+    const grid = document.getElementById('danbooru-grid');
+    if (!grid) return;
+    
+    grid.innerHTML = '';
+    
+    posts.forEach(post => {
+        const item = document.createElement('div');
+        item.className = 'danbooru-item';
         
-        if (!chinese) {
-            showToast('请输入中文描述');
-            return;
-        }
+        const img = document.createElement('img');
+        img.src = post.preview_file_url || post.file_url;
+        img.alt = post.tag_string_general;
+        img.loading = 'lazy';
+        img.addEventListener('click', () => showPostDetailModal(post.id));
         
-        // 转换
-        const tags = await convertChineseToTags(chinese);
-        
-        if (tags) {
-            tagOutput.value = tags;
-            outputContainer.style.display = 'block';
-            statusEl.textContent = '转换完成！';
-            
-            // 验证标签
-            const validated = await validateTags(tags);
-            showValidationResult(validated);
-            
-            statusEl.textContent = `验证完成！${validated.filter(t => t.exists).length} 个标签存在，${validated.filter(t => !t.exists).length} 个自定义标签`;
-        }
+        item.appendChild(img);
+        grid.appendChild(item);
     });
 }
 
-// 在 init 函数中调用
-// setupDanbooruConverter();
+// 显示帖子详情弹窗
+async function showPostDetailModal(postId) {
+    const modal = document.getElementById('danbooru-detail-modal');
+    const statusEl = document.getElementById('detail-status');
+    
+    if (!modal) return;
+    
+    statusEl.textContent = '加载详情中...';
+    modal.style.display = 'block';
+    
+    try {
+        const post = await getPostDetail(postId);
+        
+        // 大图片
+        document.getElementById('detail-image').src = post.large_file_url || post.file_url;
+        
+        // 信息
+        document.getElementById('detail-id').textContent = post.id;
+        document.getElementById('detail-resolution').textContent = `${post.image_width}x${post.image_height}`;
+        document.getElementById('detail-score').textContent = post.score;
+        document.getElementById('detail-favs').textContent = post.fav_count || 0;
+        
+        // 标签分类
+        const categories = {
+            '一般': (post.tag_string_general || '').split(' ').filter(t => t),
+            '角色': (post.tag_string_character || '').split(' ').filter(t => t),
+            '画师': (post.tag_string_artist || '').split(' ').filter(t => t),
+            '版权': (post.tag_string_copyright || '').split(' ').filter(t => t),
+            '元标签': (post.tag_string_meta || '').split(' ').filter(t => t)
+        };
+        
+        let tagsHTML = '';
+        for (const [cat, tags] of Object.entries(categories)) {
+            if (tags.length > 0) {
+                tagsHTML += `
+                    <div class="tag-category">
+                        <strong>${cat} (${tags.length}):</strong>
+                        <span class="tag-list">${tags.join(', ')}</span>
+                    </div>
+                `;
+            }
+        }
+        document.getElementById('detail-tags').innerHTML = tagsHTML;
+        
+        // 复制按钮
+        document.getElementById('copy-tags-btn').onclick = () => {
+            const allTags = [
+                ...categories.一般,
+                ...categories.角色,
+                ...categories.画师,
+                ...categories.版权
+            ].join(', ');
+            
+            navigator.clipboard.writeText(allTags);
+            showToast('标签已复制');
+        };
+        
+        // 原链接
+        document.getElementById('open-danbooru-btn').onclick = () => {
+            window.open(`https://danbooru.donmai.us/posts/${post.id}`, '_blank');
+        };
+        
+        statusEl.textContent = '';
+        
+    } catch (e) {
+        console.error('加载详情失败:', e);
+        statusEl.textContent = `加载失败：${e.message}`;
+    }
+}
+
+// 关闭详情弹窗
+function closeDanbooruDetailModal() {
+    const modal = document.getElementById('danbooru-detail-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// 更新分页 UI
+function updateDanbooruPagination() {
+    const pageEl = document.getElementById('danbooru-current-page');
+    const inputEl = document.getElementById('danbooru-page-input');
+    const countEl = document.getElementById('danbooru-post-count');
+    
+    if (pageEl) pageEl.textContent = danbooruCurrentPage;
+    if (inputEl) inputEl.value = danbooruCurrentPage;
+    if (countEl) countEl.textContent = `已加载 ${danbooruCurrentPage} 页，共 ${danbooruAllPosts.length} 张图片`;
+}
+
+// 加载指定页
+async function loadDanbooruPage(page) {
+    if (page < 1) page = 1;
+    
+    const statusEl = document.getElementById('danbooru-status');
+    statusEl.textContent = `加载中 (第 ${page} 页)...`;
+    
+    try {
+        const posts = await searchDanbooruPosts(danbooruCurrentTags, page);
+        
+        if (posts.length === 0) {
+            showToast('已经是最后一页了');
+            statusEl.textContent = '';
+            return;
+        }
+        
+        // 累积所有帖子
+        danbooruAllPosts.push(...posts);
+        danbooruCurrentPage = page;
+        
+        // 渲染
+        renderPostGrid(danbooruAllPosts);
+        updateDanbooruPagination();
+        
+        statusEl.textContent = '';
+        
+    } catch (e) {
+        console.error('加载失败:', e);
+        statusEl.textContent = `加载失败：${e.message}`;
+    }
+}
+
+// 搜索
+async function searchDanbooru() {
+    const input = document.getElementById('danbooru-search-input');
+    const tags = input.value.split(/[\s,]+/).filter(t => t);
+    
+    if (tags.length === 0) {
+        showToast('请输入标签');
+        return;
+    }
+    
+    danbooruCurrentTags = tags;
+    danbooruAllPosts = [];
+    danbooruCurrentPage = 1;
+    
+    await loadDanbooruPage(1);
+}
+
+// 上一页
+function danbooruPrevPage() {
+    if (danbooruCurrentPage > 1) {
+        loadDanbooruPage(danbooruCurrentPage - 1);
+    }
+}
+
+// 下一页
+function danbooruNextPage() {
+    if (danbooruAllPosts.length >= DANBOORU_MAX_POSTS) {
+        showToast(`已加载 ${DANBOORU_MAX_POSTS} 张，达到上限`);
+        return;
+    }
+    loadDanbooruPage(danbooruCurrentPage + 1);
+}
+
+// 跳页
+function danbooruJumpToPage() {
+    const input = document.getElementById('danbooru-page-input');
+    const targetPage = parseInt(input.value);
+    
+    if (targetPage && targetPage > 0) {
+        loadDanbooruPage(targetPage);
+    }
+}
+
+// 清空
+function clearDanbooruResults() {
+    danbooruCurrentTags = [];
+    danbooruAllPosts = [];
+    danbooruCurrentPage = 1;
+    
+    const grid = document.getElementById('danbooru-grid');
+    if (grid) grid.innerHTML = '';
+    
+    updateDanbooruPagination();
+}
+
+// 初始化 Danbooru 探索
+function setupDanbooruExplorer() {
+    const searchBtn = document.getElementById('danbooru-search-btn');
+    const prevBtn = document.getElementById('danbooru-prev-btn');
+    const nextBtn = document.getElementById('danbooru-next-btn');
+    const jumpBtn = document.getElementById('danbooru-jump-btn');
+    const clearBtn = document.getElementById('danbooru-clear-btn');
+    
+    if (searchBtn) searchBtn.addEventListener('click', searchDanbooru);
+    if (prevBtn) prevBtn.addEventListener('click', danbooruPrevPage);
+    if (nextBtn) nextBtn.addEventListener('click', danbooruNextPage);
+    if (jumpBtn) jumpBtn.addEventListener('click', danbooruJumpToPage);
+    if (clearBtn) clearBtn.addEventListener('click', clearDanbooruResults);
+    
+    // 回车搜索
+    const input = document.getElementById('danbooru-search-input');
+    if (input) {
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') searchDanbooru();
+        });
+    }
+}

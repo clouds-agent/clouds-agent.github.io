@@ -153,41 +153,34 @@
             </div>
         </section>
 
-        <!-- D 站 tag 转换页 -->
+        <!-- Danbooru 标签探索页 -->
         <section id="danbooru" class="section">
             <div class="card">
-                <h3>🏷️ 中文转 Danbooru 标签</h3>
-                <p class="danbooru-desc">输入中文描述，自动转换成 Danbooru 风格的英文标签</p>
+                <h3>🔍 Danbooru 标签探索</h3>
+                <p class="danbooru-desc">输入 Danbooru 标签，搜索相关图片并发现更多标签</p>
                 
-                <div class="danbooru-input-group">
-                    <label>中文描述：</label>
-                    <textarea id="chinese-input" placeholder="例如：穿着生态瓶形状裙子的女孩，坐在樱花树下"></textarea>
+                <div class="danbooru-search-box">
+                    <input type="text" id="danbooru-search-input" placeholder="输入标签，如：1girl sitting blue_hair" autocomplete="off" />
+                    <button id="danbooru-search-btn" class="btn btn-primary">🔍 搜索</button>
                 </div>
                 
-                <button id="convert-btn" class="btn btn-primary">🔄 转换</button>
-                
-                <div class="danbooru-output-group" id="output-container" style="display:none">
-                    <label>转换结果：</label>
-                    <textarea id="tag-output" readonly></textarea>
-                    
-                    <div class="validation-result" id="validation-result" style="display:none">
-                        <div class="tag-category">
-                            <span class="badge success">✅ 存在的标签</span>
-                            <div class="tag-list" id="exists-tags"></div>
-                        </div>
-                        <div class="tag-category">
-                            <span class="badge warning">⚠️ 自定义标签</span>
-                            <div class="tag-list" id="custom-tags"></div>
-                        </div>
-                    </div>
-                    
-                    <div class="button-group">
-                        <button onclick="copyTags()" class="btn">📋 复制全部</button>
-                        <button onclick="copyExistsTags()" class="btn">📋 仅复制存在的</button>
-                    </div>
+                <!-- 分页导航 -->
+                <div class="danbooru-pagination">
+                    <button id="danbooru-prev-btn" class="btn btn-secondary">◀ 上一页</button>
+                    <span class="danbooru-page-info">
+                        第 <span id="danbooru-current-page">1</span> 页
+                        <input type="number" id="danbooru-page-input" min="1" value="1" style="width:60px" />
+                        <button id="danbooru-jump-btn" class="btn btn-secondary">跳转</button>
+                    </span>
+                    <button id="danbooru-next-btn" class="btn btn-secondary">下一页 ▶</button>
+                    <button id="danbooru-clear-btn" class="btn btn-secondary" style="margin-left:auto">清空</button>
                 </div>
                 
-                <div id="convert-status" class="status"></div>
+                <div id="danbooru-status" class="status"></div>
+                <div id="danbooru-post-count" class="danbooru-count">已加载 0 页，共 0 张图片</div>
+                
+                <!-- 图片网格 -->
+                <div id="danbooru-grid" class="danbooru-grid"></div>
             </div>
         </section>
     </main>
@@ -215,6 +208,36 @@
                     </button>
                 </div>
                 <div class="detail-prompts-box" id="detail-prompts"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Danbooru 图片详情弹窗 -->
+    <div id="danbooru-detail-modal" class="modal" onclick="if(event.target===this)closeDanbooruDetailModal()">
+        <div class="modal-content danbooru-detail-modal">
+            <div class="modal-header">
+                <h3>🖼️ 图片详情</h3>
+                <button class="modal-close" onclick="closeDanbooruDetailModal()">×</button>
+            </div>
+            <div class="danbooru-detail-body">
+                <img id="detail-image" src="" alt="Detail" />
+                <div id="detail-status" class="status"></div>
+                
+                <div class="detail-info-grid">
+                    <div><strong>ID:</strong> <span id="detail-id">-</span></div>
+                    <div><strong>分辨率:</strong> <span id="detail-resolution">-</span></div>
+                    <div><strong>评分:</strong> <span id="detail-score">-</span> ⭐</div>
+                    <div><strong>收藏:</strong> <span id="detail-favs">-</span> ❤️</div>
+                </div>
+                
+                <div class="divider"></div>
+                
+                <div id="detail-tags" class="detail-tags"></div>
+                
+                <div class="button-group">
+                    <button id="copy-tags-btn" class="btn">📋 复制标签</button>
+                    <button id="open-danbooru-btn" class="btn">🔗 打开原链接</button>
+                </div>
             </div>
         </div>
     </div>
@@ -314,14 +337,26 @@
         </div>
     </div>
 
-        <!-- Kards 工具页 -->
+        <!-- Kards 工具页（隐藏图标） -->
         <section id="kards" class="section">
             <div class="card">
-                <h3>Kards DIY 工具</h3>
-                <p class="kards-desc">点击下方链接访问 Kards 卡牌 DIY 制作器</p>
-                <a href="https://ohminecraftlauncher.github.io/DIY/" target="_blank" class="kards-link">
-                    https://ohminecraftlauncher.github.io/DIY/
-                </a>
+                <h3>隐藏工具</h3>
+                <div class="hidden-links">
+                    <div class="hidden-link-item">
+                        <h4>Kards DIY 工具</h4>
+                        <p>点击下方链接访问 Kards 卡牌 DIY 制作器</p>
+                        <a href="https://ohminecraftlauncher.github.io/DIY/" target="_blank" class="hidden-link">
+                            https://ohminecraftlauncher.github.io/DIY/
+                        </a>
+                    </div>
+                    <div class="hidden-link-item">
+                        <h4>Safebooru</h4>
+                        <p>安全的 Danbooru 镜像站（无 R18 内容）</p>
+                        <a href="https://safebooru.donmai.us/" target="_blank" class="hidden-link">
+                            https://safebooru.donmai.us/
+                        </a>
+                    </div>
+                </div>
             </div>
         </section>
     </main>
@@ -355,6 +390,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260520v117"></script>
+    <script src="app.js?v=20260520v118"></script>
 </body>
 </html>
