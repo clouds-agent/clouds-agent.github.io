@@ -3650,36 +3650,40 @@ function setupDanbooruExplorer() {
 
 // ============ 翻译功能 ============
 
-// 翻译文本
+// 翻译文本（使用 Google Translate 非官方 API）
 async function translateText(text, from, to) {
     if (!text || !text.trim()) {
         return '';
     }
     
-    // 自动识别时使用 autodetect
-    const sourceLang = from === 'auto' ? 'autodetect' : from;
-    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${sourceLang}|${to}`;
+    // 自动识别时使用 auto
+    const sourceLang = from === 'auto' ? 'auto' : from;
+    const url = `https://translate.googleapis.com/translate_a/t?client=gtx&sl=${sourceLang}&tl=${to}&q=${encodeURIComponent(text)}`;
     
     console.log('翻译请求:', url);
     
     try {
         const response = await fetch(url);
-        const data = await response.json();
         
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
         console.log('翻译响应:', data);
         
-        if (data.responseStatus !== 200 || !data.responseData) {
-            throw new Error(data.responseDetails || data.responseStatus || '翻译失败');
+        // Google 返回格式：["翻译结果"] 或 [["翻译结果", "原文"], ...]
+        if (Array.isArray(data) && data.length > 0) {
+            if (Array.isArray(data[0])) {
+                // 详细格式：[[translation, original], ...]
+                return data[0][0] || '';
+            } else {
+                // 简单格式：["translation"]
+                return data[0] || '';
+            }
         }
         
-        const result = data.responseData.translatedText;
-        
-        // 显示检测到的语言（如果是自动识别）
-        if (from === 'auto' && data.responseData.detectedLanguage) {
-            console.log('检测到语言:', data.responseData.detectedLanguage);
-        }
-        
-        return result || '';
+        throw new Error('翻译结果为空');
     } catch (e) {
         console.error('翻译失败:', e);
         throw e;
@@ -3719,11 +3723,11 @@ async function doTranslate() {
         output.value = result;
         
         // 检查是否返回原文（可能是未翻译）
-        if (result === text) {
+        if (result === text || !result) {
             status.textContent = '翻译完成（API 返回原文，可能无对应翻译）';
             status.style.color = '#ff9500';
         } else {
-            status.textContent = '翻译完成';
+            status.textContent = '翻译完成 ✓';
             status.style.color = '#34c759';
         }
     } catch (e) {
