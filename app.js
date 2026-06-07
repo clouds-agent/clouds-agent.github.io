@@ -3334,10 +3334,10 @@ let danbooruAllPosts = [];
 const DANBOoru_POSTS_PER_PAGE = 20;
 const DANBOORU_MAX_POSTS = 200;
 
-// 搜索图片
+// 搜索图片（使用 Safebooru API，国内可访问）
 async function searchDanbooruPosts(tags, page = 1) {
     const response = await fetch(
-        `https://danbooru.donmai.us/posts.json?tags=${tags.join('+')}&limit=${DANBOoru_POSTS_PER_PAGE}&page=${page}`
+        `https://safebooru.donmai.us/posts.json?tags=${tags.join('+')}&limit=${DANBOoru_POSTS_PER_PAGE}&page=${page}`
     );
     
     if (!response.ok) {
@@ -3351,7 +3351,7 @@ async function searchDanbooruPosts(tags, page = 1) {
 // 获取帖子详情
 async function getPostDetail(postId) {
     const response = await fetch(
-        `https://danbooru.donmai.us/posts/${postId}.json`
+        `https://safebooru.donmai.us/posts/${postId}.json`
     );
     
     if (!response.ok) {
