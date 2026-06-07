@@ -2039,19 +2039,20 @@ input[type="password"]:focus {
     position: absolute;
     top: 100%;
     left: 0;
-    right: 60px;
+    width: calc(100% - 80px);
     max-height: 300px;
     overflow-y: auto;
     background: #ffffff;
     border: 1px solid #e5e5e5;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    z-index: 100;
+    z-index: 1000;
     display: none;
+    margin-top: 4px;
 }
 
 .danbooru-suggestions.show {
-    display: block;
+    display: block !important;
 }
 
 .suggestion-item {
