@@ -3567,13 +3567,18 @@ async function searchTagSuggestions(query) {
     }
     
     try {
-        const response = await fetch(
-            `https://safebooru.donmai.us/tags.json?search[name_matches]=${encodeURIComponent(query)}*&limit=10`
-        );
+        const url = `https://safebooru.donmai.us/tags.json?search[name_matches]=${encodeURIComponent(query)}*&limit=10`;
+        console.log('搜索标签:', url);
         
-        if (!response.ok) return [];
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            console.error('标签 API 失败:', response.status);
+            return [];
+        }
         
         const tags = await response.json();
+        console.log('标签结果:', tags);
         return tags;
     } catch (e) {
         console.error('搜索标签失败:', e);
@@ -3584,20 +3589,17 @@ async function searchTagSuggestions(query) {
 // 显示联想
 function showSuggestions(tags) {
     const suggestionsEl = document.getElementById('danbooru-suggestions');
-    if (!suggestionsEl) return;
+    if (!suggestionsEl) {
+        console.error('找不到联想元素');
+        return;
+    }
+    
+    console.log('显示联想:', tags.length, '个结果');
     
     if (tags.length === 0) {
         hideSuggestions();
         return;
     }
-    
-    const categoryNames = {
-        0: '一般',
-        1: '画师',
-        2: '角色',
-        3: '版权',
-        4: '元标签'
-    };
     
     suggestionsEl.innerHTML = tags.map(tag => `
         <div class="suggestion-item" data-category="${tag.category}" data-tag="${tag.name}">
@@ -3607,6 +3609,7 @@ function showSuggestions(tags) {
     `).join('');
     
     suggestionsEl.classList.add('show');
+    console.log('联想框显示状态:', suggestionsEl.classList.contains('show'));
     
     // 点击联想标签
     suggestionsEl.querySelectorAll('.suggestion-item').forEach(item => {
