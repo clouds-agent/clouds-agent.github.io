@@ -3868,7 +3868,7 @@ function setupTranslate() {
                 translateOriginalText = input.value;
                 input.value = translateOriginalText
                     .replace(/_/g, ' ')
-                    .replace(/[,,]/g, ',')  // 中文逗号（全角和半角）转英文逗号
+                    .replace(/，/g, ',')
                     .toLowerCase();
                 formatBtn.textContent = '还原格式';
                 formatBtn.classList.add('btn-primary');
