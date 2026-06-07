@@ -3516,6 +3516,14 @@ function updateSelectedTagsTextarea() {
         textarea.value = Array.from(selectedTagsSet).join(',');
     }
 }
+// 隐藏页链接点击（新标签页打开）
+document.querySelectorAll('.hidden-link[data-url]').forEach(link => {
+    link.addEventListener('click', () => {
+        const url = link.dataset.url;
+        window.open(url, '_blank');
+    });
+});
+
 function closeDanbooruDetailModal() {
     const modal = document.getElementById('danbooru-detail-modal');
     if (modal) {
