@@ -2229,10 +2229,10 @@ input[type="password"]:focus {
     width: 100%;
     min-height: 80px;
     padding: 12px;
-    border: 1px solid rgba(0,0,0,0.2);
+    border: 1px solid rgba(0,0,0,0.2) !important;
     border-radius: 8px;
-    background: #ffffff;
-    color: #000000;
+    background: #ffffff !important;
+    color: #000000 !important;
     font-size: 0.95rem;
     font-family: inherit;
     resize: vertical;
@@ -2241,7 +2241,12 @@ input[type="password"]:focus {
 
 .selected-tags-textarea:focus {
     outline: none;
-    border-color: #007aff;
+    border-color: #007aff !important;
+}
+
+.selected-tags-textarea::selection {
+    background: #007aff;
+    color: #ffffff;
 }
 
 /* 完整标签显示 */
