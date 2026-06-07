@@ -3679,18 +3679,23 @@ async function translateText(text, from, to) {
     
     // 根据用户选择决定使用哪个 API
     if (translateApiChoice === 'google') {
-        // 只用 Google
         return await translateWithGoogle(text, from, to);
+    } else if (translateApiChoice === 'libre') {
+        return await translateWithLibre(text, from, to);
     } else if (translateApiChoice === 'mymemory') {
-        // 只用 MyMemory
         return await translateWithMyMemory(text, from, to);
     } else {
-        // 自动：优先 Google，失败切换 MyMemory
+        // 自动：Google → LibreTranslate → MyMemory
         try {
             return await translateWithGoogle(text, from, to);
         } catch (e) {
-            console.log('Google 失败，切换到 MyMemory:', e.message);
-            return await translateWithMyMemory(text, from, to);
+            console.log('Google 失败，切换到 LibreTranslate:', e.message);
+            try {
+                return await translateWithLibre(text, from, to);
+            } catch (e2) {
+                console.log('LibreTranslate 失败，切换到 MyMemory:', e2.message);
+                return await translateWithMyMemory(text, from, to);
+            }
         }
     }
 }
@@ -3730,6 +3735,54 @@ async function translateWithGoogle(text, from, to) {
         clearTimeout(timeoutId);
         throw e;
     }
+}
+
+// LibreTranslate（多个实例，自动切换）
+async function translateWithLibre(text, from, to) {
+    const instances = [
+        'https://libretranslate.com/translate',
+        'https://translate.asterisk.xyz/translate'
+    ];
+    
+    for (const baseUrl of instances) {
+        try {
+            console.log('翻译请求 (LibreTranslate):', baseUrl);
+            
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+            
+            const response = await fetch(baseUrl, {
+                method: 'POST',
+                signal: controller.signal,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    q: text,
+                    source: from === 'auto' ? 'auto' : from,
+                    target: to,
+                    format: 'text'
+                })
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log('LibreTranslate 响应:', data);
+            
+            if (data.translatedText) {
+                return data.translatedText;
+            }
+            
+            throw new Error('LibreTranslate 返回空结果');
+        } catch (e) {
+            console.log(`LibreTranslate ${baseUrl} 失败，尝试下一个：${e.message}`);
+        }
+    }
+    
+    throw new Error('所有 LibreTranslate 实例都失败');
 }
 
 // MyMemory
@@ -3844,11 +3897,14 @@ function setupTranslate() {
     // API 切换按钮
     if (apiBtn) {
         apiBtn.addEventListener('click', () => {
-            // 循环切换：auto → google → mymemory → auto
+            // 循环切换：auto → google → libre → mymemory → auto
             if (translateApiChoice === 'auto') {
                 translateApiChoice = 'google';
                 apiBtn.textContent = 'API: Google';
             } else if (translateApiChoice === 'google') {
+                translateApiChoice = 'libre';
+                apiBtn.textContent = 'API: Libre';
+            } else if (translateApiChoice === 'libre') {
                 translateApiChoice = 'mymemory';
                 apiBtn.textContent = 'API: MyMemory';
             } else {
