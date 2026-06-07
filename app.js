@@ -3722,9 +3722,38 @@ function copyTranslateResult() {
 function setupTranslate() {
     const translateBtn = document.getElementById('translate-btn');
     const copyBtn = document.getElementById('translate-copy-btn');
+    const swapBtn = document.getElementById('translate-swap-btn');
+    const fromSelect = document.getElementById('translate-from');
+    const toSelect = document.getElementById('translate-to');
     
     if (translateBtn) translateBtn.addEventListener('click', doTranslate);
     if (copyBtn) copyBtn.addEventListener('click', copyTranslateResult);
+    
+    // 交换语言
+    if (swapBtn && fromSelect && toSelect) {
+        swapBtn.addEventListener('click', () => {
+            // 自动识别时不能交换
+            if (fromSelect.value === 'auto') return;
+            
+            const temp = fromSelect.value;
+            fromSelect.value = toSelect.value;
+            toSelect.value = temp;
+            
+            updateSwapButton();
+        });
+        
+        // 监听语言选择变化，更新按钮状态
+        fromSelect.addEventListener('change', updateSwapButton);
+    }
+    
+    function updateSwapButton() {
+        if (swapBtn) {
+            swapBtn.disabled = (fromSelect.value === 'auto');
+        }
+    }
+    
+    // 初始化按钮状态
+    updateSwapButton();
     
     // Ctrl+Enter 快捷翻译
     const input = document.getElementById('translate-input');

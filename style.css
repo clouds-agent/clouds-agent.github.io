@@ -2028,6 +2028,7 @@ input[type="password"]:focus {
 .translate-row {
     display: flex;
     gap: 12px;
+    align-items: flex-end;
 }
 
 .translate-box {
@@ -2035,6 +2036,33 @@ input[type="password"]:focus {
     display: flex;
     flex-direction: column;
     gap: 6px;
+}
+
+.translate-swap-btn {
+    padding: 10px 14px;
+    background: #f5f5f7;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    font-size: 1.2rem;
+    color: #007aff;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 50px;
+}
+
+.translate-swap-btn:hover {
+    background: #e8e8ed;
+    transform: scale(1.1);
+}
+
+.translate-swap-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    transform: none;
 }
 
 .translate-box label {
