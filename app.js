@@ -3569,11 +3569,14 @@ async function searchTagSuggestions(query) {
     try {
         // 使用 CORS 代理避免跨域问题
         const apiUrl = `https://safebooru.donmai.us/tags.json?search[name_matches]=${encodeURIComponent(query)}*&limit=10`;
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`;
+        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(apiUrl)}`;
         
         console.log('搜索标签:', proxyUrl);
         
         const response = await fetch(proxyUrl, {
+            headers: {
+                'Accept': 'application/json'
+            },
             timeout: 5000
         });
         
