@@ -164,8 +164,17 @@
                     <button id="danbooru-search-btn" class="btn btn-primary">🔍 搜索</button>
                 </div>
                 
-                <!-- 分页导航 -->
-                <div class="danbooru-pagination">
+                <!-- 顶部状态和分页 -->
+                <div class="danbooru-top-bar">
+                    <div id="danbooru-status" class="status"></div>
+                    <div id="danbooru-post-count" class="danbooru-count">已加载 0 页，共 0 张图片</div>
+                </div>
+                
+                <!-- 图片网格 -->
+                <div id="danbooru-grid" class="danbooru-grid"></div>
+                
+                <!-- 底部固定分页导航 -->
+                <div class="danbooru-pagination-bottom">
                     <button id="danbooru-prev-btn" class="btn btn-secondary">◀ 上一页</button>
                     <span class="danbooru-page-info">
                         第 <span id="danbooru-current-page">1</span> 页
@@ -173,14 +182,8 @@
                         <button id="danbooru-jump-btn" class="btn btn-secondary">跳转</button>
                     </span>
                     <button id="danbooru-next-btn" class="btn btn-secondary">下一页 ▶</button>
-                    <button id="danbooru-clear-btn" class="btn btn-secondary" style="margin-left:auto">清空</button>
+                    <button id="danbooru-clear-btn" class="btn btn-secondary">清空</button>
                 </div>
-                
-                <div id="danbooru-status" class="status"></div>
-                <div id="danbooru-post-count" class="danbooru-count">已加载 0 页，共 0 张图片</div>
-                
-                <!-- 图片网格 -->
-                <div id="danbooru-grid" class="danbooru-grid"></div>
             </div>
         </section>
     </main>
@@ -232,11 +235,31 @@
                 
                 <div class="divider"></div>
                 
+                <!-- 词条分类（点击添加到文本框） -->
                 <div id="detail-tags" class="detail-tags"></div>
                 
-                <div class="button-group">
-                    <button id="copy-tags-btn" class="btn">📋 复制标签</button>
-                    <button id="open-danbooru-btn" class="btn">🔗 打开原链接</button>
+                <div class="divider"></div>
+                
+                <!-- 已选词条文本框 -->
+                <div class="selected-tags-section">
+                    <label class="section-label">已选词条：</label>
+                    <textarea id="selected-tags-textarea" class="selected-tags-textarea" readonly placeholder="点击上方的词条添加到此处"></textarea>
+                    <div class="button-group">
+                        <button id="copy-selected-tags-btn" class="btn">📋 复制已选</button>
+                        <button id="clear-selected-tags-btn" class="btn btn-secondary">🗑️ 清空</button>
+                    </div>
+                </div>
+                
+                <div class="divider"></div>
+                
+                <!-- 完整标签信息 -->
+                <div class="full-tags-section">
+                    <label class="section-label">完整标签信息：</label>
+                    <div id="full-tags-display" class="full-tags-display"></div>
+                    <div class="button-group">
+                        <button id="copy-all-tags-btn" class="btn">📋 复制全标签</button>
+                        <button id="open-danbooru-btn" class="btn">🔗 打开原链接</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -390,6 +413,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260520v120"></script>
+    <script src="app.js?v=20260520v121"></script>
 </body>
 </html>

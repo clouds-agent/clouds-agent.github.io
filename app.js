@@ -3334,6 +3334,9 @@ let danbooruAllPosts = [];
 const DANBOoru_POSTS_PER_PAGE = 20;
 const DANBOORU_MAX_POSTS = 200;
 
+// 已选词条管理
+let selectedTagsSet = new Set();
+
 // 搜索图片（使用 Safebooru API，国内可访问）
 async function searchDanbooruPosts(tags, page = 1) {
     const response = await fetch(
@@ -3390,6 +3393,10 @@ async function showPostDetailModal(postId) {
     
     if (!modal) return;
     
+    // 重置已选词条
+    selectedTagsSet.clear();
+    updateSelectedTagsTextarea();
+    
     statusEl.textContent = '加载详情中...';
     modal.style.display = 'block';
     
@@ -3405,42 +3412,60 @@ async function showPostDetailModal(postId) {
         document.getElementById('detail-score').textContent = post.score;
         document.getElementById('detail-favs').textContent = post.fav_count || 0;
         
-        // 标签分类
-        const categories = {
-            '一般': (post.tag_string_general || '').split(' ').filter(t => t),
-            '角色': (post.tag_string_character || '').split(' ').filter(t => t),
-            '画师': (post.tag_string_artist || '').split(' ').filter(t => t),
-            '版权': (post.tag_string_copyright || '').split(' ').filter(t => t),
-            '元标签': (post.tag_string_meta || '').split(' ').filter(t => t)
-        };
+        // 标签分类（按顺序：画师、角色、版权、一般、元标签）
+        const categories = [
+            { name: '画师', tags: (post.tag_string_artist || '').split(' ').filter(t => t) },
+            { name: '角色', tags: (post.tag_string_character || '').split(' ').filter(t => t) },
+            { name: '版权', tags: (post.tag_string_copyright || '').split(' ').filter(t => t) },
+            { name: '一般', tags: (post.tag_string_general || '').split(' ').filter(t => t) },
+            { name: '元标签', tags: (post.tag_string_meta || '').split(' ').filter(t => t) }
+        ];
         
+        // 渲染词条（每个词条独占一行，可点击）
         let tagsHTML = '';
-        for (const [cat, tags] of Object.entries(categories)) {
-            if (tags.length > 0) {
+        for (const cat of categories) {
+            if (cat.tags.length > 0) {
                 tagsHTML += `
                     <div class="tag-category">
-                        <strong>${cat} (${tags.length}):</strong>
-                        <span class="tag-list">${tags.join(', ')}</span>
+                        <strong>${cat.name} (${cat.tags.length}):</strong>
+                        <div class="tag-list">
+                            ${cat.tags.map(tag => `<span class="tag-item" data-tag="${tag}" onclick="toggleTag('${tag}')">${tag}</span>`).join('')}
+                        </div>
                     </div>
                 `;
             }
         }
         document.getElementById('detail-tags').innerHTML = tagsHTML;
         
-        // 复制按钮
-        document.getElementById('copy-tags-btn').onclick = () => {
-            const allTags = [
-                ...categories.一般,
-                ...categories.角色,
-                ...categories.画师,
-                ...categories.版权
-            ].join(', ');
-            
-            navigator.clipboard.writeText(allTags);
-            showToast('标签已复制');
+        // 完整标签显示
+        const allTagsFlat = categories.flatMap(c => c.tags);
+        document.getElementById('full-tags-display').textContent = allTagsFlat.join(', ');
+        
+        // 复制已选按钮
+        document.getElementById('copy-selected-tags-btn').onclick = () => {
+            const text = document.getElementById('selected-tags-textarea').value;
+            if (text.trim()) {
+                navigator.clipboard.writeText(text);
+                showToast('已选词条已复制');
+            } else {
+                showToast('没有已选词条');
+            }
         };
         
-        // 原链接（Safebooru）
+        // 清空按钮
+        document.getElementById('clear-selected-tags-btn').onclick = () => {
+            selectedTagsSet.clear();
+            updateSelectedTagsTextarea();
+        };
+        
+        // 复制全标签按钮
+        document.getElementById('copy-all-tags-btn').onclick = () => {
+            const text = allTagsFlat.join(', ');
+            navigator.clipboard.writeText(text);
+            showToast('完整标签已复制');
+        };
+        
+        // 原链接
         document.getElementById('open-danbooru-btn').onclick = () => {
             window.open(`https://safebooru.donmai.us/posts/${post.id}`, '_blank');
         };
@@ -3453,7 +3478,27 @@ async function showPostDetailModal(postId) {
     }
 }
 
-// 关闭详情弹窗
+// 切换词条（添加/移除）
+function toggleTag(tag) {
+    if (selectedTagsSet.has(tag)) {
+        selectedTagsSet.delete(tag);
+        const el = document.querySelector(`.tag-item[data-tag="${tag}"]`);
+        if (el) el.classList.remove('selected');
+    } else {
+        selectedTagsSet.add(tag);
+        const el = document.querySelector(`.tag-item[data-tag="${tag}"]`);
+        if (el) el.classList.add('selected');
+    }
+    updateSelectedTagsTextarea();
+}
+
+// 更新已选词条文本框
+function updateSelectedTagsTextarea() {
+    const textarea = document.getElementById('selected-tags-textarea');
+    if (textarea) {
+        textarea.value = Array.from(selectedTagsSet).join(',');
+    }
+}
 function closeDanbooruDetailModal() {
     const modal = document.getElementById('danbooru-detail-modal');
     if (modal) {
