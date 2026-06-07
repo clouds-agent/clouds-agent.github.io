@@ -3660,15 +3660,26 @@ async function translateText(text, from, to) {
     const sourceLang = from === 'auto' ? 'autodetect' : from;
     const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${sourceLang}|${to}`;
     
+    console.log('翻译请求:', url);
+    
     try {
         const response = await fetch(url);
         const data = await response.json();
         
-        if (data.responseStatus === 200 && data.responseData) {
-            return data.responseData.translatedText;
-        } else {
-            throw new Error(data.responseDetails || '翻译失败');
+        console.log('翻译响应:', data);
+        
+        if (data.responseStatus !== 200 || !data.responseData) {
+            throw new Error(data.responseDetails || data.responseStatus || '翻译失败');
         }
+        
+        const result = data.responseData.translatedText;
+        
+        // 显示检测到的语言（如果是自动识别）
+        if (from === 'auto' && data.responseData.detectedLanguage) {
+            console.log('检测到语言:', data.responseData.detectedLanguage);
+        }
+        
+        return result || '';
     } catch (e) {
         console.error('翻译失败:', e);
         throw e;
@@ -3688,18 +3699,37 @@ async function doTranslate() {
     const text = input.value.trim();
     if (!text) {
         status.textContent = '请输入要翻译的内容';
+        status.style.color = '#ff3b30';
+        return;
+    }
+    
+    // 检查文本长度
+    if (text.length > 1000) {
+        status.textContent = `文本过长（${text.length} 字），建议分批翻译（每批<500 字）`;
+        status.style.color = '#ff9500';
         return;
     }
     
     status.textContent = '翻译中...';
+    status.style.color = '#86868b';
     output.value = '';
     
     try {
         const result = await translateText(text, fromLang, toLang);
         output.value = result;
-        status.textContent = '翻译完成';
+        
+        // 检查是否返回原文（可能是未翻译）
+        if (result === text) {
+            status.textContent = '翻译完成（API 返回原文，可能无对应翻译）';
+            status.style.color = '#ff9500';
+        } else {
+            status.textContent = '翻译完成';
+            status.style.color = '#34c759';
+        }
     } catch (e) {
         status.textContent = `翻译失败：${e.message}`;
+        status.style.color = '#ff3b30';
+        console.error('翻译错误:', e);
     }
 }
 
