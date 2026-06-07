@@ -3440,9 +3440,9 @@ async function showPostDetailModal(postId) {
             showToast('标签已复制');
         };
         
-        // 原链接
+        // 原链接（Safebooru）
         document.getElementById('open-danbooru-btn').onclick = () => {
-            window.open(`https://danbooru.donmai.us/posts/${post.id}`, '_blank');
+            window.open(`https://safebooru.donmai.us/posts/${post.id}`, '_blank');
         };
         
         statusEl.textContent = '';
