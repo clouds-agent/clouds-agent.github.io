@@ -3337,9 +3337,6 @@ const DANBOORU_MAX_POSTS = 200;
 // 已选词条管理
 let selectedTagsSet = new Set();
 
-// 标签联想
-let searchDebounce = null;
-
 // 搜索图片（使用 Safebooru API，国内可访问）
 async function searchDanbooruPosts(tags, page = 1) {
     const response = await fetch(
@@ -3559,116 +3556,6 @@ async function loadDanbooruPage(page) {
     }
 }
 
-// 搜索标签联想
-async function searchTagSuggestions(query) {
-    if (!query || query.length < 2) {
-        hideSuggestions();
-        return [];
-    }
-    
-    const apiUrl = `https://safebooru.donmai.us/tags.json?search[name_matches]=${encodeURIComponent(query)}*&limit=10`;
-    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(apiUrl)}`;
-    
-    console.log('搜索标签:', proxyUrl);
-    
-    // 使用 AbortController 实现超时
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-    
-    try {
-        const response = await fetch(proxyUrl, {
-            headers: {
-                'Accept': 'application/json'
-            },
-            signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-        
-        console.log('API 响应状态:', response.status);
-        
-        if (!response.ok) {
-            console.error('标签 API 失败:', response.status);
-            return [];
-        }
-        
-        const tags = await response.json();
-        console.log('标签结果:', tags);
-        
-        if (tags.length === 0) {
-            console.log('没有联想结果');
-        }
-        
-        return tags;
-    } catch (e) {
-        clearTimeout(timeoutId);
-        console.error('搜索标签失败:', e.message);
-        return [];
-    }
-}
-
-// 显示联想
-function showSuggestions(tags) {
-    const suggestionsEl = document.getElementById('danbooru-suggestions');
-    if (!suggestionsEl) {
-        console.error('找不到联想元素');
-        return;
-    }
-    
-    console.log('显示联想:', tags.length, '个结果');
-    
-    if (tags.length === 0) {
-        hideSuggestions();
-        return;
-    }
-    
-    suggestionsEl.innerHTML = tags.map(tag => `
-        <div class="suggestion-item" data-category="${tag.category}" data-tag="${tag.name}">
-            <span class="suggestion-name">${tag.name}</span>
-            <span class="suggestion-count">${formatTagCount(tag.count)}</span>
-        </div>
-    `).join('');
-    
-    suggestionsEl.classList.add('show');
-    console.log('联想框显示状态:', suggestionsEl.classList.contains('show'));
-    
-    // 点击联想标签
-    suggestionsEl.querySelectorAll('.suggestion-item').forEach(item => {
-        item.addEventListener('click', () => {
-            const tagName = item.dataset.tag;
-            const input = document.getElementById('danbooru-search-input');
-            
-            // 添加到搜索框
-            const currentTags = input.value.split(/[\s,]+/).filter(t => t);
-            if (!currentTags.includes(tagName)) {
-                currentTags.push(tagName);
-                input.value = currentTags.join(' ');
-            }
-            
-            hideSuggestions();
-            searchDanbooru();
-        });
-    });
-}
-
-// 隐藏联想
-function hideSuggestions() {
-    const suggestionsEl = document.getElementById('danbooru-suggestions');
-    if (suggestionsEl) {
-        suggestionsEl.classList.remove('show');
-    }
-}
-
-// 格式化标签数量
-function formatTagCount(count) {
-    if (count >= 1000000) {
-        return (count / 1000000).toFixed(1) + 'M';
-    } else if (count >= 1000) {
-        return (count / 1000).toFixed(0) + 'k';
-    }
-    return count.toString();
-}
-
 // 搜索
 async function searchDanbooru() {
     const input = document.getElementById('danbooru-search-input');
@@ -3683,7 +3570,6 @@ async function searchDanbooru() {
     danbooruAllPosts = [];
     danbooruCurrentPage = 1;
     
-    hideSuggestions();
     await loadDanbooruPage(1);
 }
 
@@ -3739,40 +3625,11 @@ function setupDanbooruExplorer() {
     if (jumpBtn) jumpBtn.addEventListener('click', danbooruJumpToPage);
     if (clearBtn) clearBtn.addEventListener('click', clearDanbooruResults);
     
-    // 搜索框输入监听（联想功能）
+    // 回车搜索
     const input = document.getElementById('danbooru-search-input');
     if (input) {
-        input.addEventListener('input', (e) => {
-            const query = e.target.value.trim();
-            
-            // 清除之前的定时器
-            if (searchDebounce) clearTimeout(searchDebounce);
-            
-            // 防抖：500ms 后搜索
-            searchDebounce = setTimeout(async () => {
-                const lastWord = query.split(/[\s,]+/).pop();
-                if (lastWord && lastWord.length >= 2) {
-                    const suggestions = await searchTagSuggestions(lastWord);
-                    showSuggestions(suggestions);
-                } else {
-                    hideSuggestions();
-                }
-            }, 500);
-        });
-        
-        // 回车搜索
         input.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                hideSuggestions();
-                searchDanbooru();
-            }
-        });
-        
-        // 点击外部关闭联想
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.danbooru-search-box')) {
-                hideSuggestions();
-            }
+            if (e.key === 'Enter') searchDanbooru();
         });
     }
 }
