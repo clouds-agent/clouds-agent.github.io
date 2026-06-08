@@ -3680,15 +3680,22 @@ async function translateText(text, from, to) {
     // 根据用户选择决定使用哪个 API
     if (translateApiChoice === 'google') {
         return await translateWithGoogle(text, from, to);
+    } else if (translateApiChoice === 'baidu') {
+        return await translateWithBaidu(text, from, to);
     } else if (translateApiChoice === 'mymemory') {
         return await translateWithMyMemory(text, from, to);
     } else {
-        // 自动：Google → MyMemory
+        // 自动：Google → 百度 → MyMemory
         try {
             return await translateWithGoogle(text, from, to);
         } catch (e) {
-            console.log('Google 失败，切换到 MyMemory:', e.message);
-            return await translateWithMyMemory(text, from, to);
+            console.log('Google 失败，切换到百度:', e.message);
+            try {
+                return await translateWithBaidu(text, from, to);
+            } catch (e2) {
+                console.log('百度失败，切换到 MyMemory:', e2.message);
+                return await translateWithMyMemory(text, from, to);
+            }
         }
     }
 }
@@ -3728,6 +3735,27 @@ async function translateWithGoogle(text, from, to) {
         clearTimeout(timeoutId);
         throw e;
     }
+}
+
+// 百度翻译
+async function translateWithBaidu(text, from, to) {
+    const salt = Date.now().toString();
+    const sign = md5(BAIDU_APP_ID + text + salt + BAIDU_SECRET);
+    
+    const url = `https://fanyi-api.baidu.com/api/translate/v2?appid=${BAIDU_APP_ID}&q=${encodeURIComponent(text)}&from=${from}&to=${to}&salt=${salt}&sign=${sign}`;
+    
+    console.log('翻译请求 (百度):', url);
+    
+    const response = await fetch(url, { timeout: 5000 });
+    const data = await response.json();
+    
+    console.log('百度翻译响应:', data);
+    
+    if (data.trans_result && data.trans_result[0] && data.trans_result[0].dst) {
+        return data.trans_result[0].dst;
+    }
+    
+    throw new Error(data.error_msg || '百度翻译失败');
 }
 
 // MyMemory
@@ -3822,7 +3850,17 @@ function copyTranslateResult() {
 // 翻译页原始文本缓存（用于易译转化还原）
 let translateOriginalText = null;
 
-// 翻译 API 选择：'auto' | 'google' | 'mymemory'
+// 百度翻译配置
+const BAIDU_APP_ID = '20260608002627761';
+const BAIDU_SECRET = 'LPTiTsKrBJy1vLlMLN_C';
+
+// MD5 签名函数
+function md5(str) {
+    const hash = CryptoJS.MD5(str.toString()).toString();
+    return hash;
+}
+
+// 翻译 API 选择：'auto' | 'google' | 'baidu' | 'mymemory'
 let translateApiChoice = 'auto';
 
 // 初始化翻译功能
@@ -3842,11 +3880,14 @@ function setupTranslate() {
     // API 切换按钮
     if (apiBtn) {
         apiBtn.addEventListener('click', () => {
-            // 循环切换：auto → google → mymemory → auto
+            // 循环切换：auto → google → baidu → mymemory → auto
             if (translateApiChoice === 'auto') {
                 translateApiChoice = 'google';
                 apiBtn.textContent = 'API: Google';
             } else if (translateApiChoice === 'google') {
+                translateApiChoice = 'baidu';
+                apiBtn.textContent = 'API: 百度';
+            } else if (translateApiChoice === 'baidu') {
                 translateApiChoice = 'mymemory';
                 apiBtn.textContent = 'API: MyMemory';
             } else {
