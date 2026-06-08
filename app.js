@@ -3674,7 +3674,10 @@ function setupDanbooruExplorer() {
     document.querySelectorAll('.quick-tag').forEach(btn => {
         btn.addEventListener('click', () => {
             const tag = btn.dataset.tag;
-            addSelectedTag(tag);
+            const input = document.getElementById('danbooru-search-input');
+            if (input) {
+                input.value = tag;
+            }
             searchDanbooru();
         });
     });
