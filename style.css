@@ -1888,6 +1888,41 @@ input[type="password"]:focus {
     font-size: 0.95rem;
 }
 
+/* 空状态快速标签 */
+.danbooru-empty-state {
+    display: none;
+    text-align: center;
+    padding: 30px 20px;
+    margin-top: 20px;
+}
+
+.danbooru-empty-state.show {
+    display: block;
+}
+
+.quick-tags-group {
+    margin: 15px 0;
+}
+
+.quick-tag {
+    display: inline-block;
+    margin: 5px;
+    padding: 8px 16px;
+    background: #f5f5f7;
+    border: 1px solid #d2d2d7;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+    color: #1d1d1f;
+}
+
+.quick-tag:hover {
+    background: #0071e3;
+    color: white;
+    border-color: #0071e3;
+}
+
 .danbooru-input-group,
 .danbooru-output-group {
     margin-bottom: 1.5rem;

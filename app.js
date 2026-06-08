@@ -3606,6 +3606,7 @@ async function searchDanbooru() {
     danbooruCurrentPage = 1;
     
     await loadDanbooruPage(1);
+    updateDanbooruEmptyState();
 }
 
 // 上一页
@@ -3644,6 +3645,7 @@ function clearDanbooruResults() {
     if (grid) grid.innerHTML = '';
     
     updateDanbooruPagination();
+    updateDanbooruEmptyState();
 }
 
 // 初始化 Danbooru 探索
@@ -3666,6 +3668,35 @@ function setupDanbooruExplorer() {
         input.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') searchDanbooru();
         });
+    }
+    
+    // 快速标签点击
+    document.querySelectorAll('.quick-tag').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tag = btn.dataset.tag;
+            addSelectedTag(tag);
+            searchDanbooru();
+        });
+    });
+    
+    // 初始化时显示空状态
+    updateDanbooruEmptyState();
+}
+
+// 更新空状态显示
+function updateDanbooruEmptyState() {
+    const emptyState = document.getElementById('danbooru-empty-state');
+    const grid = document.getElementById('danbooru-grid');
+    const status = document.getElementById('danbooru-status');
+    
+    if (!emptyState || !grid) return;
+    
+    // 没有搜索结果且没有标签时显示空状态
+    if (selectedDanbooruTags.length === 0 && grid.children.length === 0) {
+        emptyState.classList.add('show');
+        if (status) status.textContent = '';
+    } else {
+        emptyState.classList.remove('show');
     }
 }
 
