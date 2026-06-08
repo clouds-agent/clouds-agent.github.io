@@ -3680,20 +3680,20 @@ async function translateText(text, from, to) {
     // 根据用户选择决定使用哪个 API
     if (translateApiChoice === 'google') {
         return await translateWithGoogle(text, from, to);
-    } else if (translateApiChoice === 'baidu') {
-        return await translateWithBaidu(text, from, to);
+    } else if (translateApiChoice === 'lingvanex') {
+        return await translateWithLingvanex(text, from, to);
     } else if (translateApiChoice === 'mymemory') {
         return await translateWithMyMemory(text, from, to);
     } else {
-        // 自动：Google → 百度 → MyMemory
+        // 自动：Google → Lingvanex → MyMemory
         try {
             return await translateWithGoogle(text, from, to);
         } catch (e) {
-            console.log('Google 失败，切换到百度:', e.message);
+            console.log('Google 失败，切换到 Lingvanex:', e.message);
             try {
-                return await translateWithBaidu(text, from, to);
+                return await translateWithLingvanex(text, from, to);
             } catch (e2) {
-                console.log('百度失败，切换到 MyMemory:', e2.message);
+                console.log('Lingvanex 失败，切换到 MyMemory:', e2.message);
                 return await translateWithMyMemory(text, from, to);
             }
         }
@@ -3737,25 +3737,32 @@ async function translateWithGoogle(text, from, to) {
     }
 }
 
-// 百度翻译
-async function translateWithBaidu(text, from, to) {
-    const salt = Date.now().toString();
-    const sign = md5(BAIDU_APP_ID + text + salt + BAIDU_SECRET);
+// Lingvanex
+async function translateWithLingvanex(text, from, to) {
+    const url = 'https://api.lingvanex.com/translate/v1/translate';
     
-    const url = `https://fanyi-api.baidu.com/api/translate/v2?appid=${BAIDU_APP_ID}&q=${encodeURIComponent(text)}&from=${from}&to=${to}&salt=${salt}&sign=${sign}`;
+    console.log('翻译请求 (Lingvanex):', url);
     
-    console.log('翻译请求 (百度):', url);
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            text: text,
+            from: from,
+            to: to,
+            api_key: LINGVANEX_API_KEY
+        }),
+        timeout: 5000
+    });
     
-    const response = await fetch(url, { timeout: 5000 });
     const data = await response.json();
+    console.log('Lingvanex 翻译响应:', data);
     
-    console.log('百度翻译响应:', data);
-    
-    if (data.trans_result && data.trans_result[0] && data.trans_result[0].dst) {
-        return data.trans_result[0].dst;
+    if (data.result) {
+        return data.result;
     }
     
-    throw new Error(data.error_msg || '百度翻译失败');
+    throw new Error(data.error || 'Lingvanex 翻译失败');
 }
 
 // MyMemory
@@ -3850,17 +3857,10 @@ function copyTranslateResult() {
 // 翻译页原始文本缓存（用于易译转化还原）
 let translateOriginalText = null;
 
-// 百度翻译配置
-const BAIDU_APP_ID = '20260608002627761';
-const BAIDU_SECRET = 'LPTiTsKrBJy1vLlMLN_C';
+// Lingvanex 配置
+const LINGVANEX_API_KEY = 'PLACEHOLDER';  // 需要申请后替换
 
-// MD5 签名函数
-function md5(str) {
-    const hash = CryptoJS.MD5(str.toString()).toString();
-    return hash;
-}
-
-// 翻译 API 选择：'auto' | 'google' | 'baidu' | 'mymemory'
+// 翻译 API 选择：'auto' | 'google' | 'lingvanex' | 'mymemory'
 let translateApiChoice = 'auto';
 
 // 初始化翻译功能
@@ -3880,14 +3880,14 @@ function setupTranslate() {
     // API 切换按钮
     if (apiBtn) {
         apiBtn.addEventListener('click', () => {
-            // 循环切换：auto → google → baidu → mymemory → auto
+            // 循环切换：auto → google → lingvanex → mymemory → auto
             if (translateApiChoice === 'auto') {
                 translateApiChoice = 'google';
                 apiBtn.textContent = 'API: Google';
             } else if (translateApiChoice === 'google') {
-                translateApiChoice = 'baidu';
-                apiBtn.textContent = 'API: 百度';
-            } else if (translateApiChoice === 'baidu') {
+                translateApiChoice = 'lingvanex';
+                apiBtn.textContent = 'API: Lingvanex';
+            } else if (translateApiChoice === 'lingvanex') {
                 translateApiChoice = 'mymemory';
                 apiBtn.textContent = 'API: MyMemory';
             } else {
