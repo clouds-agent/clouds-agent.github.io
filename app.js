@@ -3692,7 +3692,7 @@ function updateDanbooruEmptyState() {
     if (!emptyState || !grid) return;
     
     // 没有搜索结果且没有标签时显示空状态
-    if (selectedDanbooruTags.length === 0 && grid.children.length === 0) {
+    if (danbooruCurrentTags.length === 0 && grid.children.length === 0) {
         emptyState.classList.add('show');
         if (status) status.textContent = '';
     } else {
