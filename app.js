@@ -3680,22 +3680,15 @@ async function translateText(text, from, to) {
     // 根据用户选择决定使用哪个 API
     if (translateApiChoice === 'google') {
         return await translateWithGoogle(text, from, to);
-    } else if (translateApiChoice === 'lingvanex') {
-        return await translateWithLingvanex(text, from, to);
     } else if (translateApiChoice === 'mymemory') {
         return await translateWithMyMemory(text, from, to);
     } else {
-        // 自动：Google → Lingvanex → MyMemory
+        // 自动：Google → MyMemory
         try {
             return await translateWithGoogle(text, from, to);
         } catch (e) {
-            console.log('Google 失败，切换到 Lingvanex:', e.message);
-            try {
-                return await translateWithLingvanex(text, from, to);
-            } catch (e2) {
-                console.log('Lingvanex 失败，切换到 MyMemory:', e2.message);
-                return await translateWithMyMemory(text, from, to);
-            }
+            console.log('Google 失败，切换到 MyMemory:', e.message);
+            return await translateWithMyMemory(text, from, to);
         }
     }
 }
@@ -3735,34 +3728,6 @@ async function translateWithGoogle(text, from, to) {
         clearTimeout(timeoutId);
         throw e;
     }
-}
-
-// Lingvanex
-async function translateWithLingvanex(text, from, to) {
-    const url = 'https://api.lingvanex.com/translate/v1/translate';
-    
-    console.log('翻译请求 (Lingvanex):', url);
-    
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            text: text,
-            from: from,
-            to: to,
-            api_key: LINGVANEX_API_KEY
-        }),
-        timeout: 5000
-    });
-    
-    const data = await response.json();
-    console.log('Lingvanex 翻译响应:', data);
-    
-    if (data.result) {
-        return data.result;
-    }
-    
-    throw new Error(data.error || 'Lingvanex 翻译失败');
 }
 
 // MyMemory
@@ -3857,10 +3822,7 @@ function copyTranslateResult() {
 // 翻译页原始文本缓存（用于易译转化还原）
 let translateOriginalText = null;
 
-// Lingvanex 配置
-const LINGVANEX_API_KEY = 'PLACEHOLDER';  // 需要申请后替换
-
-// 翻译 API 选择：'auto' | 'google' | 'lingvanex' | 'mymemory'
+// 翻译 API 选择：'auto' | 'google' | 'mymemory'
 let translateApiChoice = 'auto';
 
 // 初始化翻译功能
@@ -3880,14 +3842,11 @@ function setupTranslate() {
     // API 切换按钮
     if (apiBtn) {
         apiBtn.addEventListener('click', () => {
-            // 循环切换：auto → google → lingvanex → mymemory → auto
+            // 循环切换：auto → google → mymemory → auto
             if (translateApiChoice === 'auto') {
                 translateApiChoice = 'google';
                 apiBtn.textContent = 'API: Google';
             } else if (translateApiChoice === 'google') {
-                translateApiChoice = 'lingvanex';
-                apiBtn.textContent = 'API: Lingvanex';
-            } else if (translateApiChoice === 'lingvanex') {
                 translateApiChoice = 'mymemory';
                 apiBtn.textContent = 'API: MyMemory';
             } else {
