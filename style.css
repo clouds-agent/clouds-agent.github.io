@@ -1915,6 +1915,111 @@ input[type="password"]:focus {
     }
 }
 
+/* 翻页导航 */
+.danbooru-pagination {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 20px;
+    margin-top: 20px;
+    border-top: 1px solid #e5e5e5;
+}
+
+.pagination-main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pagination-numbers {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pagination-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    height: 44px;
+    padding: 0 12px;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.95rem;
+    color: #1d1d1f;
+    font-weight: 500;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    transform: translateY(-2px);
+}
+
+.pagination-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.pagination-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.pagination-btn.active {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.pagination-jump {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pagination-input {
+    width: 80px;
+    height: 44px;
+    padding: 0 12px;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    text-align: center;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.pagination-input:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.jump-btn {
+    min-width: 60px;
+}
+
+.clear-btn {
+    min-width: 60px;
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #dc2626;
+}
+
+.clear-btn:hover {
+    background: #dc2626;
+    color: white;
+    border-color: transparent;
+}
+
 .quick-tags-group {
     margin: 15px 0;
     display: flex;

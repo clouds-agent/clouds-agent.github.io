@@ -192,16 +192,26 @@
                 <!-- 图片网格 -->
                 <div id="danbooru-grid" class="danbooru-grid"></div>
                 
-                <!-- 底部固定分页导航 -->
-                <div class="danbooru-pagination-bottom">
-                    <button id="danbooru-prev-btn" class="btn btn-secondary">◀ 上一页</button>
-                    <span class="danbooru-page-info">
-                        第 <span id="danbooru-current-page">1</span> 页
-                        <input type="number" id="danbooru-page-input" min="1" value="1" style="width:60px" />
-                        <button id="danbooru-jump-btn" class="btn btn-secondary">跳转</button>
-                    </span>
-                    <button id="danbooru-next-btn" class="btn btn-secondary">下一页 ▶</button>
-                    <button id="danbooru-clear-btn" class="btn btn-secondary">清空</button>
+                <!-- 底部翻页导航 -->
+                <div class="danbooru-pagination">
+                    <div class="pagination-main">
+                        <button id="danbooru-prev-btn" class="pagination-btn" disabled>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M15 18l-6-6 6-6"/>
+                            </svg>
+                        </button>
+                        <div id="danbooru-page-numbers" class="pagination-numbers"></div>
+                        <button id="danbooru-next-btn" class="pagination-btn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 18l6-6-6-6"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="pagination-jump">
+                        <input type="number" id="danbooru-page-input" class="pagination-input" min="1" value="1" placeholder="页码" />
+                        <button id="danbooru-jump-btn" class="pagination-btn jump-btn">跳转</button>
+                    </div>
+                    <button id="danbooru-clear-btn" class="pagination-btn clear-btn">清空</button>
                 </div>
             </div>
         </section>
@@ -514,6 +524,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260520v164"></script>
+    <script src="app.js?v=20260520v165"></script>
 </body>
 </html>

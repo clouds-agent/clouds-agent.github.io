@@ -3684,6 +3684,47 @@ function setupDanbooruExplorer() {
     
     // 初始化时显示空状态
     updateDanbooruEmptyState();
+    
+    // 初始化分页 UI
+    updateDanbooruPagination();
+}
+
+// 更新分页 UI（生成页码按钮）
+function updateDanbooruPagination() {
+    const numbersContainer = document.getElementById('danbooru-page-numbers');
+    const prevBtn = document.getElementById('danbooru-prev-btn');
+    const nextBtn = document.getElementById('danbooru-next-btn');
+    
+    if (!numbersContainer) return;
+    
+    numbersContainer.innerHTML = '';
+    
+    // 生成页码按钮（最多显示 5 个）
+    const maxVisible = 5;
+    let startPage = Math.max(1, danbooruCurrentPage - Math.floor(maxVisible / 2));
+    let endPage = Math.min(startPage + maxVisible - 1, 100); // 假设最多 100 页
+    
+    if (endPage - startPage < maxVisible - 1) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+        const btn = document.createElement('button');
+        btn.className = `pagination-btn${i === danbooruCurrentPage ? ' active' : ''}`;
+        btn.textContent = i;
+        btn.addEventListener('click', () => {
+            loadDanbooruPage(i);
+        });
+        numbersContainer.appendChild(btn);
+    }
+    
+    // 更新上一页/下一页按钮状态
+    if (prevBtn) {
+        prevBtn.disabled = danbooruCurrentPage <= 1;
+    }
+    if (nextBtn) {
+        // 这里可以添加更多逻辑判断是否还有下一页
+    }
 }
 
 // 更新空状态显示
