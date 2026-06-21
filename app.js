@@ -4190,3 +4190,491 @@ function hideLikeRecords() {
         card.style.display = 'none';
     }
 }
+
+// ============ Minecraft 像素画生成器 ============
+
+// Minecraft 方块颜色表（平均RGB值）
+const minecraftBlocks = [
+    { name: '白色羊毛', color: [233, 236, 236] },
+    { name: '橙色羊毛', color: [234, 153, 39] },
+    { name: '品红色羊毛', color: [199, 78, 189] },
+    { name: '浅蓝色羊毛', color: [58, 179, 218] },
+    { name: '黄色羊毛', color: [248, 198, 39] },
+    { name: '黄绿色羊毛', color: [127, 194, 41] },
+    { name: '粉色羊毛', color: [243, 139, 170] },
+    { name: '灰色羊毛', color: [71, 79, 82] },
+    { name: '浅灰色羊毛', color: [156, 157, 151] },
+    { name: '青色羊毛', color: [38, 113, 145] },
+    { name: '紫色羊毛', color: [126, 61, 191] },
+    { name: '蓝色羊毛', color: [60, 68, 170] },
+    { name: '棕色羊毛', color: [114, 71, 40] },
+    { name: '绿色羊毛', color: [84, 109, 27] },
+    { name: '红色羊毛', color: [161, 39, 34] },
+    { name: '黑色羊毛', color: [29, 27, 27] },
+    { name: '白色混凝土', color: [210, 210, 210] },
+    { name: '橙色混凝土', color: [225, 130, 30] },
+    { name: '品红色混凝土', color: [180, 70, 170] },
+    { name: '浅蓝色混凝土', color: [50, 150, 200] },
+    { name: '黄色混凝土', color: [240, 180, 30] },
+    { name: '黄绿色混凝土', color: [100, 170, 30] },
+    { name: '粉色混凝土', color: [230, 120, 150] },
+    { name: '灰色混凝土', color: [60, 60, 60] },
+    { name: '浅灰色混凝土', color: [130, 130, 125] },
+    { name: '青色混凝土', color: [30, 100, 130] },
+    { name: '紫色混凝土', color: [100, 50, 160] },
+    { name: '蓝色混凝土', color: [40, 50, 140] },
+    { name: '棕色混凝土', color: [90, 60, 30] },
+    { name: '绿色混凝土', color: [70, 90, 20] },
+    { name: '红色混凝土', color: [140, 30, 30] },
+    { name: '黑色混凝土', color: [10, 10, 10] },
+    { name: '白色陶瓦', color: [210, 195, 185] },
+    { name: '橙色陶瓦', color: [170, 90, 50] },
+    { name: '品红色陶瓦', color: [150, 75, 95] },
+    { name: '浅蓝色陶瓦', color: [115, 130, 150] },
+    { name: '黄色陶瓦', color: [190, 150, 70] },
+    { name: '黄绿色陶瓦', color: [95, 110, 55] },
+    { name: '粉色陶瓦', color: [170, 100, 110] },
+    { name: '灰色陶瓦', color: [65, 60, 60] },
+    { name: '浅灰色陶瓦', color: [135, 115, 105] },
+    { name: '青色陶瓦', color: [60, 85, 95] },
+    { name: '紫色陶瓦', color: [110, 70, 90] },
+    { name: '蓝色陶瓦', color: [65, 65, 95] },
+    { name: '棕色陶瓦', color: [100, 65, 50] },
+    { name: '绿色陶瓦', color: [80, 90, 50] },
+    { name: '红色陶瓦', color: [145, 60, 50] },
+    { name: '黑色陶瓦', color: [40, 30, 25] },
+    { name: '石头', color: [139, 139, 139] },
+    { name: '紫颂块', color: [170, 130, 190] },
+    { name: '紫珀块', color: [150, 100, 170] },
+    { name: '海晶灯', color: [80, 200, 220] },
+    { name: '骨块', color: [230, 226, 210] },
+    { name: '铁块', color: [192, 192, 192] },
+    { name: '黑曜石', color: [20, 13, 34] },
+    { name: '雪块', color: [250, 250, 255] },
+    { name: '末地石', color: [240, 229, 160] },
+    { name: '岩浆块', color: [200, 80, 30] },
+    { name: '钻石块', color: [92, 219, 213] },
+    { name: '金块', color: [255, 215, 0] },
+    { name: '红石块', color: [176, 0, 0] },
+    { name: '绿宝石块', color: [23, 221, 98] },
+    { name: '青金石块', color: [30, 50, 120] },
+    { name: '木板', color: [160, 114, 76] },
+    { name: '圆石', color: [119, 119, 119] },
+    { name: '沙子', color: [222, 184, 135] },
+    { name: '草方块', color: [93, 155, 59] },
+    { name: '泥土', color: [139, 90, 43] },
+    { name: '南瓜', color: [232, 160, 48] },
+    { name: '下界岩', color: [112, 32, 32] },
+    { name: '浮冰', color: [170, 210, 240] },
+    { name: '蓝冰', color: [120, 180, 230] },
+    { name: '冰块', color: [200, 230, 250] },
+    { name: '紫水晶块', color: [150, 100, 200] },
+    { name: '棱镜砖', color: [180, 200, 190] },
+    { name: '浅粉色混凝土', color: [240, 180, 200] },
+    { name: '深粉色混凝土', color: [200, 80, 120] },
+    { name: '樱花木板', color: [210, 170, 170] },
+    { name: '樱花树叶', color: [220, 160, 190] },
+    { name: '末地烛', color: [220, 210, 230] },
+    { name: '紫水晶簇', color: [140, 80, 180] },
+    { name: '铜块', color: [180, 110, 70] },
+    { name: '石英块', color: [240, 235, 225] },
+    { name: '红砖', color: [150, 70, 50] },
+    { name: '海晶石', color: [70, 130, 130] },
+    { name: '史莱姆块', color: [100, 200, 80] },
+    { name: '蜂蜜块', color: [230, 170, 50] },
+    { name: '西瓜', color: [90, 150, 60] },
+    { name: '锈蚀铜块', color: [80, 130, 110] },
+    { name: '涂蜡铜块', color: [190, 120, 80] },
+    { name: '暗棱镜砖', color: [80, 100, 90] },
+    { name: '海晶石砖', color: [60, 110, 110] },
+    { name: '暗海晶石', color: [40, 70, 70] },
+    { name: '深板岩', color: [70, 70, 80] },
+    { name: '凝灰岩', color: [100, 100, 105] },
+    { name: '方解石', color: [235, 230, 220] },
+    { name: '滴水石块', color: [150, 140, 130] },
+];
+
+// 像素画状态
+let pixelOriginalImage = null;
+let pixelResultData = null;
+
+// 红均值颜色距离算法（更符合人眼感知）
+function colorDistanceRedmean(c1, c2) {
+    const rMean = (c1[0] + c2[0]) / 2;
+    const dr = c1[0] - c2[0];
+    const dg = c1[1] - c2[1];
+    const db = c1[2] - c2[2];
+    return Math.sqrt(
+        (2 + rMean / 256) * dr * dr +
+        4 * dg * dg +
+        (2 + (255 - rMean) / 256) * db * db
+    );
+}
+
+// 找到最接近的方块
+function findClosestBlock(r, g, b) {
+    let minDist = Infinity;
+    let closest = null;
+    for (const block of minecraftBlocks) {
+        const dist = colorDistanceRedmean([r, g, b], block.color);
+        if (dist < minDist) {
+            minDist = dist;
+            closest = block;
+        }
+    }
+    return closest;
+}
+
+// 计算目标尺寸
+function calculateTargetSize(originalWidth, originalHeight) {
+    const mode = document.getElementById('pixel-size-mode').value;
+    const keepRatio = document.getElementById('pixel-keep-ratio').checked;
+    let targetWidth, targetHeight;
+
+    if (mode === 'custom') {
+        targetWidth = parseInt(document.getElementById('pixel-width-input').value) || 64;
+        targetHeight = parseInt(document.getElementById('pixel-height-input').value) || 64;
+        if (keepRatio) {
+            // 保持比例，以宽度为准
+            targetHeight = Math.round(targetWidth * originalHeight / originalWidth);
+        }
+    } else {
+        const size = parseInt(document.getElementById('pixel-size-slider').value) || 64;
+        if (mode === 'longside') {
+            if (originalWidth >= originalHeight) {
+                targetWidth = size;
+                targetHeight = Math.round(size * originalHeight / originalWidth);
+            } else {
+                targetHeight = size;
+                targetWidth = Math.round(size * originalWidth / originalHeight);
+            }
+        } else if (mode === 'width') {
+            targetWidth = size;
+            targetHeight = Math.round(size * originalHeight / originalWidth);
+        } else if (mode === 'height') {
+            targetHeight = size;
+            targetWidth = Math.round(size * originalWidth / originalHeight);
+        }
+    }
+
+    // 确保至少1像素
+    targetWidth = Math.max(1, targetWidth);
+    targetHeight = Math.max(1, targetHeight);
+
+    return { width: targetWidth, height: targetHeight };
+}
+
+// 生成像素画
+function generatePixelArt() {
+    if (!pixelOriginalImage) {
+        showPixelStatus('请先上传图片', 'error');
+        return;
+    }
+
+    const statusEl = document.getElementById('pixel-status');
+    statusEl.textContent = '生成中...';
+    statusEl.className = 'status';
+
+    // 用setTimeout让UI先更新
+    setTimeout(() => {
+        try {
+            const targetSize = calculateTargetSize(pixelOriginalImage.width, pixelOriginalImage.height);
+            const canvas = document.getElementById('pixel-result-canvas');
+            const ctx = canvas.getContext('2d');
+
+            // 设置canvas尺寸
+            canvas.width = targetSize.width;
+            canvas.height = targetSize.height;
+
+            // 绘制缩小后的图片
+            ctx.drawImage(pixelOriginalImage, 0, 0, targetSize.width, targetSize.height);
+
+            // 获取像素数据
+            const imageData = ctx.getImageData(0, 0, targetSize.width, targetSize.height);
+            const data = imageData.data;
+
+            // 统计方块
+            const blockCounts = {};
+            let totalBlocks = 0;
+
+            // 逐个像素匹配方块并重绘
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                const a = data[i + 3];
+
+                if (a < 50) {
+                    // 透明像素，跳过
+                    data[i + 3] = 0;
+                    continue;
+                }
+
+                const block = findClosestBlock(r, g, b);
+                const blockName = block.name;
+
+                // 统计
+                if (!blockCounts[blockName]) {
+                    blockCounts[blockName] = { count: 0, color: block.color };
+                }
+                blockCounts[blockName].count++;
+                totalBlocks++;
+
+                // 重绘为方块颜色
+                data[i] = block.color[0];
+                data[i + 1] = block.color[1];
+                data[i + 2] = block.color[2];
+            }
+
+            // 把修改后的数据写回canvas
+            ctx.putImageData(imageData, 0, 0);
+
+            // 保存结果数据
+            pixelResultData = {
+                width: targetSize.width,
+                height: targetSize.height,
+                totalBlocks: totalBlocks,
+                blockCounts: blockCounts,
+            };
+
+            // 显示结果
+            document.getElementById('pixel-result-card').style.display = 'block';
+            document.getElementById('pixel-blocks-card').style.display = 'block';
+
+            // 更新统计信息
+            document.getElementById('pixel-stats-size').textContent = `${targetSize.width} × ${targetSize.height}`;
+            document.getElementById('pixel-stats-total').textContent = totalBlocks.toLocaleString();
+            document.getElementById('pixel-stats-types').textContent = Object.keys(blockCounts).length;
+
+            // 渲染方块列表
+            renderBlockList(blockCounts);
+
+            showPixelStatus('生成完成！', 'success');
+        } catch (e) {
+            console.error('生成像素画失败:', e);
+            showPixelStatus('生成失败：' + e.message, 'error');
+        }
+    }, 50);
+}
+
+// 渲染方块列表
+function renderBlockList(blockCounts) {
+    const container = document.getElementById('pixel-block-list');
+    if (!container) return;
+
+    // 按数量排序
+    const sorted = Object.entries(blockCounts).sort((a, b) => b[1].count - a[1].count);
+
+    container.innerHTML = sorted.map(([name, data]) => {
+        const [r, g, b] = data.color;
+        return `
+            <div style="display: flex; align-items: center; padding: 8px 12px; background: #fafafa; border-radius: 6px; margin-bottom: 6px;">
+                <div style="width: 24px; height: 24px; border-radius: 4px; margin-right: 12px; border: 1px solid #e5e5e5; flex-shrink: 0; background: rgb(${r}, ${g}, ${b});"></div>
+                <span style="flex: 1; font-size: 0.9rem; color: #1d1d1f;">${name}</span>
+                <span style="font-weight: 600; color: #0071e3;">${data.count}</span>
+            </div>
+        `;
+    }).join('');
+}
+
+// 显示状态
+function showPixelStatus(message, type = '') {
+    const statusEl = document.getElementById('pixel-status');
+    if (!statusEl) return;
+    statusEl.textContent = message;
+    statusEl.className = 'status' + (type ? ' ' + type : '');
+}
+
+// 下载像素画图片
+function downloadPixelImage() {
+    const canvas = document.getElementById('pixel-result-canvas');
+    if (!canvas) return;
+
+    const link = document.createElement('a');
+    link.download = 'minecraft-pixel-art.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+}
+
+// 复制方块清单
+function copyBlockList() {
+    if (!pixelResultData) return;
+
+    const sorted = Object.entries(pixelResultData.blockCounts).sort((a, b) => b[1].count - a[1].count);
+    let text = `Minecraft 像素画方块清单\n`;
+    text += `尺寸：${pixelResultData.width} × ${pixelResultData.height}\n`;
+    text += `总方块数：${pixelResultData.totalBlocks}\n`;
+    text += `方块种类：${sorted.length}\n`;
+    text += `\n---\n\n`;
+
+    sorted.forEach(([name, data], index) => {
+        text += `${index + 1}. ${name}: ${data.count} 个\n`;
+    });
+
+    navigator.clipboard.writeText(text).then(() => {
+        showPixelStatus('方块清单已复制到剪贴板', 'success');
+    }).catch(() => {
+        // 降级方案
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showPixelStatus('方块清单已复制到剪贴板', 'success');
+    });
+}
+
+// 更新尺寸标签
+function updateSizeLabel() {
+    const mode = document.getElementById('pixel-size-mode').value;
+    const sizeRow = document.getElementById('pixel-size-row');
+    const customRow = document.getElementById('pixel-custom-row');
+    const sizeLabel = document.querySelector('#pixel-size-row .setting-label');
+
+    if (mode === 'custom') {
+        sizeRow.style.display = 'none';
+        customRow.style.display = 'flex';
+    } else {
+        sizeRow.style.display = 'flex';
+        customRow.style.display = 'none';
+
+        if (mode === 'longside') {
+            sizeLabel.textContent = '长边像素：';
+        } else if (mode === 'width') {
+            sizeLabel.textContent = '宽度像素：';
+        } else if (mode === 'height') {
+            sizeLabel.textContent = '高度像素：';
+        }
+    }
+}
+
+// 初始化像素画页面
+function initPixelArtPage() {
+    const uploadArea = document.getElementById('pixel-upload-area');
+    const fileInput = document.getElementById('pixel-file-input');
+    const generateBtn = document.getElementById('pixel-generate-btn');
+    const downloadBtn = document.getElementById('pixel-download-btn');
+    const copyListBtn = document.getElementById('pixel-copy-list-btn');
+    const sizeMode = document.getElementById('pixel-size-mode');
+    const sizeSlider = document.getElementById('pixel-size-slider');
+    const sizeValue = document.getElementById('pixel-size-value');
+    const keepRatio = document.getElementById('pixel-keep-ratio');
+    const widthInput = document.getElementById('pixel-width-input');
+    const heightInput = document.getElementById('pixel-height-input');
+
+    if (!uploadArea) return;
+
+    // 点击上传区域
+    uploadArea.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    // 拖拽上传
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.style.borderColor = '#0071e3';
+        uploadArea.style.background = '#f0f7ff';
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.style.borderColor = '#d2d2d7';
+        uploadArea.style.background = '#fafafa';
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.style.borderColor = '#d2d2d7';
+        uploadArea.style.background = '#fafafa';
+
+        const files = e.dataTransfer.files;
+        if (files.length > 0 && files[0].type.startsWith('image/')) {
+            handleImageFile(files[0]);
+        }
+    });
+
+    // 文件选择
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            handleImageFile(e.target.files[0]);
+        }
+    });
+
+    // 尺寸模式切换
+    sizeMode.addEventListener('change', updateSizeLabel);
+
+    // 尺寸滑块
+    sizeSlider.addEventListener('input', () => {
+        sizeValue.textContent = sizeSlider.value;
+    });
+
+    // 保持比例 - 自定义模式下联动宽高
+    widthInput.addEventListener('input', () => {
+        if (keepRatio.checked && pixelOriginalImage) {
+            const w = parseInt(widthInput.value) || 1;
+            heightInput.value = Math.round(w * pixelOriginalImage.height / pixelOriginalImage.width);
+        }
+    });
+
+    heightInput.addEventListener('input', () => {
+        if (keepRatio.checked && pixelOriginalImage) {
+            const h = parseInt(heightInput.value) || 1;
+            widthInput.value = Math.round(h * pixelOriginalImage.width / pixelOriginalImage.height);
+        }
+    });
+
+    // 生成按钮
+    generateBtn.addEventListener('click', generatePixelArt);
+
+    // 下载按钮
+    downloadBtn.addEventListener('click', downloadPixelImage);
+
+    // 复制清单按钮
+    copyListBtn.addEventListener('click', copyBlockList);
+}
+
+// 处理图片文件
+function handleImageFile(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+            pixelOriginalImage = img;
+
+            // 显示原图预览
+            const preview = document.getElementById('pixel-original-preview');
+            const previewImg = document.getElementById('pixel-original-img');
+            if (preview && previewImg) {
+                previewImg.src = e.target.result;
+                preview.style.display = 'block';
+            }
+
+            // 启用生成按钮
+            const generateBtn = document.getElementById('pixel-generate-btn');
+            if (generateBtn) {
+                generateBtn.disabled = false;
+            }
+
+            // 如果是自定义模式，更新高度
+            const keepRatio = document.getElementById('pixel-keep-ratio');
+            const widthInput = document.getElementById('pixel-width-input');
+            const heightInput = document.getElementById('pixel-height-input');
+            if (keepRatio.checked && widthInput && heightInput) {
+                const w = parseInt(widthInput.value) || 64;
+                heightInput.value = Math.round(w * img.height / img.width);
+            }
+
+            showPixelStatus('图片已加载，点击生成按钮开始', 'success');
+        };
+        img.onerror = () => {
+            showPixelStatus('图片加载失败', 'error');
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', () => {
+    initPixelArtPage();
+});

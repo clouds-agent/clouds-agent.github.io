@@ -23,6 +23,7 @@
         <button class="nav-link" data-page="tools">工具</button>
         <button class="nav-link" data-page="danbooru">D 站 tag</button>
         <button class="nav-link" data-page="translate">翻译</button>
+        <button class="nav-link" data-page="pixel">像素画</button>
         <button class="nav-link" id="kards-btn"></button>
     </nav>
 
@@ -504,6 +505,96 @@
                 </div>
             </div>
         </section>
+
+        <!-- 像素画页面 -->
+        <section id="pixel" class="section">
+            <div class="card">
+                <h3>🎨 Minecraft 像素画生成器</h3>
+                <p class="pixel-desc" style="font-size: 0.9rem; color: #86868b; margin-bottom: 1rem;">上传图片，自动转换为 Minecraft 像素画，并给出所需方块清单</p>
+                
+                <!-- 上传区域 -->
+                <div class="pixel-upload-area" id="pixel-upload-area" style="border: 2px dashed #d2d2d7; border-radius: 12px; padding: 2rem; text-align: center; cursor: pointer; transition: all 0.2s; background: #fafafa;">
+                    <input type="file" id="pixel-file-input" accept="image/*" style="display:none;">
+                    <div class="pixel-upload-icon" style="font-size: 3rem; margin-bottom: 0.5rem;">📷</div>
+                    <p style="font-weight: 500; color: #1d1d1f; margin-bottom: 0.25rem;">点击或拖拽图片到此处上传</p>
+                    <p style="font-size: 0.85rem; color: #86868b;">支持 JPG、PNG、GIF 等格式</p>
+                </div>
+                
+                <!-- 原图预览 -->
+                <div id="pixel-original-preview" style="display:none; margin-top: 1rem;">
+                    <h4 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem;">原图</h4>
+                    <img id="pixel-original-img" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 1px solid #e5e5e5;">
+                </div>
+                
+                <!-- 设置区域 -->
+                <div class="pixel-settings" style="margin-top: 1rem; padding: 1rem; background: #fafafa; border-radius: 8px;">
+                    <div class="setting-row" style="margin-bottom: 0.75rem;">
+                        <label class="setting-label">尺寸模式：</label>
+                        <select id="pixel-size-mode" class="setting-select">
+                            <option value="longside">按长边</option>
+                            <option value="width">按宽度</option>
+                            <option value="height">按高度</option>
+                            <option value="custom">自定义</option>
+                        </select>
+                    </div>
+                    <div class="setting-row" id="pixel-size-row" style="margin-bottom: 0.75rem;">
+                        <label class="setting-label">长边像素：</label>
+                        <input type="range" id="pixel-size-slider" class="setting-range" min="16" max="256" step="8" value="64">
+                        <span id="pixel-size-value" class="setting-value">64</span>
+                    </div>
+                    <div class="setting-row" id="pixel-custom-row" style="display:none; margin-bottom: 0.75rem;">
+                        <label class="setting-label">宽 × 高：</label>
+                        <input type="number" id="pixel-width-input" class="setting-input" min="1" max="512" value="64" style="width: 80px; padding: 0.5rem; border: 1px solid #d2d2d7; border-radius: 6px; font-size: 0.9rem;">
+                        <span style="margin: 0 0.5rem; color: #86868b;">×</span>
+                        <input type="number" id="pixel-height-input" class="setting-input" min="1" max="512" value="64" style="width: 80px; padding: 0.5rem; border: 1px solid #d2d2d7; border-radius: 6px; font-size: 0.9rem;">
+                    </div>
+                    <div class="setting-row">
+                        <label class="setting-label">保持比例：</label>
+                        <input type="checkbox" id="pixel-keep-ratio" checked style="width: 18px; height: 18px; cursor: pointer;">
+                    </div>
+                </div>
+                
+                <!-- 生成按钮 -->
+                <div class="btn-group">
+                    <button id="pixel-generate-btn" class="btn btn-primary" disabled>生成像素画</button>
+                </div>
+                
+                <!-- 状态 -->
+                <div id="pixel-status" class="status"></div>
+            </div>
+            
+            <!-- 结果区域 -->
+            <div id="pixel-result-card" class="card" style="display:none;">
+                <h3>🖼️ 像素画预览</h3>
+                <div class="pixel-result-container" style="text-align: center; padding: 1rem; background: #fafafa; border-radius: 8px; margin-bottom: 1rem;">
+                    <canvas id="pixel-result-canvas" style="image-rendering: pixelated; image-rendering: crisp-edges; max-width: 100%; max-height: 400px; border-radius: 4px;"></canvas>
+                </div>
+                <div class="btn-group">
+                    <button id="pixel-download-btn" class="btn btn-secondary">📥 下载图片</button>
+                    <button id="pixel-copy-list-btn" class="btn btn-secondary">📋 复制方块清单</button>
+                </div>
+            </div>
+            
+            <!-- 方块清单 -->
+            <div id="pixel-blocks-card" class="card" style="display:none;">
+                <h3>🧱 方块清单</h3>
+                <div class="pixel-stats" style="display: flex; gap: 1.5rem; margin-bottom: 1rem; padding: 0.75rem 1rem; background: #fafafa; border-radius: 8px;">
+                    <div class="pixel-stat-item">
+                        <span style="font-size: 0.85rem; color: #86868b;">尺寸</span>
+                        <div id="pixel-stats-size" style="font-weight: 600; color: #0071e3;">-</div>
+                    </div>
+                    <div class="pixel-stat-item">
+                        <span style="font-size: 0.85rem; color: #86868b;">总方块数</span>
+                        <div id="pixel-stats-total" style="font-weight: 600; color: #0071e3;">-</div>
+                    </div>
+                    <div class="pixel-stat-item">
+                        <span style="font-size: 0.85rem; color: #86868b;">方块种类</span>
+                        <div id="pixel-stats-types" style="font-weight: 600; color: #0071e3;">-</div>
+                    </div>
+                </div>
+                <div id="pixel-block-list" style="max-height: 400px; overflow-y: auto;"></div>
+            </div>
+        </section>
     </main>
 
     <!-- Token 登录悬浮窗 -->
@@ -535,6 +626,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260621v166"></script>
+    <script src="app.js?v=20260622v167"></script>
 </body>
 </html>
