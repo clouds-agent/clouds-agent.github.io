@@ -2604,3 +2604,29 @@ input[type="password"]:focus {
     font-size: 0.8rem;
     margin-top: 0.5rem;
 }
+
+/* 像素画页面两栏布局 */
+#pixel-content-container {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+}
+
+#pixel-content-container .card {
+    flex: 1;
+    min-width: 0;
+}
+
+/* 手机端单列布局 */
+@media (max-width: 768px) {
+    #pixel-content-container {
+        flex-direction: column;
+    }
+}
+
+/* 方块高亮项置顶样式 */
+.block-item.highlighted {
+    border: 2px solid #ff3b30;
+    background: #fff5f5;
+    order: -1;
+}

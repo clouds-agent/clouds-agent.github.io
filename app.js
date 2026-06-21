@@ -4535,8 +4535,7 @@ function generatePixelArt() {
             };
 
             // 显示结果
-            document.getElementById('pixel-result-card').style.display = 'block';
-            document.getElementById('pixel-blocks-card').style.display = 'block';
+            document.getElementById('pixel-content-container').style.display = 'flex';
 
             // 更新统计信息
             document.getElementById('pixel-stats-size').textContent = `${targetSize.width} × ${targetSize.height}`;
@@ -4560,7 +4559,17 @@ function renderBlockList(blockCounts) {
     if (!container) return;
 
     // 按数量排序
+    
     const sorted = Object.entries(blockCounts).sort((a, b) => b[1].count - a[1].count);
+    
+    // 如果有高亮的方块，置顶显示
+    if (highlightedBlock) {
+        const highlightIndex = sorted.findIndex(([name]) => name === highlightedBlock);
+        if (highlightIndex > 0) {
+            const [highlightItem] = sorted.splice(highlightIndex, 1);
+            sorted.unshift(highlightItem);
+        }
+    }
 
     container.innerHTML = sorted.map(([name, data]) => {
         const [r, g, b] = data.color;
@@ -4636,6 +4645,15 @@ function copyBlockList() {
     if (!pixelResultData) return;
 
     const sorted = Object.entries(pixelResultData.blockCounts).sort((a, b) => b[1].count - a[1].count);
+    
+    // 如果有高亮的方块，置顶显示
+    if (highlightedBlock) {
+        const highlightIndex = sorted.findIndex(([name]) => name === highlightedBlock);
+        if (highlightIndex > 0) {
+            const [highlightItem] = sorted.splice(highlightIndex, 1);
+            sorted.unshift(highlightItem);
+        }
+    }
     let text = `Minecraft 像素画方块清单\n`;
     text += `尺寸：${pixelResultData.width} × ${pixelResultData.height}\n`;
     text += `总方块数：${pixelResultData.totalBlocks}\n`;
@@ -4691,6 +4709,7 @@ function initPixelArtPage() {
     const generateBtn = document.getElementById('pixel-generate-btn');
     const downloadBtn = document.getElementById('pixel-download-btn');
     const copyListBtn = document.getElementById('pixel-copy-list-btn');
+    const resultCanvas = document.getElementById('pixel-result-canvas');
     const sizeMode = document.getElementById('pixel-size-mode');
     const sizeSlider = document.getElementById('pixel-size-slider');
     const sizeValue = document.getElementById('pixel-size-value');
@@ -4773,6 +4792,24 @@ function initPixelArtPage() {
 
     // 复制清单按钮
     copyListBtn.addEventListener('click', copyBlockList);
+    
+    // 点击像素画中的像素，高亮对应方块
+    resultCanvas.addEventListener('click', (e) => {
+        if (!pixelBlockMap || !pixelResultData) return;
+        
+        const rect = resultCanvas.getBoundingClientRect();
+        const scaleX = resultCanvas.width / rect.width;
+        const scaleY = resultCanvas.height / rect.height;
+        const x = Math.floor((e.clientX - rect.left) * scaleX / pixelResultData.pixelSize);
+        const y = Math.floor((e.clientY - rect.top) * scaleY / pixelResultData.pixelSize);
+        
+        if (y >= 0 && y < pixelBlockMap.length && x >= 0 && x < pixelBlockMap[0].length) {
+            const blockName = pixelBlockMap[y][x];
+            if (blockName) {
+                toggleBlockHighlight(blockName);
+            }
+        }
+    });
 }
 
 // 处理图片文件
