@@ -3380,6 +3380,7 @@ function renderPostGrid(posts) {
         img.src = post.preview_file_url || post.file_url;
         img.alt = post.tag_string_general;
         img.loading = 'lazy';
+        img.referrerPolicy = 'no-referrer-when-downgrade';
         img.addEventListener('click', () => showPostDetailModal(post.id));
         
         item.appendChild(img);
