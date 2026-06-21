@@ -620,6 +620,7 @@ async function loadUserProfile() {
         const oldProfile = userProfile ? { ...userProfile } : null;
         
         userProfile = {
+            uuid: data.uuid || '',
             name: data.nick_name || data.name || '用户',
             avatar: data.avatar_url || '',
             following: data.total_subscribes || 0,
@@ -4110,7 +4111,13 @@ function toggleTagHistoryFold() {
 
 // ============ 点赞记录 ============
 
-const LIKE_RECORDS_KEY = 'neta_like_records';
+function getLikeRecordsKey() {
+    if (userProfile && userProfile.uuid) {
+        return 'neta_like_records_' + userProfile.uuid;
+    }
+    return 'neta_like_records';
+}
+
 let likeRecordStartTime = null;
 let likeRecordStartCount = 0;
 let likeNavClickCount = 0;
@@ -4121,12 +4128,12 @@ function saveLikeRecord(record) {
     records.unshift(record);
     // 最多保存 50 条
     const limited = records.slice(0, 50);
-    localStorage.setItem(LIKE_RECORDS_KEY, JSON.stringify(limited));
+    localStorage.setItem(getLikeRecordsKey(), JSON.stringify(limited));
 }
 
 function loadLikeRecords() {
     try {
-        const data = localStorage.getItem(LIKE_RECORDS_KEY);
+        const data = localStorage.getItem(getLikeRecordsKey());
         return data ? JSON.parse(data) : [];
     } catch (e) {
         return [];
