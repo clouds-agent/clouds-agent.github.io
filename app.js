@@ -4297,6 +4297,8 @@ const minecraftBlocks = [
 // 像素画状态
 let pixelOriginalImage = null;
 let pixelResultData = null;
+let pixelBlockMap = null; // 二维数组，保存每个像素对应的方块名称 [y][x] => blockName
+let highlightedBlock = null; // 当前高亮的方块名称
 
 // 红均值颜色距离算法（更符合人眼感知）
 function colorDistanceRedmean(c1, c2) {
@@ -4364,6 +4366,58 @@ function calculateTargetSize(originalWidth, originalHeight) {
     return { width: targetWidth, height: targetHeight };
 }
 
+// 计算每个像素的显示大小（让预览图保持合适的大小）
+function calculatePixelDisplaySize(targetWidth, targetHeight) {
+    const maxDisplayWidth = 600;
+    const maxDisplayHeight = 500;
+    const pixelSizeByWidth = Math.floor(maxDisplayWidth / targetWidth);
+    const pixelSizeByHeight = Math.floor(maxDisplayHeight / targetHeight);
+    return Math.max(1, Math.min(pixelSizeByWidth, pixelSizeByHeight));
+}
+
+// 绘制像素画到Canvas
+function drawPixelArt(ctx, blockMap, blockCounts, pixelSize, highlightBlockName = null) {
+    const height = blockMap.length;
+    const width = blockMap[0].length;
+
+    // 先清空
+    ctx.clearRect(0, 0, width * pixelSize, height * pixelSize);
+
+    // 绘制所有像素方块
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const blockName = blockMap[y][x];
+            if (!blockName) continue; // 透明像素
+
+            const blockData = blockCounts[blockName];
+            if (!blockData) continue;
+
+            const [r, g, b] = blockData.color;
+            ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+            ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
+        }
+    }
+
+    // 如果有高亮，绘制红框
+    if (highlightBlockName) {
+        ctx.strokeStyle = '#ff3b30';
+        ctx.lineWidth = 1;
+        
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                if (blockMap[y][x] === highlightBlockName) {
+                    ctx.strokeRect(
+                        x * pixelSize + 0.5,
+                        y * pixelSize + 0.5,
+                        pixelSize - 1,
+                        pixelSize - 1
+                    );
+                }
+            }
+        }
+    }
+}
+
 // 生成像素画
 function generatePixelArt() {
     if (!pixelOriginalImage) {
@@ -4375,59 +4429,68 @@ function generatePixelArt() {
     statusEl.textContent = '生成中...';
     statusEl.className = 'status';
 
+    // 重置高亮
+    highlightedBlock = null;
+
     // 用setTimeout让UI先更新
     setTimeout(() => {
         try {
             const targetSize = calculateTargetSize(pixelOriginalImage.width, pixelOriginalImage.height);
+            const pixelSize = calculatePixelDisplaySize(targetSize.width, targetSize.height);
+            
             const canvas = document.getElementById('pixel-result-canvas');
             const ctx = canvas.getContext('2d');
 
-            // 设置canvas尺寸
-            canvas.width = targetSize.width;
-            canvas.height = targetSize.height;
+            // 设置canvas显示尺寸
+            canvas.width = targetSize.width * pixelSize;
+            canvas.height = targetSize.height * pixelSize;
 
-            // 绘制缩小后的图片
-            ctx.drawImage(pixelOriginalImage, 0, 0, targetSize.width, targetSize.height);
+            // 创建临时canvas来缩放原图
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = targetSize.width;
+            tempCanvas.height = targetSize.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.drawImage(pixelOriginalImage, 0, 0, targetSize.width, targetSize.height);
 
             // 获取像素数据
-            const imageData = ctx.getImageData(0, 0, targetSize.width, targetSize.height);
+            const imageData = tempCtx.getImageData(0, 0, targetSize.width, targetSize.height);
             const data = imageData.data;
 
-            // 统计方块
+            // 统计方块和保存像素映射
             const blockCounts = {};
             let totalBlocks = 0;
+            pixelBlockMap = [];
 
-            // 逐个像素匹配方块并重绘
-            for (let i = 0; i < data.length; i += 4) {
-                const r = data[i];
-                const g = data[i + 1];
-                const b = data[i + 2];
-                const a = data[i + 3];
+            for (let y = 0; y < targetSize.height; y++) {
+                pixelBlockMap[y] = [];
+                for (let x = 0; x < targetSize.width; x++) {
+                    const i = (y * targetSize.width + x) * 4;
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+                    const a = data[i + 3];
 
-                if (a < 50) {
-                    // 透明像素，跳过
-                    data[i + 3] = 0;
-                    continue;
+                    if (a < 50) {
+                        pixelBlockMap[y][x] = null;
+                        continue;
+                    }
+
+                    const block = findClosestBlock(r, g, b);
+                    const blockName = block.name;
+
+                    pixelBlockMap[y][x] = blockName;
+
+                    // 统计
+                    if (!blockCounts[blockName]) {
+                        blockCounts[blockName] = { count: 0, color: block.color };
+                    }
+                    blockCounts[blockName].count++;
+                    totalBlocks++;
                 }
-
-                const block = findClosestBlock(r, g, b);
-                const blockName = block.name;
-
-                // 统计
-                if (!blockCounts[blockName]) {
-                    blockCounts[blockName] = { count: 0, color: block.color };
-                }
-                blockCounts[blockName].count++;
-                totalBlocks++;
-
-                // 重绘为方块颜色
-                data[i] = block.color[0];
-                data[i + 1] = block.color[1];
-                data[i + 2] = block.color[2];
             }
 
-            // 把修改后的数据写回canvas
-            ctx.putImageData(imageData, 0, 0);
+            // 绘制像素画
+            drawPixelArt(ctx, pixelBlockMap, blockCounts, pixelSize);
 
             // 保存结果数据
             pixelResultData = {
@@ -4435,6 +4498,7 @@ function generatePixelArt() {
                 height: targetSize.height,
                 totalBlocks: totalBlocks,
                 blockCounts: blockCounts,
+                pixelSize: pixelSize,
             };
 
             // 显示结果
@@ -4449,7 +4513,7 @@ function generatePixelArt() {
             // 渲染方块列表
             renderBlockList(blockCounts);
 
-            showPixelStatus('生成完成！', 'success');
+            showPixelStatus('生成完成！点击方块可高亮对应位置', 'success');
         } catch (e) {
             console.error('生成像素画失败:', e);
             showPixelStatus('生成失败：' + e.message, 'error');
@@ -4467,14 +4531,44 @@ function renderBlockList(blockCounts) {
 
     container.innerHTML = sorted.map(([name, data]) => {
         const [r, g, b] = data.color;
+        const isHighlighted = highlightedBlock === name;
         return `
-            <div style="display: flex; align-items: center; padding: 8px 12px; background: #fafafa; border-radius: 6px; margin-bottom: 6px;">
+            <div class="pixel-block-item" data-block-name="${name}" style="display: flex; align-items: center; padding: 8px 12px; background: ${isHighlighted ? '#fff0f0' : '#fafafa'}; border-radius: 6px; margin-bottom: 6px; cursor: pointer; transition: all 0.2s; border: 1px solid ${isHighlighted ? '#ff3b30' : 'transparent'};">
                 <div style="width: 24px; height: 24px; border-radius: 4px; margin-right: 12px; border: 1px solid #e5e5e5; flex-shrink: 0; background: rgb(${r}, ${g}, ${b});"></div>
                 <span style="flex: 1; font-size: 0.9rem; color: #1d1d1f;">${name}</span>
                 <span style="font-weight: 600; color: #0071e3;">${data.count}</span>
             </div>
         `;
     }).join('');
+
+    // 绑定点击事件
+    container.querySelectorAll('.pixel-block-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const blockName = item.getAttribute('data-block-name');
+            toggleBlockHighlight(blockName);
+        });
+    });
+}
+
+// 切换方块高亮
+function toggleBlockHighlight(blockName) {
+    if (!pixelBlockMap || !pixelResultData) return;
+
+    if (highlightedBlock === blockName) {
+        // 取消高亮
+        highlightedBlock = null;
+    } else {
+        // 设置高亮
+        highlightedBlock = blockName;
+    }
+
+    // 重新绘制
+    const canvas = document.getElementById('pixel-result-canvas');
+    const ctx = canvas.getContext('2d');
+    drawPixelArt(ctx, pixelBlockMap, pixelResultData.blockCounts, pixelResultData.pixelSize, highlightedBlock);
+
+    // 更新方块列表样式
+    renderBlockList(pixelResultData.blockCounts);
 }
 
 // 显示状态
@@ -4485,14 +4579,22 @@ function showPixelStatus(message, type = '') {
     statusEl.className = 'status' + (type ? ' ' + type : '');
 }
 
-// 下载像素画图片
+// 下载像素画图片（原始像素尺寸）
 function downloadPixelImage() {
-    const canvas = document.getElementById('pixel-result-canvas');
-    if (!canvas) return;
+    if (!pixelBlockMap || !pixelResultData) return;
+
+    // 创建原始尺寸的canvas
+    const downloadCanvas = document.createElement('canvas');
+    downloadCanvas.width = pixelResultData.width;
+    downloadCanvas.height = pixelResultData.height;
+    const downloadCtx = downloadCanvas.getContext('2d');
+
+    // 绘制原始尺寸像素画
+    drawPixelArt(downloadCtx, pixelBlockMap, pixelResultData.blockCounts, 1);
 
     const link = document.createElement('a');
     link.download = 'minecraft-pixel-art.png';
-    link.href = canvas.toDataURL('image/png');
+    link.href = downloadCanvas.toDataURL('image/png');
     link.click();
 }
 
