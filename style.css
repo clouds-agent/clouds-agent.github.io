@@ -2597,3 +2597,10 @@ input[type="password"]:focus {
         grid-template-columns: 1fr;
     }
 }
+
+/* 小按钮 */
+.btn-sm {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+}

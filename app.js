@@ -72,6 +72,11 @@ function switchPage(pageName) {
     
     currentActivePage = pageName;
     
+    // 切换到非点赞页时，隐藏点赞记录
+    if (pageName !== 'like') {
+        hideLikeRecords();
+    }
+    
     // 切换到点赞页，移除所有加载状态
     if (pageName === 'like') {
         updateNavbarLoading('like', false);
@@ -641,6 +646,21 @@ function setupNavigation() {
             const pageName = link.getAttribute('data-page');
             if (pageName) {
                 switchPage(pageName);
+                
+                // 点赞按钮连续点击 5 次显示点赞记录
+                if (pageName === 'like') {
+                    likeNavClickCount++;
+                    clearTimeout(likeNavClickTimeout);
+                    
+                    if (likeNavClickCount >= 5) {
+                        showLikeRecords();
+                        likeNavClickCount = 0;
+                    } else {
+                        likeNavClickTimeout = setTimeout(() => {
+                            likeNavClickCount = 0;
+                        }, 1000); // 1 秒内连续点击才算
+                    }
+                }
             }
         });
     });
@@ -1152,6 +1172,9 @@ function addTag(tag) {
     tags.push(tag);
     saveTags(tags);
     renderTags();
+    // 保存到历史记录
+    saveTagToHistory(tag.name);
+    renderTagHistory();
     document.getElementById('tag-search').value = '';
     document.getElementById('tag-suggestions').classList.remove('show');
 }
@@ -1496,6 +1519,16 @@ function stopLiking() {
     if (pauseBtn) {
         pauseBtn.disabled = true;
         pauseBtn.textContent = '暂停';
+    }
+    
+    // 保存点赞记录
+    if (likeStats && likeStats.startTime && likeStats.total > 0) {
+        const duration = Date.now() - likeStats.startTime;
+        saveLikeRecord({
+            startTime: likeStats.startTime,
+            duration: duration,
+            count: likeStats.total
+        });
     }
     
     log('已终止', 'error');
@@ -3122,6 +3155,13 @@ function init() {
     setupTranslate();
     loadHotTags();
     
+    // 历史标签
+    renderTagHistory();
+    const toggleHistoryBtn = document.getElementById('toggle-history-btn');
+    if (toggleHistoryBtn) {
+        toggleHistoryBtn.addEventListener('click', toggleTagHistoryFold);
+    }
+    
     // 新增：用户点赞相关
     initUserSearch();
     initUserConfirm();
@@ -3996,5 +4036,150 @@ function setupTranslate() {
                 doTranslate();
             }
         });
+    }
+}
+
+// ============ 历史标签 ============
+
+const TAG_HISTORY_KEY = 'neta_tag_history';
+const MAX_VISIBLE_TAGS = 30;
+let tagHistoryFolded = true;
+
+function saveTagToHistory(tagName) {
+    const history = loadTagHistory();
+    // 去重：已存在的先删掉，新的放最前面
+    const filtered = history.filter(t => t !== tagName);
+    filtered.unshift(tagName);
+    // 最多保存 100 个
+    const limited = filtered.slice(0, 100);
+    localStorage.setItem(TAG_HISTORY_KEY, JSON.stringify(limited));
+}
+
+function loadTagHistory() {
+    try {
+        const data = localStorage.getItem(TAG_HISTORY_KEY);
+        return data ? JSON.parse(data) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function renderTagHistory() {
+    const container = document.getElementById('tag-history');
+    const toggleBtn = document.getElementById('toggle-history-btn');
+    if (!container) return;
+    
+    const history = loadTagHistory();
+    if (history.length === 0) {
+        container.innerHTML = '<span style="color: #999; font-size: 14px;">暂无历史标签</span>';
+        if (toggleBtn) toggleBtn.style.display = 'none';
+        return;
+    }
+    
+    const displayTags = tagHistoryFolded ? history.slice(0, MAX_VISIBLE_TAGS) : history;
+    
+    container.innerHTML = displayTags.map(tag => `
+        <button class="quick-tag" data-tag="${tag}">${tag}</button>
+    `).join('');
+    
+    // 绑定点击事件
+    container.querySelectorAll('.quick-tag').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tag = btn.getAttribute('data-tag');
+            addTagManual(tag);
+        });
+    });
+    
+    // 显示/隐藏展开按钮
+    if (toggleBtn) {
+        if (history.length > MAX_VISIBLE_TAGS) {
+            toggleBtn.style.display = 'block';
+            toggleBtn.textContent = tagHistoryFolded 
+                ? `展开更多 (${history.length - MAX_VISIBLE_TAGS})` 
+                : '收起';
+        } else {
+            toggleBtn.style.display = 'none';
+        }
+    }
+}
+
+function toggleTagHistoryFold() {
+    tagHistoryFolded = !tagHistoryFolded;
+    renderTagHistory();
+}
+
+// ============ 点赞记录 ============
+
+const LIKE_RECORDS_KEY = 'neta_like_records';
+let likeRecordStartTime = null;
+let likeRecordStartCount = 0;
+let likeNavClickCount = 0;
+let likeNavClickTimeout = null;
+
+function saveLikeRecord(record) {
+    const records = loadLikeRecords();
+    records.unshift(record);
+    // 最多保存 50 条
+    const limited = records.slice(0, 50);
+    localStorage.setItem(LIKE_RECORDS_KEY, JSON.stringify(limited));
+}
+
+function loadLikeRecords() {
+    try {
+        const data = localStorage.getItem(LIKE_RECORDS_KEY);
+        return data ? JSON.parse(data) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function renderLikeRecords() {
+    const container = document.getElementById('like-records');
+    if (!container) return;
+    
+    const records = loadLikeRecords();
+    if (records.length === 0) {
+        container.innerHTML = '<div style="color: #999; font-size: 14px;">暂无点赞记录</div>';
+        return;
+    }
+    
+    container.innerHTML = records.map(record => {
+        const startTime = new Date(record.startTime).toLocaleString('zh-CN');
+        const duration = formatDuration(record.duration);
+        return `
+            <div style="margin-bottom: 6px; font-size: 13px; line-height: 1.6;">
+                <span style="color: #666;">[${startTime}]</span>
+                运行 ${duration}，点赞 <strong>${record.count}</strong> 个
+            </div>
+        `;
+    }).join('');
+}
+
+function formatDuration(ms) {
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    
+    if (hours > 0) {
+        return `${hours}小时${minutes % 60}分${seconds % 60}秒`;
+    } else if (minutes > 0) {
+        return `${minutes}分${seconds % 60}秒`;
+    } else {
+        return `${seconds}秒`;
+    }
+}
+
+function showLikeRecords() {
+    const card = document.getElementById('like-records-card');
+    if (card) {
+        card.style.display = 'block';
+        renderLikeRecords();
+    }
+}
+
+function hideLikeRecords() {
+    const card = document.getElementById('like-records-card');
+    if (card) {
+        card.style.display = 'none';
     }
 }
