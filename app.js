@@ -4314,10 +4314,10 @@ function colorDistanceRedmean(c1, c2) {
 }
 
 // 找到最接近的方块
-function findClosestBlock(r, g, b) {
+function findClosestBlock(r, g, b, blocks = minecraftBlocks) {
     let minDist = Infinity;
     let closest = null;
-    for (const block of minecraftBlocks) {
+    for (const block of blocks) {
         const dist = colorDistanceRedmean([r, g, b], block.color);
         if (dist < minDist) {
             minDist = dist;
@@ -4325,6 +4325,35 @@ function findClosestBlock(r, g, b) {
         }
     }
     return closest;
+}
+
+// 根据色彩区分度精简方块表
+function getReducedBlocks(discrimination) {
+    if (discrimination >= 100) {
+        return minecraftBlocks;
+    }
+    
+    const targetCount = Math.max(2, Math.floor(minecraftBlocks.length * discrimination / 100));
+    let result = minecraftBlocks.map(b => ({ ...b }));
+    
+    while (result.length > targetCount) {
+        let minDist = Infinity;
+        let minPair = [0, 1];
+        
+        for (let i = 0; i < result.length; i++) {
+            for (let j = i + 1; j < result.length; j++) {
+                const dist = colorDistanceRedmean(result[i].color, result[j].color);
+                if (dist < minDist) {
+                    minDist = dist;
+                    minPair = [i, j];
+                }
+            }
+        }
+        
+        result.splice(minPair[1], 1);
+    }
+    
+    return result;
 }
 
 // 计算目标尺寸
@@ -4438,6 +4467,10 @@ function generatePixelArt() {
             const targetSize = calculateTargetSize(pixelOriginalImage.width, pixelOriginalImage.height);
             const pixelSize = calculatePixelDisplaySize(targetSize.width, targetSize.height);
             
+            // 获取色彩区分度和精简后的方块表
+            const discrimination = parseInt(document.getElementById('pixel-discrimination-slider').value) || 100;
+            const blocks = getReducedBlocks(discrimination);
+            
             const canvas = document.getElementById('pixel-result-canvas');
             const ctx = canvas.getContext('2d');
 
@@ -4475,7 +4508,7 @@ function generatePixelArt() {
                         continue;
                     }
 
-                    const block = findClosestBlock(r, g, b);
+                    const block = findClosestBlock(r, g, b, blocks);
                     const blockName = block.name;
 
                     pixelBlockMap[y][x] = blockName;
@@ -4664,6 +4697,8 @@ function initPixelArtPage() {
     const keepRatio = document.getElementById('pixel-keep-ratio');
     const widthInput = document.getElementById('pixel-width-input');
     const heightInput = document.getElementById('pixel-height-input');
+    const discriminationSlider = document.getElementById('pixel-discrimination-slider');
+    const discriminationValue = document.getElementById('pixel-discrimination-value');
 
     if (!uploadArea) return;
 
@@ -4708,6 +4743,11 @@ function initPixelArtPage() {
     // 尺寸滑块
     sizeSlider.addEventListener('input', () => {
         sizeValue.textContent = sizeSlider.value;
+    });
+
+    // 色彩区分度滑块
+    discriminationSlider.addEventListener('input', () => {
+        discriminationValue.textContent = discriminationSlider.value;
     });
 
     // 保持比例 - 自定义模式下联动宽高
@@ -4761,6 +4801,8 @@ function handleImageFile(file) {
             const keepRatio = document.getElementById('pixel-keep-ratio');
             const widthInput = document.getElementById('pixel-width-input');
             const heightInput = document.getElementById('pixel-height-input');
+    const discriminationSlider = document.getElementById('pixel-discrimination-slider');
+    const discriminationValue = document.getElementById('pixel-discrimination-value');
             if (keepRatio.checked && widthInput && heightInput) {
                 const w = parseInt(widthInput.value) || 64;
                 heightInput.value = Math.round(w * img.height / img.width);

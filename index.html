@@ -552,6 +552,11 @@
                         <label class="setting-label">保持比例：</label>
                         <input type="checkbox" id="pixel-keep-ratio" checked style="width: 18px; height: 18px; cursor: pointer;">
                     </div>
+                    <div class="setting-row" style="margin-bottom: 0.75rem;">
+                        <label class="setting-label">色彩区分度：</label>
+                        <input type="range" id="pixel-discrimination-slider" class="setting-range" min="1" max="100" step="1" value="100">
+                        <span id="pixel-discrimination-value" class="setting-value">100</span>
+                    </div>
                 </div>
                 
                 <!-- 生成按钮 -->
@@ -626,6 +631,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260622v168"></script>
+    <script src="app.js?v=20260622v169"></script>
 </body>
 </html>
