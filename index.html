@@ -105,6 +105,34 @@
             </div>
         </section>
 
+        <!-- SVG全屏弹窗 -->
+        <div id="pixel-svg-modal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center;">
+            <div style="position: relative; width: 90%; height: 90%; max-width: 1200px; background: white; border-radius: 12px; padding: 2rem; display: flex; flex-direction: column;">
+                <!-- 弹窗头部 -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 style="margin: 0;">🔍 矢量图预览</h3>
+                    <button id="pixel-svg-modal-close" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #86868b; padding: 0 8px;">×</button>
+                </div>
+                
+                <!-- 大小调节 -->
+                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; padding: 0.5rem 1rem; background: #f5f5f7; border-radius: 8px;">
+                    <span style="font-size: 0.9rem; color: #86868b; white-space: nowrap;">方块大小:</span>
+                    <input type="range" id="pixel-svg-size-slider" min="5" max="100" value="20" style="flex: 1;">
+                    <span id="pixel-svg-size-value" style="font-weight: 600; color: #0071e3; min-width: 50px; text-align: right;">20px</span>
+                </div>
+                
+                <!-- SVG显示区域 -->
+                <div style="flex: 1; overflow: auto; background: #fafafa; border-radius: 8px; display: flex; justify-content: center; align-items: center;">
+                    <svg id="pixel-svg-modal-svg" style="background: white; border-radius: 4px;"></svg>
+                </div>
+                
+                <!-- 底部操作 -->
+                <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+                    <button id="pixel-svg-download-btn" class="btn btn-primary">📥 下载SVG</button>
+                </div>
+            </div>
+        </div>
+
         <!-- 工具页 -->
         <section id="tools" class="section">
             <div class="card">
@@ -577,15 +605,28 @@
             <div id="pixel-content-container" style="display: none; gap: 1.5rem;">
             <!-- 结果区域 -->
             <div id="pixel-result-card" class="card">
-                <h3>🖼️ 像素画预览</h3>
-                <div class="pixel-result-container" style="text-align: center; padding: 1rem; background: #fafafa; border-radius: 8px; margin-bottom: 1rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                    <h3 style="margin: 0;">🖼️ 像素画预览</h3>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <!-- 预览模式切换 -->
+                        <div style="display: flex; background: #f0f0f0; border-radius: 6px; padding: 2px;">
+                            <button id="pixel-mode-png" class="pixel-mode-btn active" style="padding: 4px 12px; border: none; background: white; border-radius: 4px; cursor: pointer; font-size: 0.85rem; color: #1d1d1f; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">位图</button>
+                            <button id="pixel-mode-svg" class="pixel-mode-btn" style="padding: 4px 12px; border: none; background: transparent; border-radius: 4px; cursor: pointer; font-size: 0.85rem; color: #86868b;">矢量图</button>
+                        </div>
+                        <!-- 全屏按钮 -->
+                        <button id="pixel-fullscreen-btn" style="padding: 4px 8px; border: 1px solid #d2d2d7; background: white; border-radius: 6px; cursor: pointer; font-size: 0.85rem; color: #1d1d1f;">⛶ 全屏</button>
+                    </div>
+                </div>
+                <div class="pixel-result-container" style="text-align: center; padding: 1rem; background: #fafafa; border-radius: 8px; margin-bottom: 1rem; position: relative;">
                     <canvas id="pixel-result-canvas" style="max-width: 100%; background: #fafafa; border-radius: 4px;"></canvas>
+                    <svg id="pixel-result-svg" style="max-width: 100%; display: none; background: #fafafa; border-radius: 4px;"></svg>
                 </div>
                 <div class="btn-group">
-                    <button id="pixel-download-btn" class="btn btn-secondary">📥 下载图片</button>
+                    <button id="pixel-download-btn" class="btn btn-secondary">📥 下载PNG</button>
+                    <button id="pixel-download-svg-btn" class="btn btn-secondary" style="display: none;">📥 下载SVG</button>
                     <button id="pixel-copy-list-btn" class="btn btn-secondary">📋 复制方块清单</button>
                 </div>
-            </div>
+            </div>            </div>
             
             <!-- 方块清单 -->
             <div id="pixel-blocks-card" class="card">
@@ -639,6 +680,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260622v171"></script>
+    <script src="app.js?v=20260622v172"></script>
 </body>
 </html>

@@ -4546,6 +4546,11 @@ function generatePixelArt() {
             renderBlockList(blockCounts);
 
             showPixelStatus('生成完成！点击方块可高亮对应位置', 'success');
+            
+            // 如果是SVG模式，更新SVG预览
+            if (currentPixelMode === 'svg') {
+                updateSvgPreview();
+            }
         } catch (e) {
             console.error('生成像素画失败:', e);
             showPixelStatus('生成失败：' + e.message, 'error');
@@ -4611,9 +4616,180 @@ function toggleBlockHighlight(blockName) {
 
     // 更新方块列表样式
     renderBlockList(pixelResultData.blockCounts);
+    
+    // 如果是SVG模式，也更新SVG
+    if (currentPixelMode === 'svg') {
+        updateSvgPreview();
+    }
+}
+
+// 当前预览模式
+let currentPixelMode = 'png'; // 'png' 或 'svg'
+
+// 生成SVG代码
+function generateSvg(blockMap, blockCounts, pixelSize, highlightBlock = null) {
+    if (!blockMap || blockMap.length === 0) return '';
+    
+    const height = blockMap.length;
+    const width = blockMap[0].length;
+    const svgWidth = width * pixelSize;
+    const svgHeight = height * pixelSize;
+    
+    let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}">`;
+    
+    // 遍历每个像素，生成rect
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const blockName = blockMap[y][x];
+            if (!blockName) continue;
+            
+            const blockData = blockCounts[blockName];
+            if (!blockData) continue;
+            
+            const [r, g, b] = blockData.color;
+            const px = x * pixelSize;
+            const py = y * pixelSize;
+            
+            // 如果是高亮的方块，加边框
+            if (highlightBlock && blockName === highlightBlock) {
+                svgContent += `<rect x="${px}" y="${py}" width="${pixelSize}" height="${pixelSize}" fill="rgb(${r},${g},${b})" stroke="#ff3b30" stroke-width="1"/>`;
+            } else {
+                svgContent += `<rect x="${px}" y="${py}" width="${pixelSize}" height="${pixelSize}" fill="rgb(${r},${g},${b})"/>`;
+            }
+        }
+    }
+    
+    svgContent += '</svg>';
+    return svgContent;
+}
+
+// 更新SVG预览
+function updateSvgPreview() {
+    if (!pixelBlockMap || !pixelResultData) return;
+    
+    const svgEl = document.getElementById('pixel-result-svg');
+    if (!svgEl) return;
+    
+    const svgContent = generateSvg(pixelBlockMap, pixelResultData.blockCounts, pixelResultData.pixelSize, highlightedBlock);
+    svgEl.innerHTML = svgContent;
+}
+
+// 切换预览模式
+function switchPixelMode(mode) {
+    if (mode === currentPixelMode) return;
+    
+    currentPixelMode = mode;
+    
+    const canvas = document.getElementById('pixel-result-canvas');
+    const svgEl = document.getElementById('pixel-result-svg');
+    const pngBtn = document.getElementById('pixel-mode-png');
+    const svgBtn = document.getElementById('pixel-mode-svg');
+    const downloadBtn = document.getElementById('pixel-download-btn');
+    const downloadSvgBtn = document.getElementById('pixel-download-svg-btn');
+    
+    if (!canvas || !svgEl || !pngBtn || !svgBtn) return;
+    
+    if (mode === 'png') {
+        // 显示PNG
+        canvas.style.display = '';
+        svgEl.style.display = 'none';
+        pngBtn.classList.add('active');
+        svgBtn.classList.remove('active');
+        pngBtn.style.background = 'white';
+        pngBtn.style.color = '#1d1d1f';
+        pngBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+        svgBtn.style.background = 'transparent';
+        svgBtn.style.color = '#86868b';
+        svgBtn.style.boxShadow = 'none';
+        // 切换下载按钮
+        if (downloadBtn) downloadBtn.style.display = '';
+        if (downloadSvgBtn) downloadSvgBtn.style.display = 'none';
+    } else {
+        // 显示SVG
+        canvas.style.display = 'none';
+        svgEl.style.display = '';
+        pngBtn.classList.remove('active');
+        svgBtn.classList.add('active');
+        pngBtn.style.background = 'transparent';
+        pngBtn.style.color = '#86868b';
+        pngBtn.style.boxShadow = 'none';
+        svgBtn.style.background = 'white';
+        svgBtn.style.color = '#1d1d1f';
+        svgBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+        // 更新SVG内容
+        updateSvgPreview();
+        // 切换下载按钮
+        if (downloadBtn) downloadBtn.style.display = 'none';
+        if (downloadSvgBtn) downloadSvgBtn.style.display = '';
+    }
+}
+
+// 全屏弹窗相关
+let modalPixelSize = 20; // 弹窗中的方块大小
+
+// 打开SVG全屏弹窗
+function openSvgModal() {
+    if (!pixelBlockMap || !pixelResultData) {
+        showPixelStatus('请先生成像素画', 'error');
+        return;
+    }
+    
+    const modal = document.getElementById('pixel-svg-modal');
+    if (!modal) return;
+    
+    modal.style.display = 'flex';
+    
+    // 初始化滑块值
+    const slider = document.getElementById('pixel-svg-size-slider');
+    const valueEl = document.getElementById('pixel-svg-size-value');
+    if (slider && valueEl) {
+        modalPixelSize = parseInt(slider.value);
+        valueEl.textContent = modalPixelSize + 'px';
+    }
+    
+    // 更新弹窗中的SVG
+    updateModalSvg();
+}
+
+// 关闭SVG全屏弹窗
+function closeSvgModal() {
+    const modal = document.getElementById('pixel-svg-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// 更新弹窗中的SVG
+function updateModalSvg() {
+    if (!pixelBlockMap || !pixelResultData) return;
+    
+    const svgEl = document.getElementById('pixel-svg-modal-svg');
+    if (!svgEl) return;
+    
+    const svgContent = generateSvg(pixelBlockMap, pixelResultData.blockCounts, modalPixelSize, highlightedBlock);
+    svgEl.innerHTML = svgContent;
+}
+
+// 下载SVG文件
+function downloadSvgFile() {
+    if (!pixelBlockMap || !pixelResultData) return;
+    
+    // 用原始像素大小生成SVG（1像素=1px，保持原始尺寸）
+    const svgContent = generateSvg(pixelBlockMap, pixelResultData.blockCounts, 1, highlightedBlock);
+    
+    const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'pixel-art.svg';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
 
 // 显示状态
+
 function showPixelStatus(message, type = '') {
     const statusEl = document.getElementById('pixel-status');
     if (!statusEl) return;
@@ -4810,6 +4986,67 @@ function initPixelArtPage() {
             }
         }
     });
+    
+    // 预览模式切换 - 位图
+    const modePngBtn = document.getElementById('pixel-mode-png');
+    if (modePngBtn) {
+        modePngBtn.addEventListener('click', () => {
+            switchPixelMode('png');
+        });
+    }
+    
+    // 预览模式切换 - 矢量图
+    const modeSvgBtn = document.getElementById('pixel-mode-svg');
+    if (modeSvgBtn) {
+        modeSvgBtn.addEventListener('click', () => {
+            switchPixelMode('svg');
+        });
+    }
+    
+    // 全屏按钮
+    const fullscreenBtn = document.getElementById('pixel-fullscreen-btn');
+    if (fullscreenBtn) {
+        fullscreenBtn.addEventListener('click', openSvgModal);
+    }
+    
+    // 弹窗关闭按钮
+    const modalCloseBtn = document.getElementById('pixel-svg-modal-close');
+    if (modalCloseBtn) {
+        modalCloseBtn.addEventListener('click', closeSvgModal);
+    }
+    
+    // 点击弹窗遮罩层关闭
+    const svgModal = document.getElementById('pixel-svg-modal');
+    if (svgModal) {
+        svgModal.addEventListener('click', (e) => {
+            if (e.target === svgModal) {
+                closeSvgModal();
+            }
+        });
+    }
+    
+    // 弹窗大小滑块
+    const svgSizeSlider = document.getElementById('pixel-svg-size-slider');
+    const svgSizeValue = document.getElementById('pixel-svg-size-value');
+    if (svgSizeSlider && svgSizeValue) {
+        svgSizeSlider.addEventListener('input', () => {
+            modalPixelSize = parseInt(svgSizeSlider.value);
+            svgSizeValue.textContent = modalPixelSize + 'px';
+            updateModalSvg();
+        });
+    }
+    
+    // 下载SVG按钮（预览区）
+    const downloadSvgBtn = document.getElementById('pixel-download-svg-btn');
+    if (downloadSvgBtn) {
+        downloadSvgBtn.addEventListener('click', downloadSvgFile);
+    }
+    
+    // 下载SVG按钮（弹窗里）
+    const modalDownloadBtn = document.getElementById('pixel-svg-download-btn');
+    if (modalDownloadBtn) {
+        modalDownloadBtn.addEventListener('click', downloadSvgFile);
+    }
 }
 
 // 处理图片文件
