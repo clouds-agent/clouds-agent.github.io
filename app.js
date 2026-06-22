@@ -4725,6 +4725,7 @@ function switchPixelMode(mode) {
 }
 
 // 全屏弹窗相关
+const baseModalPixelSize = 20; // 100%缩放时的方块大小
 let modalPixelSize = 20; // 弹窗中的方块大小
 
 // 打开SVG全屏弹窗
@@ -4743,8 +4744,9 @@ function openSvgModal() {
     const slider = document.getElementById('pixel-svg-size-slider');
     const valueEl = document.getElementById('pixel-svg-size-value');
     if (slider && valueEl) {
-        modalPixelSize = parseInt(slider.value);
-        valueEl.textContent = modalPixelSize + 'px';
+        const scalePercent = parseInt(slider.value);
+        modalPixelSize = Math.round(baseModalPixelSize * scalePercent / 100);
+        valueEl.textContent = scalePercent + '%';
     }
     
     // 更新弹窗中的SVG
@@ -5025,13 +5027,14 @@ function initPixelArtPage() {
         });
     }
     
-    // 弹窗大小滑块
+    // 弹窗缩放滑块
     const svgSizeSlider = document.getElementById('pixel-svg-size-slider');
     const svgSizeValue = document.getElementById('pixel-svg-size-value');
     if (svgSizeSlider && svgSizeValue) {
         svgSizeSlider.addEventListener('input', () => {
-            modalPixelSize = parseInt(svgSizeSlider.value);
-            svgSizeValue.textContent = modalPixelSize + 'px';
+            const scalePercent = parseInt(svgSizeSlider.value);
+            modalPixelSize = Math.round(baseModalPixelSize * scalePercent / 100);
+            svgSizeValue.textContent = scalePercent + '%';
             updateModalSvg();
         });
     }
