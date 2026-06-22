@@ -4558,23 +4558,34 @@ function generatePixelArt() {
     }, 50);
 }
 
+// 更新当前选中显示
+function updateSelectedBlockDisplay() {
+    const selectedEl = document.getElementById('pixel-selected-block');
+    const nameEl = document.getElementById('pixel-selected-name');
+    const colorEl = document.getElementById('pixel-selected-color');
+    const countEl = document.getElementById('pixel-selected-count');
+    
+    if (!selectedEl || !pixelResultData) return;
+    
+    if (highlightedBlock && pixelResultData.blockCounts[highlightedBlock]) {
+        const data = pixelResultData.blockCounts[highlightedBlock];
+        const [r, g, b] = data.color;
+        nameEl.textContent = highlightedBlock;
+        colorEl.style.background = `rgb(${r}, ${g}, ${b})`;
+        countEl.textContent = data.count;
+        selectedEl.style.display = 'block';
+    } else {
+        selectedEl.style.display = 'none';
+    }
+}
+
 // 渲染方块列表
 function renderBlockList(blockCounts) {
     const container = document.getElementById('pixel-block-list');
     if (!container) return;
 
     // 按数量排序
-    
     const sorted = Object.entries(blockCounts).sort((a, b) => b[1].count - a[1].count);
-    
-    // 如果有高亮的方块，置顶显示
-    if (highlightedBlock) {
-        const highlightIndex = sorted.findIndex(([name]) => name === highlightedBlock);
-        if (highlightIndex > 0) {
-            const [highlightItem] = sorted.splice(highlightIndex, 1);
-            sorted.unshift(highlightItem);
-        }
-    }
 
     container.innerHTML = sorted.map(([name, data]) => {
         const [r, g, b] = data.color;
@@ -4595,6 +4606,9 @@ function renderBlockList(blockCounts) {
             toggleBlockHighlight(blockName);
         });
     });
+    
+    // 更新当前选中显示
+    updateSelectedBlockDisplay();
 }
 
 // 切换方块高亮
