@@ -4635,7 +4635,7 @@ function generateSvg(blockMap, blockCounts, pixelSize, highlightBlock = null) {
     const svgWidth = width * pixelSize;
     const svgHeight = height * pixelSize;
     
-    let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}">`;
+    let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}" style="max-width: 100%; height: auto; display: block; margin: 0 auto;">`;
     
     // 遍历每个像素，生成rect
     for (let y = 0; y < height; y++) {

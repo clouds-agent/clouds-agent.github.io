@@ -123,7 +123,7 @@
                 
                 <!-- SVG显示区域 -->
                 <div style="flex: 1; overflow: auto; background: #fafafa; border-radius: 8px; display: flex; justify-content: center; align-items: flex-start; padding: 1rem;">
-                    <svg id="pixel-svg-modal-svg" style="background: white; border-radius: 4px; flex-shrink: 0;"></svg>
+                    <div id="pixel-svg-modal-svg" style="background: white; border-radius: 4px; flex-shrink: 0;"></div>
                 </div>
                 
                 <!-- 底部操作 -->
@@ -619,7 +619,7 @@
                 </div>
                 <div class="pixel-result-container" style="text-align: center; padding: 1rem; background: #fafafa; border-radius: 8px; margin-bottom: 1rem; position: relative;">
                     <canvas id="pixel-result-canvas" style="max-width: 100%; background: #fafafa; border-radius: 4px;"></canvas>
-                    <svg id="pixel-result-svg" style="max-width: 100%; max-height: 500px; height: auto; display: none; background: #fafafa; border-radius: 4px;"></svg>
+                    <div id="pixel-result-svg" style="max-width: 100%; max-height: 500px; display: none; background: #fafafa; border-radius: 4px; overflow: auto;"></div>
                 </div>
                 <div class="btn-group">
                     <button id="pixel-download-btn" class="btn btn-secondary">📥 下载PNG</button>
@@ -680,6 +680,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260622v174"></script>
+    <script src="app.js?v=20260622v175"></script>
 </body>
 </html>
