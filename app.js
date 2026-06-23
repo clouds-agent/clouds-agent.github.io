@@ -5416,11 +5416,11 @@ function initPixelArtPage() {
         if (y >= 0 && y < pixelBlockMap.length && x >= 0 && x < pixelBlockMap[0].length) {
             const blockName = pixelBlockMap[y][x];
 
-            // 显示坐标（左下为 0,0）
-            const displayY = pixelBlockMap.length - 1 - y;
+            // 显示坐标（左下为 1,1）
+            const displayY = pixelBlockMap.length - y;
             if (blockName) {
                 coordDisplay.style.display = 'block';
-                coordText.textContent = `(${x}, ${displayY})`;
+                coordText.textContent = `(${x + 1}, ${displayY})`;
                 const data = pixelResultData.blockCounts[blockName];
                 if (data) {
                     const [r, g, b] = data.color;
@@ -5450,9 +5450,9 @@ function initPixelArtPage() {
 
         if (y >= 0 && y < pixelBlockMap.length && x >= 0 && x < pixelBlockMap[0].length) {
             const blockName = pixelBlockMap[y][x];
-            const displayY = pixelBlockMap.length - 1 - y;
+            const displayY = pixelBlockMap.length - y;
             coordDisplay.style.display = 'block';
-            coordText.textContent = `(${x}, ${displayY})`;
+            coordText.textContent = `(${x + 1}, ${displayY})`;
             if (blockName) {
                 const data = pixelResultData.blockCounts[blockName];
                 if (data) {
