@@ -605,6 +605,11 @@
                             <option value="bayer">有序抖动（快速）</option>
                         </select>
                     </div>
+                    <div class="setting-row" style="margin-bottom: 0.75rem;">
+                        <label class="setting-label">保护边缘：</label>
+                        <input type="range" id="pixel-edge-slider" class="setting-range" min="0" max="100" step="1" value="0">
+                        <span id="pixel-edge-value" class="setting-value">关闭</span>
+                    </div>
                 </div>
                 
                 <!-- 生成按钮 -->
@@ -633,7 +638,12 @@
                     </div>
                 </div>
                 <div class="pixel-result-container" style="text-align: center; padding: 1rem; background: #fafafa; border-radius: 8px; margin-bottom: 1rem; position: relative;">
-                    <canvas id="pixel-result-canvas" style="max-width: 100%; background: #fafafa; border-radius: 4px;"></canvas>
+                    <canvas id="pixel-result-canvas" style="max-width: 100%; background: #fafafa; border-radius: 4px; cursor: crosshair;"></canvas>
+                    <div id="pixel-coordinate-display" style="display: none; margin-top: 0.5rem; padding: 0.4rem 0.75rem; background: #fafafa; border-radius: 6px; font-size: 0.85rem; color: #1d1d1f; text-align: center;">
+                        <span style="color: #86868b;">坐标：</span>
+                        <span id="pixel-coord-text" style="font-weight: 600; color: #0071e3;">-</span>
+                        <span id="pixel-coord-block" style="margin-left: 0.5rem;"></span>
+                    </div>
                     <div id="pixel-result-svg" style="max-width: 100%; max-height: 500px; display: none; background: #fafafa; border-radius: 4px; overflow: auto;"></div>
                 </div>
                 <div class="btn-group">
@@ -706,6 +716,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260622v178"></script>
+    <script src="app.js?v=20260623v180"></script>
 </body>
 </html>
