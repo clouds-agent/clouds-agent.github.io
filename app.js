@@ -4260,7 +4260,7 @@ const minecraftBlocks = [
     { name: '青金石块', color: [30, 50, 120] },
     { name: '木板', color: [160, 114, 76] },
     { name: '圆石', color: [119, 119, 119] },
-    { name: '沙子', color: [222, 184, 135] },
+    { name: '砂岩', color: [220, 182, 133] },
     { name: '草方块', color: [93, 155, 59] },
     { name: '泥土', color: [139, 90, 43] },
     { name: '南瓜', color: [232, 160, 48] },
