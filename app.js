@@ -4298,7 +4298,8 @@ const minecraftBlocks = [
 let pixelOriginalImage = null;
 let pixelResultData = null;
 let pixelBlockMap = null; // 二维数组,保存每个像素对应的方块名称 [y][x] => blockName
-let highlightedBlock = null; // 当前高亮的方块名称
+let highlightedBlock = null; // 当前高亮的方块名称(同色全部红框)
+let selectedPixel = null; // 当前选中的具体像素 {x, y}(RGB动态变色框)
 
 // 红均值颜色距离算法(更符合人眼感知)
 function colorDistanceRedmean(c1, c2) {
@@ -4789,7 +4790,7 @@ function drawPixelArt(ctx, blockMap, blockCounts, pixelSize, highlightBlockName 
         }
     }
 
-    // 如果有高亮,绘制红框
+    // 如果有高亮,绘制红框(同色所有方块)
     if (highlightBlockName) {
         ctx.strokeStyle = '#ff3b30';
         ctx.lineWidth = 1;
@@ -4797,6 +4798,8 @@ function drawPixelArt(ctx, blockMap, blockCounts, pixelSize, highlightBlockName 
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
                 if (blockMap[y][x] === highlightBlockName) {
+                    // 如果是选中的像素,跳过(用RGB框单独画)
+                    if (selectedPixel && selectedPixel.x === x && selectedPixel.y === y) continue;
                     ctx.strokeRect(
                         x * pixelSize + 0.5,
                         y * pixelSize + 0.5,
@@ -4805,6 +4808,26 @@ function drawPixelArt(ctx, blockMap, blockCounts, pixelSize, highlightBlockName 
                     );
                 }
             }
+        }
+    }
+
+    // 选中像素:RGB 动态变色框
+    if (selectedPixel) {
+        const sx = selectedPixel.x;
+        const sy = selectedPixel.y;
+        if (sy < height && sx < width && blockMap[sy][sx]) {
+            const t = Date.now() / 500; // 动画速度
+            const cr = Math.round(128 + 127 * Math.sin(t));
+            const cg = Math.round(128 + 127 * Math.sin(t + 2.094)); // +120°
+            const cb = Math.round(128 + 127 * Math.sin(t + 4.189)); // +240°
+            ctx.strokeStyle = `rgb(${cr}, ${cg}, ${cb})`;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(
+                sx * pixelSize + 0.5,
+                sy * pixelSize + 0.5,
+                pixelSize - 1,
+                pixelSize - 1
+            );
         }
     }
 }
@@ -4820,8 +4843,9 @@ function generatePixelArt() {
     statusEl.textContent = '生成中...';
     statusEl.className = 'status';
 
-    // 重置高亮
+    // 重置高亮和选中
     highlightedBlock = null;
+    selectedPixel = null;
 
     // 用setTimeout让UI先更新
     setTimeout(() => {
@@ -5017,16 +5041,18 @@ function renderBlockList(blockCounts) {
     updateSelectedBlockDisplay();
 }
 
-// 切换方块高亮
+// 切换方块高亮（从方块列表点击）
 function toggleBlockHighlight(blockName) {
     if (!pixelBlockMap || !pixelResultData) return;
 
     if (highlightedBlock === blockName) {
         // 取消高亮
         highlightedBlock = null;
+        selectedPixel = null;
     } else {
-        // 设置高亮
+        // 设置高亮（同时清除选中像素）
         highlightedBlock = blockName;
+        selectedPixel = null;
     }
 
     // 重新绘制
@@ -5399,7 +5425,26 @@ function initPixelArtPage() {
     // 复制清单按钮
     copyListBtn.addEventListener('click', copyBlockList);
 
-    // 点击像素画中的像素，高亮对应方块 + 显示坐标
+    // RGB 动态框动画帧 ID
+    let rgbAnimFrameId = null;
+
+    // 启动 RGB 框动画循环
+    function startRgbAnimation() {
+        if (rgbAnimFrameId) return; // 已经在运行
+        function animate() {
+            if (!selectedPixel && !highlightedBlock) {
+                rgbAnimFrameId = null;
+                return;
+            }
+            const canvas = document.getElementById('pixel-result-canvas');
+            const ctx = canvas.getContext('2d');
+            drawPixelArt(ctx, pixelBlockMap, pixelResultData.blockCounts, pixelResultData.pixelSize, highlightedBlock);
+            rgbAnimFrameId = requestAnimationFrame(animate);
+        }
+        rgbAnimFrameId = requestAnimationFrame(animate);
+    }
+
+    // 点击像素画中的像素：选中该像素 + 高亮同色方块 + 显示坐标
     resultCanvas.addEventListener('click', (e) => {
         if (!pixelBlockMap || !pixelResultData) return;
 
@@ -5416,61 +5461,36 @@ function initPixelArtPage() {
         if (y >= 0 && y < pixelBlockMap.length && x >= 0 && x < pixelBlockMap[0].length) {
             const blockName = pixelBlockMap[y][x];
 
-            // 显示坐标（左下为 1,1）
-            const displayY = pixelBlockMap.length - y;
-            if (blockName) {
-                coordDisplay.style.display = 'block';
-                coordText.textContent = `(${x + 1}, ${displayY})`;
-                const data = pixelResultData.blockCounts[blockName];
-                if (data) {
-                    const [r, g, b] = data.color;
-                    coordBlock.innerHTML = `<span style="display: inline-block; width: 14px; height: 14px; background: rgb(${r},${g},${b}); border-radius: 3px; vertical-align: middle; margin-right: 4px; border: 1px solid #e5e5e5;"></span><span style="color: #1d1d1f;">${blockName}</span>`;
-                }
-            }
-
-            if (blockName) {
-                toggleBlockHighlight(blockName);
-            }
-        }
-    });
-
-    // 鼠标悬停显示坐标
-    resultCanvas.addEventListener('mousemove', (e) => {
-        if (!pixelBlockMap || !pixelResultData) return;
-
-        const coordDisplay = document.getElementById('pixel-coordinate-display');
-        const coordText = document.getElementById('pixel-coord-text');
-        const coordBlock = document.getElementById('pixel-coord-block');
-
-        const rect = resultCanvas.getBoundingClientRect();
-        const scaleX = resultCanvas.width / rect.width;
-        const scaleY = resultCanvas.height / rect.height;
-        const x = Math.floor((e.clientX - rect.left) * scaleX / pixelResultData.pixelSize);
-        const y = Math.floor((e.clientY - rect.top) * scaleY / pixelResultData.pixelSize);
-
-        if (y >= 0 && y < pixelBlockMap.length && x >= 0 && x < pixelBlockMap[0].length) {
-            const blockName = pixelBlockMap[y][x];
-            const displayY = pixelBlockMap.length - y;
-            coordDisplay.style.display = 'block';
-            coordText.textContent = `(${x + 1}, ${displayY})`;
-            if (blockName) {
-                const data = pixelResultData.blockCounts[blockName];
-                if (data) {
-                    const [r, g, b] = data.color;
-                    coordBlock.innerHTML = `<span style="display: inline-block; width: 14px; height: 14px; background: rgb(${r},${g},${b}); border-radius: 3px; vertical-align: middle; margin-right: 4px; border: 1px solid #e5e5e5;"></span><span style="color: #1d1d1f;">${blockName}</span>`;
-                }
+            // 设置选中像素（RGB动态框）
+            if (selectedPixel && selectedPixel.x === x && selectedPixel.y === y) {
+                // 再次点击同一像素：取消选中
+                selectedPixel = null;
+                highlightedBlock = null;
+                coordDisplay.style.display = 'none';
             } else {
-                coordBlock.textContent = '透明';
-            }
-        } else {
-            coordDisplay.style.display = 'none';
-        }
-    });
+                // 选中新像素
+                selectedPixel = { x, y };
+                highlightedBlock = blockName; // 同色红框
 
-    // 鼠标离开画布隐藏坐标
-    resultCanvas.addEventListener('mouseleave', () => {
-        const coordDisplay = document.getElementById('pixel-coordinate-display');
-        if (coordDisplay) coordDisplay.style.display = 'none';
+                // 显示坐标（左下为 1,1）
+                if (blockName) {
+                    coordDisplay.style.display = 'block';
+                    const displayY = pixelBlockMap.length - y;
+                    coordText.textContent = `(${x + 1}, ${displayY})`;
+                    const data = pixelResultData.blockCounts[blockName];
+                    if (data) {
+                        const [r, g, b] = data.color;
+                        coordBlock.innerHTML = `<span style="display: inline-block; width: 14px; height: 14px; background: rgb(${r},${g},${b}); border-radius: 3px; vertical-align: middle; margin-right: 4px; border: 1px solid #e5e5e5;"></span><span style="color: #1d1d1f;">${blockName}</span>`;
+                    }
+                }
+
+                // 启动 RGB 动画
+                startRgbAnimation();
+            }
+
+            // 更新方块列表
+            renderBlockList(pixelResultData.blockCounts);
+        }
     });
 
     // 预览模式切换 - 位图
