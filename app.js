@@ -4313,12 +4313,254 @@ function colorDistanceRedmean(c1, c2) {
     );
 }
 
+// ========== CIE Lab 颜色空间转换 ==========
+
+// RGB转XYZ
+function rgbToXyz(r, g, b) {
+    r = r / 255;
+    g = g / 255;
+    b = b / 255;
+    
+    r = r > 0.04045 ? Math.pow((r + 0.055) / 1.055, 2.4) : r / 12.92;
+    g = g > 0.04045 ? Math.pow((g + 0.055) / 1.055, 2.4) : g / 12.92;
+    b = b > 0.04045 ? Math.pow((b + 0.055) / 1.055, 2.4) : b / 12.92;
+    
+    r *= 100;
+    g *= 100;
+    b *= 100;
+    
+    return [
+        r * 0.4124 + g * 0.3576 + b * 0.1805,
+        r * 0.2126 + g * 0.7152 + b * 0.0722,
+        r * 0.0193 + g * 0.1192 + b * 0.9505
+    ];
+}
+
+// XYZ转Lab
+function xyzToLab(x, y, z) {
+    const xn = 95.047;
+    const yn = 100.000;
+    const zn = 108.883;
+    
+    x = x / xn;
+    y = y / yn;
+    z = z / zn;
+    
+    x = x > 0.008856 ? Math.pow(x, 1/3) : (7.787 * x) + (16 / 116);
+    y = y > 0.008856 ? Math.pow(y, 1/3) : (7.787 * y) + (16 / 116);
+    z = z > 0.008856 ? Math.pow(z, 1/3) : (7.787 * z) + (16 / 116);
+    
+    return [
+        (116 * y) - 16,
+        500 * (x - y),
+        200 * (y - z)
+    ];
+}
+
+// RGB转Lab
+function rgbToLab(r, g, b) {
+    const xyz = rgbToXyz(r, g, b);
+    return xyzToLab(xyz[0], xyz[1], xyz[2]);
+}
+
+// CIEDE2000色差公式
+function colorDistanceCIEDE2000(c1, c2) {
+    const lab1 = rgbToLab(c1[0], c1[1], c1[2]);
+    const lab2 = rgbToLab(c2[0], c2[1], c2[2]);
+    
+    const L1 = lab1[0], a1 = lab1[1], b1 = lab1[2];
+    const L2 = lab2[0], a2 = lab2[1], b2 = lab2[2];
+    
+    const C1 = Math.sqrt(a1 * a1 + b1 * b1);
+    const C2 = Math.sqrt(a2 * a2 + b2 * b2);
+    const Cb = (C1 + C2) / 2;
+    
+    const G = 0.5 * (1 - Math.sqrt(Math.pow(Cb, 7) / (Math.pow(Cb, 7) + Math.pow(25, 7))));
+    const a1p = a1 * (1 + G);
+    const a2p = a2 * (1 + G);
+    
+    const C1p = Math.sqrt(a1p * a1p + b1 * b1);
+    const C2p = Math.sqrt(a2p * a2p + b2 * b2);
+    
+    let h1p = Math.atan2(b1, a1p);
+    if (h1p < 0) h1p += 2 * Math.PI;
+    let h2p = Math.atan2(b2, a2p);
+    if (h2p < 0) h2p += 2 * Math.PI;
+    
+    const dLp = L2 - L1;
+    const dCp = C2p - C1p;
+    
+    let dhp = 0;
+    if (C1p * C2p !== 0) {
+        dhp = h2p - h1p;
+        if (Math.abs(dhp) > Math.PI) {
+            if (dhp > Math.PI) dhp -= 2 * Math.PI;
+            else dhp += 2 * Math.PI;
+        }
+    }
+    
+    const dHp = 2 * Math.sqrt(C1p * C2p) * Math.sin(dhp / 2);
+    
+    const Lp = (L1 + L2) / 2;
+    const Cp = (C1p + C2p) / 2;
+    
+    let hp = 0;
+    if (C1p * C2p !== 0) {
+        hp = (h1p + h2p) / 2;
+        if (Math.abs(h1p - h2p) > Math.PI) {
+            if (h1p + h2p < 2 * Math.PI) hp += Math.PI;
+            else hp -= Math.PI;
+        }
+    }
+    
+    const T = 1 - 0.17 * Math.cos(hp - Math.PI/6) + 0.24 * Math.cos(2 * hp) + 0.32 * Math.cos(3 * hp + Math.PI/30) - 0.2 * Math.cos(4 * hp - 63 * Math.PI/180);
+    
+    const dTheta = 30 * Math.PI / 180 * Math.exp(-Math.pow((hp - 275 * Math.PI / 180) / (25 * Math.PI / 180), 2));
+    const RC = 2 * Math.sqrt(Math.pow(Cp, 7) / (Math.pow(Cp, 7) + Math.pow(25, 7)));
+    
+    const SL = 1 + (0.015 * Math.pow(Lp - 50, 2)) / Math.sqrt(20 + Math.pow(Lp - 50, 2));
+    const SC = 1 + 0.045 * Cp;
+    const SH = 1 + 0.015 * Cp * T;
+    
+    const RT = -Math.sin(2 * dTheta) * RC;
+    
+    return Math.sqrt(
+        Math.pow(dLp / SL, 2) +
+        Math.pow(dCp / SC, 2) +
+        Math.pow(dHp / SH, 2) +
+        RT * (dCp / SC) * (dHp / SH)
+    );
+}
+
+// 通用颜色距离函数
+function colorDistance(c1, c2, algorithm = 'redmean') {
+    if (algorithm === 'ciede2000') {
+        return colorDistanceCIEDE2000(c1, c2);
+    }
+    return colorDistanceRedmean(c1, c2);
+}
+
+// ========== 抖动算法 ==========
+
+// Bayer抖动矩阵（4x4）
+const bayerMatrix4 = [
+    [ 0,  8,  2, 10],
+    [12,  4, 14,  6],
+    [ 3, 11,  1,  9],
+    [15,  7, 13,  5]
+];
+
+// 应用Bayer有序抖动
+function applyBayerDither(pixels, width, height, amount = 0.5) {
+    const result = new Float32Array(width * height * 3);
+    const threshold = amount * 255 / 16;
+    
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const i = (y * width + x) * 3;
+            const bayer = bayerMatrix4[y % 4][x % 4];
+            const offset = (bayer - 8) * threshold;
+            
+            result[i] = Math.max(0, Math.min(255, pixels[i] + offset));
+            result[i + 1] = Math.max(0, Math.min(255, pixels[i + 1] + offset));
+            result[i + 2] = Math.max(0, Math.min(255, pixels[i + 2] + offset));
+        }
+    }
+    
+    return result;
+}
+
+// 应用Floyd-Steinberg误差扩散抖动
+function applyFloydSteinbergDither(pixels, width, height, blocks, colorAlgorithm) {
+    // 创建误差缓冲区
+    const errors = new Float32Array(width * height * 3);
+    
+    // 复制原始像素
+    const result = new Float32Array(pixels.length);
+    for (let i = 0; i < pixels.length; i++) {
+        result[i] = pixels[i];
+    }
+    
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const i = (y * width + x) * 3;
+            
+            // 加上累积的误差
+            let r = result[i] + errors[i];
+            let g = result[i + 1] + errors[i + 1];
+            let b = result[i + 2] + errors[i + 2];
+            
+            // 限制范围
+            r = Math.max(0, Math.min(255, r));
+            g = Math.max(0, Math.min(255, g));
+            b = Math.max(0, Math.min(255, b));
+            
+            // 找到最接近的方块颜色
+            let closestBlock = null;
+            let minDist = Infinity;
+            
+            for (const block of blocks) {
+                const blockColor = block.color;
+                const dist = colorDistance([r, g, b], blockColor, colorAlgorithm);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closestBlock = blockColor;
+                }
+            }
+            
+            if (closestBlock) {
+                // 计算误差
+                const errR = r - closestBlock[0];
+                const errG = g - closestBlock[1];
+                const errB = b - closestBlock[2];
+                
+                // 将误差扩散到周围像素
+                // 右
+                if (x + 1 < width) {
+                    const rightIdx = (y * width + x + 1) * 3;
+                    errors[rightIdx] += errR * 7 / 16;
+                    errors[rightIdx + 1] += errG * 7 / 16;
+                    errors[rightIdx + 2] += errB * 7 / 16;
+                }
+                // 左下
+                if (x > 0 && y + 1 < height) {
+                    const blIdx = ((y + 1) * width + x - 1) * 3;
+                    errors[blIdx] += errR * 3 / 16;
+                    errors[blIdx + 1] += errG * 3 / 16;
+                    errors[blIdx + 2] += errB * 3 / 16;
+                }
+                // 正下
+                if (y + 1 < height) {
+                    const downIdx = ((y + 1) * width + x) * 3;
+                    errors[downIdx] += errR * 5 / 16;
+                    errors[downIdx + 1] += errG * 5 / 16;
+                    errors[downIdx + 2] += errB * 5 / 16;
+                }
+                // 右下
+                if (x + 1 < width && y + 1 < height) {
+                    const brIdx = ((y + 1) * width + x + 1) * 3;
+                    errors[brIdx] += errR * 1 / 16;
+                    errors[brIdx + 1] += errG * 1 / 16;
+                    errors[brIdx + 2] += errB * 1 / 16;
+                }
+                
+                // 保存量化后的颜色
+                result[i] = closestBlock[0];
+                result[i + 1] = closestBlock[1];
+                result[i + 2] = closestBlock[2];
+            }
+        }
+    }
+    
+    return result;
+}
+
 // 找到最接近的方块
-function findClosestBlock(r, g, b, blocks = minecraftBlocks) {
+function findClosestBlock(r, g, b, blocks = minecraftBlocks, algorithm = 'redmean') {
     let minDist = Infinity;
     let closest = null;
     for (const block of blocks) {
-        const dist = colorDistanceRedmean([r, g, b], block.color);
+        const dist = colorDistance([r, g, b], block.color, algorithm);
         if (dist < minDist) {
             minDist = dist;
             closest = block;
@@ -4471,6 +4713,10 @@ function generatePixelArt() {
             const discrimination = parseInt(document.getElementById('pixel-discrimination-slider').value) || 100;
             const blocks = getReducedBlocks(discrimination);
             
+            // 获取算法选择
+            const colorAlgorithm = document.getElementById('pixel-color-algorithm').value || 'redmean';
+            const ditherAlgorithm = document.getElementById('pixel-dither-algorithm').value || 'none';
+            
             const canvas = document.getElementById('pixel-result-canvas');
             const ctx = canvas.getContext('2d');
 
@@ -4488,6 +4734,24 @@ function generatePixelArt() {
             // 获取像素数据
             const imageData = tempCtx.getImageData(0, 0, targetSize.width, targetSize.height);
             const data = imageData.data;
+            
+            // 提取像素颜色
+            const pixels = new Float32Array(targetSize.width * targetSize.height * 3);
+            for (let i = 0; i < targetSize.width * targetSize.height; i++) {
+                const srcIdx = i * 4;
+                const dstIdx = i * 3;
+                pixels[dstIdx] = data[srcIdx];
+                pixels[dstIdx + 1] = data[srcIdx + 1];
+                pixels[dstIdx + 2] = data[srcIdx + 2];
+            }
+            
+            // 应用抖动算法
+            let processedPixels = pixels;
+            if (ditherAlgorithm === 'bayer') {
+                processedPixels = applyBayerDither(pixels, targetSize.width, targetSize.height, 0.8);
+            } else if (ditherAlgorithm === 'floyd') {
+                processedPixels = applyFloydSteinbergDither(pixels, targetSize.width, targetSize.height, blocks, colorAlgorithm);
+            }
 
             // 统计方块和保存像素映射
             const blockCounts = {};
@@ -4497,18 +4761,19 @@ function generatePixelArt() {
             for (let y = 0; y < targetSize.height; y++) {
                 pixelBlockMap[y] = [];
                 for (let x = 0; x < targetSize.width; x++) {
-                    const i = (y * targetSize.width + x) * 4;
-                    const r = data[i];
-                    const g = data[i + 1];
-                    const b = data[i + 2];
-                    const a = data[i + 3];
+                    const i4 = (y * targetSize.width + x) * 4;
+                    const i3 = (y * targetSize.width + x) * 3;
+                    const r = processedPixels[i3];
+                    const g = processedPixels[i3 + 1];
+                    const b = processedPixels[i3 + 2];
+                    const a = data[i4 + 3];
 
                     if (a < 50) {
                         pixelBlockMap[y][x] = null;
                         continue;
                     }
 
-                    const block = findClosestBlock(r, g, b, blocks);
+                    const block = findClosestBlock(r, g, b, blocks, colorAlgorithm);
                     const blockName = block.name;
 
                     pixelBlockMap[y][x] = blockName;

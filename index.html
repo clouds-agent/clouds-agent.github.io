@@ -590,6 +590,21 @@
                         <input type="range" id="pixel-discrimination-slider" class="setting-range" min="1" max="100" step="1" value="100">
                         <span id="pixel-discrimination-value" class="setting-value">100</span>
                     </div>
+                    <div class="setting-row" style="margin-bottom: 0.75rem;">
+                        <label class="setting-label">颜色算法：</label>
+                        <select id="pixel-color-algorithm" style="flex: 1; padding: 0.4rem; border: 1px solid #d2d2d7; border-radius: 6px; background: white; font-size: 0.9rem;">
+                            <option value="redmean">红均值（推荐，快速）</option>
+                            <option value="ciede2000">CIEDE2000（更准确）</option>
+                        </select>
+                    </div>
+                    <div class="setting-row" style="margin-bottom: 0.75rem;">
+                        <label class="setting-label">抖动算法：</label>
+                        <select id="pixel-dither-algorithm" style="flex: 1; padding: 0.4rem; border: 1px solid #d2d2d7; border-radius: 6px; background: white; font-size: 0.9rem;">
+                            <option value="none">无抖动</option>
+                            <option value="floyd">Floyd-Steinberg（细腻）</option>
+                            <option value="bayer">有序抖动（快速）</option>
+                        </select>
+                    </div>
                 </div>
                 
                 <!-- 生成按钮 -->
@@ -691,6 +706,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260622v176"></script>
+    <script src="app.js?v=20260622v177"></script>
 </body>
 </html>
