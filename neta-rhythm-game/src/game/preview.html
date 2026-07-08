@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Preview - Rhythm Game</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0d0d1a;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        #game-container {
+            position: relative;
+            width: 90vw;
+            max-width: 800px;
+            aspect-ratio: 9/16;
+            max-height: 90vh;
+            border: 2px solid #333;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        #game-canvas {
+            width: 100%;
+            height: 100%;
+        }
+        #controls {
+            margin-top: 16px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        #controls button {
+            background: #16213e;
+            color: #e0e0e0;
+            border: 1px solid #333;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        #controls button:hover { background: #1a1a3e; }
+        #controls label {
+            font-size: 12px;
+            color: #888;
+        }
+        #status {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #666;
+        }
+        .file-input {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+    </div>
+    <div id="controls">
+        <button onclick="document.getElementById('file-chart').click()">📂 加载谱面</button>
+        <button onclick="document.getElementById('file-audio').click()">🎵 加载音频</button>
+        <button id="btn-play" onclick="togglePlay()">▶ 播放</button>
+        <label>速度
+            <select id="play-speed" onchange="Game.speed = parseFloat(this.value)">
+                <option value="0.5">0.5x</option>
+                <option value="0.75">0.75x</option>
+                <option value="1" selected>1.0x</option>
+                <option value="1.25">1.25x</option>
+                <option value="1.5">1.5x</option>
+                <option value="2">2.0x</option>
+            </select>
+        </label>
+        <input type="file" id="file-chart" class="file-input" accept=".json,.chart" onchange="loadChart(event)">
+        <input type="file" id="file-audio" class="file-input" accept="audio/*" onchange="loadAudio(event)">
+    </div>
+    <div id="status">加载谱面和音频后点击播放</div>
+
+    <script src="../editor/chart.js"></script>
+    <script src="../editor/game.js"></script>
+    <script>
+        let audioBuffer = null;
+        let audioCtx = null;
+
+        async function loadChart(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            try {
+                const text = await file.text();
+                const chart = deserializeChart(text);
+                Game.chart = chart;
+                document.getElementById('status').textContent =
+                    `已加载谱面: ${chart.meta.name} (${chart.notes.flat().length} notes)`;
+            } catch (err) {
+                document.getElementById('status').textContent = '加载失败: ' + err.message;
+            }
+        }
+
+        async function loadAudio(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const arrayBuffer = await file.arrayBuffer();
+            audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+            document.getElementById('status').textContent =
+                `已加载音频: ${file.name} (${formatTime(audioBuffer.duration)})`;
+        }
+
+        function togglePlay() {
+            if (Game.isPlaying) {
+                Game.stop();
+                document.getElementById('btn-play').textContent = '▶ 播放';
+            } else {
+                Game.audioBuffer = audioBuffer;
+                Game.play();
+                document.getElementById('btn-play').textContent = '⏸ 暂停';
+                Game.animationId = requestAnimationFrame(() => {
+                    if (Game.isPlaying) Game.gameLoop();
+                });
+            }
+        }
+
+        function formatTime(s) {
+            if (!s) return '0:00';
+            return Math.floor(s / 60) + ':' + (s % 60).toFixed(0).padStart(2, '0');
+        }
+
+        // 键盘输入
+        const keyMap = {
+            'd': 0, 'f': 1, 'j': 2, 'k': 3, 's': 4, 'l': 5
+        };
+        document.addEventListener('keydown', e => {
+            const lane = keyMap[e.key.toLowerCase()];
+            if (lane !== undefined) Game.keys[lane] = true;
+        });
+        document.addEventListener('keyup', e => {
+            const lane = keyMap[e.key.toLowerCase()];
+            if (lane !== undefined) Game.keys[lane] = false;
+        });
+
+        // 初始化
+        window.addEventListener('DOMContentLoaded', () => {
+            Game.init(document.getElementById('game-canvas'));
+        });
+    </script>
+</body>
+</html>

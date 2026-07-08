@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chart Editor - Rhythm Game</title>
+    <link rel="stylesheet" href="editor.css">
+</head>
+<body>
+    <div id="app">
+        <!-- 顶栏 -->
+        <div id="toolbar">
+            <div class="toolbar-left">
+                <span class="title">🎵 Chart Editor</span>
+                <div class="meta-group">
+                    <label>曲名 <input type="text" id="song-name" placeholder="Song Name" value="Untitled"></label>
+                    <label>曲师 <input type="text" id="song-artist" placeholder="Artist" value=""></label>
+                    <label>BPM <input type="number" id="bpm" value="180" min="10" max="999" step="1"></label>
+                </div>
+            </div>
+            <div class="toolbar-right">
+                <button id="btn-audio" class="btn" title="上传音频">📂 音频</button>
+                <button id="btn-save" class="btn" title="保存谱面">💾 保存</button>
+                <button id="btn-load" class="btn" title="导入谱面">📥 导入</button>
+                <button id="btn-export" class="btn" title="导出谱面">📤 导出</button>
+                <button id="btn-preview" class="btn btn-primary" title="预览">▶ 预览</button>
+                <input type="file" id="file-audio" accept="audio/*" hidden>
+                <input type="file" id="file-chart" accept=".json,.chart" hidden>
+            </div>
+        </div>
+
+        <!-- 主编辑区 -->
+        <div id="editor-main">
+            <!-- 左侧工具栏 -->
+            <div id="tools-panel">
+                <button class="tool-btn active" data-tool="tap" title="单点">🎯 单点</button>
+                <button class="tool-btn" data-tool="hold" title="长按">📏 长按</button>
+                <button class="tool-btn" data-tool="erase" title="橡皮">🧹 橡皮</button>
+                <button class="tool-btn" data-tool="select" title="选择">👆 选择</button>
+                <hr>
+                <div class="tool-section">
+                    <label>网格划分</label>
+                    <select id="snap-division">
+                        <option value="1">1/1</option>
+                        <option value="2">1/2</option>
+                        <option value="3">1/3</option>
+                        <option value="4" selected>1/4</option>
+                        <option value="5">1/5</option>
+                        <option value="6">1/6</option>
+                        <option value="8">1/8</option>
+                        <option value="12">1/12</option>
+                        <option value="16">1/16</option>
+                        <option value="custom">自定义</option>
+                    </select>
+                    <input type="number" id="snap-custom" placeholder="分母" min="1" max="128" hidden>
+                </div>
+                <div class="tool-section">
+                    <label>长按长度 (拍)</label>
+                    <input type="number" id="hold-length" value="1" min="0.125" max="16" step="0.125">
+                </div>
+            </div>
+
+            <!-- 中间：6轨谱面 -->
+            <div id="chart-area">
+                <canvas id="chart-canvas"></canvas>
+                <div id="time-ruler"></div>
+            </div>
+
+            <!-- 右侧：SV + 轨边 + Camera -->
+            <div id="side-panel">
+                <div class="panel-tabs">
+                    <button class="panel-tab active" data-panel="sv">SV</button>
+                    <button class="panel-tab" data-panel="lanes">轨边</button>
+                    <button class="panel-tab" data-panel="camera">Camera</button>
+                    <button class="panel-tab" data-panel="censor">Censor</button>
+                </div>
+                <div class="panel-content active" id="panel-sv">
+                    <div class="panel-header">
+                        <span>SV 速度变化</span>
+                        <select id="sv-lane-select">
+                            <option value="all">全部轨道</option>
+                            <option value="0">0轨</option>
+                            <option value="1">1轨</option>
+                            <option value="2">2轨</option>
+                            <option value="3">3轨</option>
+                            <option value="4">4轨</option>
+                            <option value="5">5轨</option>
+                        </select>
+                    </div>
+                    <canvas id="sv-canvas"></canvas>
+                    <div class="sv-presets">
+                        <label>缓动预设</label>
+                        <select id="sv-easing">
+                            <option value="linear">Linear (1.0x)</option>
+                            <option value="ease-in">Ease In</option>
+                            <option value="ease-out">Ease Out</option>
+                            <option value="ease-in-out">Ease In-Out</option>
+                            <option value="bounce">Bounce</option>
+                            <option value="elastic">Elastic</option>
+                            <option value="sine-in">Sine In</option>
+                            <option value="sine-out">Sine Out</option>
+                            <option value="quad-in">Quad In</option>
+                            <option value="quad-out">Quad Out</option>
+                            <option value="cubic-in">Cubic In</option>
+                            <option value="cubic-out">Cubic Out</option>
+                            <option value="expo-in">Expo In</option>
+                            <option value="expo-out">Expo Out</option>
+                            <option value="circ-in">Circ In</option>
+                            <option value="circ-out">Circ Out</option>
+                            <option value="back-in">Back In</option>
+                            <option value="back-out">Back Out</option>
+                            <option value="custom">自定义曲线</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="panel-content" id="panel-lanes">
+                    <div class="panel-header"><span>轨边亮灭控制</span></div>
+                    <div id="lane-controls"></div>
+                    <div class="lane-edge-grid">
+                        <div class="edge-label">边0 (轨0左)</div>
+                        <div class="edge-controls" data-edge="0"></div>
+                        <div class="edge-label">边1 (轨0-1)</div>
+                        <div class="edge-controls" data-edge="1"></div>
+                        <div class="edge-label">边2 (轨1-2)</div>
+                        <div class="edge-controls" data-edge="2"></div>
+                        <div class="edge-label">边3 (轨2-3)</div>
+                        <div class="edge-controls" data-edge="3"></div>
+                        <div class="edge-label">边4 (轨3-4)</div>
+                        <div class="edge-controls" data-edge="4"></div>
+                        <div class="edge-label">边5 (轨4-5)</div>
+                        <div class="edge-controls" data-edge="5"></div>
+                        <div class="edge-label">边6 (轨5右)</div>
+                        <div class="edge-controls" data-edge="6"></div>
+                    </div>
+                </div>
+                <div class="panel-content" id="panel-camera">
+                    <div class="panel-header"><span>Camera 距离控制</span></div>
+                    <canvas id="camera-canvas"></canvas>
+                    <div class="camera-info">
+                        <label>初始值</label>
+                        <input type="number" id="camera-default" value="100" min="10" max="500">
+                        <small>值越大 = 视距越远 = 元素越小</small>
+                    </div>
+                </div>
+                <div class="panel-content" id="panel-censor">
+                    <div class="panel-header"><span>Censor 黑色晕影</span></div>
+                    <div class="censor-controls">
+                        <label>方向</label>
+                        <select id="censor-direction">
+                            <option value="none">无</option>
+                            <option value="top">上方</option>
+                            <option value="sides">左右两侧</option>
+                            <option value="all">四周</option>
+                        </select>
+                        <label>距离/强度</label>
+                        <input type="range" id="censor-distance" min="0" max="100" value="0">
+                        <span id="censor-value">0%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部控制栏 -->
+        <div id="bottom-bar">
+            <div class="playback-controls">
+                <button id="btn-play" class="btn-icon" title="播放/暂停">▶</button>
+                <button id="btn-stop" class="btn-icon" title="停止">⏹</button>
+                <button id="btn-rewind" class="btn-icon" title="后退">⏪</button>
+                <label>速度
+                    <select id="playback-speed">
+                        <option value="0.25">0.25x</option>
+                        <option value="0.5">0.5x</option>
+                        <option value="0.75">0.75x</option>
+                        <option value="1" selected>1.0x</option>
+                        <option value="1.25">1.25x</option>
+                        <option value="1.5">1.5x</option>
+                        <option value="2">2.0x</option>
+                    </select>
+                </label>
+            </div>
+            <div class="timeline">
+                <input type="range" id="timeline-scrubber" min="0" max="100" value="0" step="0.01">
+                <span id="time-display">0:00.00 / 0:00.00</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="chart.js"></script>
+    <script src="editor.js"></script>
+</body>
+</html>
