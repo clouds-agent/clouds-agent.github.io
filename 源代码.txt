@@ -1,0 +1,728 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Chart Editor LIVE</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>:root{--bg:#0b0c10;--bg-panel:#1f2833;--bg-hover:#2a3a4b;--border:#374151;--accent:#66fcf1;--accent-dim:#45a29e;--text:#c5c6c7;--text-dim:#80868b;--danger:#ef4444;--lane-odd:rgba(102,252,241,0.04);--lane-even:rgba(102,252,241,0.08);--playhead:#ff2a6d;--measure:#4a5568;--beat:#2d3748;--snap:#1a202c;--note-tap:#66fcf1;--note-hold:#f1c40f;--select:#ff2a6d;}*{box-sizing:border-box;margin:0;padding:0;}html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none;}#orientation-lock{display:none;position:fixed;inset:0;z-index:9999;background:#000;align-items:center;justify-content:center;text-align:center;}@media (orientation:portrait){#orientation-lock{display:flex;}#app{display:none !important;}}.lock-content{color:#fff;}.lock-icon{font-size:48px;margin-bottom:12px;}.lock-content p{font-size:16px;opacity:0.8;margin:4px 0;}#app{display:flex;flex-direction:column;width:100%;height:100%;}#toolbar{display:flex;align-items:center;gap:10px 14px;padding:6px 12px;background:var(--bg-panel);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;overflow-x:hidden;overflow-y:visible;max-height:none;}.tool-group{display:flex;align-items:center;gap:6px;white-space:nowrap;padding-right:10px;border-right:1px solid var(--border);flex:0 1 auto;margin:2px 0;}.tool-group:last-child{border-right:none;}.tool-group label{font-size:12px;color:var(--text-dim);}#toolbar button{background:var(--bg-hover);border:1px solid var(--border);color:var(--text);padding:4px 10px;border-radius:4px;cursor:pointer;font-size:13px;transition:background .15s,border-color .15s;}#toolbar button:hover{background:#35495e;border-color:var(--accent-dim);}#toolbar button.active{border-color:var(--accent);color:var(--accent);}#toolbar button.danger{border-color:var(--danger);color:var(--danger);}#toolbar button.danger:hover{background:rgba(239,68,68,0.15);}#toolbar input[type="number"],#toolbar select,#input-custom-snap{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:3px 6px;border-radius:3px;font-size:13px;width:60px;}#toolbar select{width:auto;}#input-zoom{width:80px;}#select-rate{width:64px;}#input-bpm{width:54px;}#input-custom-snap{width:70px;}#time-display{font-variant-numeric:tabular-nums;font-size:13px;color:var(--accent);}#beat-display{font-size:13px;color:var(--text-dim);}#main-area{display:flex;flex:1;overflow:hidden;}#canvas-container{flex:1;position:relative;overflow:hidden;background:var(--bg);}#editor-canvas{display:block;width:100%;height:100%;cursor:crosshair;}#drag-ghost{position:absolute;pointer-events:none;display:none;background:var(--accent);opacity:0.6;border-radius:2px;}#side-panel{width:240px;background:var(--bg-panel);border-left:1px solid var(--border);padding:12px;overflow-y:auto;flex-shrink:0;}#panel-placeholder{color:var(--text-dim);font-size:13px;text-align:center;margin-top:20px;}.panel-section h3{font-size:14px;color:var(--accent);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);}.panel-section .field{margin-bottom:10px;display:flex;align-items:center;gap:6px;}.panel-section label{font-size:12px;color:var(--text-dim);width:80px;flex-shrink:0;}.panel-section input{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:4px 6px;border-radius:3px;font-size:13px;}.panel-section .actions{margin-top:12px;}.panel-section button{background:var(--bg-hover);border:1px solid var(--border);color:var(--text);padding:4px 10px;border-radius:4px;cursor:pointer;font-size:13px;}.panel-section button.danger{border-color:var(--danger);color:var(--danger);}#audio-bar{display:flex;align-items:center;gap:10px;padding:4px 12px;background:#14161c;border-top:1px solid var(--border);flex-shrink:0;}#audio-progress-bg{flex:1;position:relative;height:10px;background:#2a2f3a;border-radius:5px;cursor:pointer;overflow:hidden;}#audio-progress-fill{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,var(--accent-dim),var(--accent));width:0%;border-radius:5px;pointer-events:none;}#audio-progress-thumb{position:absolute;top:-3px;width:6px;height:16px;background:var(--accent);border-radius:3px;left:0%;transform:translateX(-50%);pointer-events:none;box-shadow:0 0 6px rgba(102,252,241,0.5);}#audio-time{font-size:11px;color:var(--text-dim);font-variant-numeric:tabular-nums;white-space:nowrap;}#status-bar{display:flex;align-items:center;gap:16px;padding:4px 12px;background:var(--bg-panel);border-top:1px solid var(--border);font-size:12px;color:var(--text-dim);flex-shrink:0;}#status-help{margin-left:auto;}::-webkit-scrollbar{width:6px;height:6px;}::-webkit-scrollbar-track{background:var(--bg);}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}::-webkit-scrollbar-thumb:hover{background:#4a5568;}</style>
+</head>
+<body>
+<div id="orientation-lock">
+<div class="lock-content">
+<div class="lock-icon">📱➡️🖥️</div>
+<p>请使用横屏模式以获得最佳体验</p>
+<p>Please rotate your device to landscape</p>
+</div>
+</div>
+<div id="app">
+<header id="toolbar">
+<div class="tool-group">
+<button id="btn-play" title="播放/暂停 (Space)">▶</button>
+<button id="btn-stop" title="停止">⏹</button>
+<span id="time-display">00:00.000</span>
+<span id="beat-display">| Beat: 0.00</span>
+</div>
+<div class="tool-group">
+<input id="input-title" type="text" placeholder="曲名" style="width:90px;">
+<input id="input-artist" type="text" placeholder="曲师" style="width:70px;">
+<input id="input-charter" type="text" placeholder="谱师" style="width:70px;">
+<input id="input-diff" type="text" placeholder="难度" style="width:50px;">
+</div>
+<div class="tool-group">
+<label>Offsetms:</label>
+<input id="input-offset" type="number" value="0" step="1" style="width:64px;" title="音频偏移(毫秒)">
+</div>
+<div class="tool-group">
+<label>BPM:</label>
+<input id="input-bpm" type="number" value="120" min="1" max="999" step="1">
+<button id="btn-add-bpm" title="在当前位置添加BPM变化点">+BPM点</button>
+</div>
+<div class="tool-group">
+<label>横线:</label>
+<select id="select-snap">
+<option value="1">1/1</option>
+<option value="2">1/2</option>
+<option value="3">1/3</option>
+<option value="4" selected>1/4</option>
+<option value="6">1/6</option>
+<option value="8">1/8</option>
+<option value="12">1/12</option>
+<option value="16">1/16</option>
+<option value="32">1/32</option>
+</select>
+<input id="input-custom-snap" type="number" placeholder="自定义分母" min="1" max="64">
+</div>
+<div class="tool-group">
+<label>缩放:</label>
+<input id="input-zoom" type="range" min="0" max="100" value="50" title="左=整曲可见, 右=1拍占满">
+</div>
+<div class="tool-group">
+<label>倍速:</label>
+<select id="select-rate">
+<option value="0.25">0.25x</option>
+<option value="0.5">0.5x</option>
+<option value="0.75">0.75x</option>
+<option value="1" selected>1.0x</option>
+<option value="1.25">1.25x</option>
+<option value="1.5">1.5x</option>
+<option value="2">2.0x</option>
+</select>
+</div>
+<div class="tool-group">
+<button id="btn-audio">🎵 导入音频</button>
+<input type="file" id="file-audio" accept="audio/*" hidden>
+<button id="btn-import">📂 导入谱面</button>
+<input type="file" id="file-import" accept=".zip" hidden>
+<button id="btn-export">💾 导出ZIP</button>
+</div>
+<div class="tool-group">
+<button id="btn-edge-add" title="添加边线参数">+ 边线参数</button>
+<button id="btn-global-add" title="添加全局参数">+ 全局参数</button>
+<button id="btn-preview" title="预览谱面">▶ 预览</button>
+<button id="btn-quantize" title="将选中音符吸附到当前横线">吸附选中</button>
+<button id="btn-undo" title="撤销 (Ctrl+Z)">↩ 撤销</button>
+<button id="btn-redo" title="重做 (Ctrl+Y)">↪ 重做</button>
+<span id="app-version" style="color:var(--accent);font-size:12px;font-weight:bold;margin-left:6px;">v0.3.5</span>
+</div>
+</header>
+<div id="main-area">
+<div id="canvas-container">
+<canvas id="editor-canvas"></canvas>
+<div id="drag-ghost"></div>
+</div>
+<aside id="side-panel">
+<div id="panel-placeholder">
+<p>选中音符或事件以编辑参数</p>
+</div>
+<div id="note-panel" class="panel-section" style="display:none">
+<h3>音符参数</h3>
+<div class="field">
+<label>时间:</label>
+<span id="pn-beat" style="font-variant-numeric:tabular-nums;color:var(--accent);"></span>
+</div>
+<div class="field" id="pn-endbeat-wrap">
+<label>结束:</label>
+<span id="pn-endbeat" style="font-variant-numeric:tabular-nums;color:var(--accent);"></span>
+</div>
+<div class="field">
+<label>流速倍率:</label>
+<input id="pn-speed" type="number" value="1.0" step="0.1" style="width:80px;">
+</div>
+<div class="field actions">
+<button id="pn-delete" class="danger">删除</button>
+</div>
+</div>
+<div id="edge-panel" class="panel-section" style="display:none">
+<h3>边线参数 <span id="ep-edge-id" style="color:var(--accent-dim);font-size:12px;"></span></h3>
+<div class="field">
+<label>LO蔓延:</label>
+<input id="ep-lo-spread" type="number" step="0.01" style="width:55px;">
+<select id="ep-lo-spread-unit" style="width:46px;"><option value="beat">拍</option><option value="sec">秒</option></select>
+</div>
+<div class="field">
+<label>LO渐变:</label>
+<input id="ep-lo-grad" type="number" step="0.1" value="0" style="width:70px;">
+</div>
+<div class="field">
+<label>LF蔓延:</label>
+<input id="ep-lf-spread" type="number" step="0.01" style="width:55px;">
+<select id="ep-lf-spread-unit" style="width:46px;"><option value="beat">拍</option><option value="sec">秒</option></select>
+</div>
+<div class="field">
+<label>LF渐变:</label>
+<input id="ep-lf-grad" type="number" step="0.1" value="0" style="width:70px;">
+</div>
+<div class="field">
+<label>间隔:</label>
+<input id="ep-interval" type="number" step="0.01" style="width:55px;">
+<select id="ep-interval-unit" style="width:46px;"><option value="beat">拍</option><option value="sec">秒</option></select>
+</div>
+<div class="field">
+<label>总时长:</label>
+<span id="ep-duration" style="color:var(--text-dim);"></span>
+</div>
+<div class="field">
+<label>LO发光强度:</label>
+<input id="ep-lo-glow-i" type="number" step="0.1" value="1" style="width:55px;">
+</div>
+<div class="field">
+<label>LO发光半径:</label>
+<input id="ep-lo-glow-r" type="number" step="0.5" value="0" style="width:55px;">
+</div>
+<div class="field">
+<label>LF发光强度:</label>
+<input id="ep-lf-glow-i" type="number" step="0.1" value="1" style="width:55px;">
+</div>
+<div class="field">
+<label>LF发光半径:</label>
+<input id="ep-lf-glow-r" type="number" step="0.5" value="0" style="width:55px;">
+</div>
+<div class="field actions">
+<button id="ep-select-mode" style="font-size:12px;">✋ 选择端点</button>
+<button id="ep-clone" style="font-size:12px;">克隆参数</button>
+<button id="ep-delete" class="danger" style="font-size:12px;">删除</button>
+</div>
+</div>
+<div id="global-panel" class="panel-section" style="display:none">
+<h3>全局参数 <span id="gp-type" style="color:var(--accent-dim);font-size:12px;"></span></h3>
+<div class="field"><label>类型:</label>
+<select id="gp-kind" style="width:100px;"><option value="sv">SV</option><option value="camera">Camera</option><option value="censor">Censor</option></select>
+</div>
+<div class="field"><label>时长(拍):</label><input id="gp-duration" type="number" step="0.01" style="width:80px;"></div>
+<div id="gp-svcam">
+<div class="field"><label>起始值:</label><input id="gp-start" type="number" step="0.01" style="width:80px;"></div>
+<div class="field"><label>结束值:</label><input id="gp-end" type="number" step="0.01" style="width:80px;"></div>
+<div class="field"><label>缓动:</label>
+<select id="gp-easing" style="width:130px;">
+<option value="linear">Linear</option>
+<option value="easeIn">EaseIn</option>
+<option value="easeOut">EaseOut</option>
+<option value="easeInOut">EaseInOut</option>
+<option value="easeInCubic">EaseInCubic</option>
+<option value="easeOutCubic">EaseOutCubic</option>
+<option value="easeInOutCubic">EaseInOutCubic</option>
+<option value="easeInExpo">EaseInExpo</option>
+<option value="easeOutExpo">EaseOutExpo</option>
+<option value="easeInBack">EaseInBack</option>
+<option value="easeOutBack">EaseOutBack</option>
+<option value="custom">Custom</option>
+</select>
+</div>
+<div class="field" style="flex-direction:column;align-items:stretch;">
+<label style="width:auto;margin-bottom:4px;">曲线:</label>
+<canvas id="gp-curve" width="200" height="100" style="width:100%;height:100px;background:#0b0c10;border:1px solid var(--border);border-radius:4px;cursor:crosshair;"></canvas>
+</div>
+</div>
+<div id="gp-censor" style="display:none">
+<div class="field"><label>方向:</label>
+<select id="gp-dir" style="width:100px;">
+<option value="top">上方</option><option value="bottom">下方</option>
+<option value="left">左右</option><option value="all">四周</option>
+</select>
+</div>
+<div class="field"><label>淡入(拍):</label><input id="gp-fadein" type="number" step="0.01" style="width:70px;"></div>
+<div class="field"><label>淡出(拍):</label><input id="gp-fadeout" type="number" step="0.01" style="width:70px;"></div>
+</div>
+<div class="field actions"><button id="gp-delete" class="danger">删除</button></div>
+</div>
+</aside>
+</div>
+<div id="audio-bar">
+<div id="audio-progress-bg">
+<div id="audio-progress-fill"></div>
+<div id="audio-progress-thumb"></div>
+</div>
+<span id="audio-time">0:00 / 0:00</span>
+</div>
+<footer id="status-bar">
+<span id="status-audio">未加载音频</span>
+<span id="status-bpm-list">BPM: 120.0 (恒定)</span>
+<span id="status-note-count">Notes: 0</span>
+<span id="status-help">左键: 放置/选择 | 右键拖动: 滚动 | 滚轮: 移动轨道 | 滚轮+Ctrl: 缩放</span>
+</footer>
+</div>
+<script>class Chart {constructor() {this.title ='Untitled';this.artist ='';this.charter ='';this.difficulty ='';this.offset =0;this.baseBPM =120;this.bpmList =[{beat:0,bpm:120 }];this.baseSpeed =1.0;this.audioData =null;this.notes =[];this.edgeEvents =[];this.globalEvents =[];this.nextId =1;}
+generateId() {return (this.nextId++).toString(36);}
+getNoteById(id) {return this.notes.find(n =>n.id ===id) ||null;}
+getNotesInRange(minBeat,maxBeat) {return this.notes.filter(n =>{const e =n.type ==='hold' ?n.endBeat :n.beat;return n.beat <=maxBeat &&e >=minBeat;});}
+getTotalBeats() {let maxBeat =0;for (const n of this.notes) {const e =n.type ==='hold' &&n.endBeat !=null ?n.endBeat :n.beat;if (e >maxBeat) maxBeat =e;}
+for (const ev of this.edgeEvents) {let e;if (typeof ev.endBeat ==='number') e =ev.endBeat;else e =(ev.beat ||0) + (ev.interval ||0) + (ev.lfSpread ||0);if (e >maxBeat) maxBeat =e;}
+for (const g of this.globalEvents) {const e =(g.beat ||0) + (g.duration ||0);if (e >maxBeat) maxBeat =e;}
+if (this.audioData &&this.audioData.duration) {const audioBeats =this.timeToBeat(this.audioData.duration);if (audioBeats >maxBeat) maxBeat =audioBeats;}
+return Math.max(16,maxBeat + 4);}
+beatToTime(beat) {let time =0;let prevBeat =0;let prevBPM =this.bpmList[0].bpm;for (const pt of this.bpmList) {if (pt.beat >=beat) break;const segBeats =pt.beat - prevBeat;time +=(segBeats / prevBPM) *60;prevBeat =pt.beat;prevBPM =pt.bpm;}
+const segBeats =beat - prevBeat;time +=(segBeats / prevBPM) *60;return time - this.offset;}
+timeToBeat(seconds) {seconds =(seconds ||0) + this.offset;let timeAccum =0;let prevBeat =0;let prevBPM =this.bpmList[0].bpm;for (let i =1;i < this.bpmList.length;i++) {const pt =this.bpmList[i];const segBeats =pt.beat - prevBeat;const segTime =(segBeats / prevBPM) *60;if (timeAccum + segTime >=seconds) {return prevBeat + ((seconds - timeAccum) / segTime) *segBeats;}
+timeAccum +=segTime;prevBeat =pt.beat;prevBPM =pt.bpm;}
+const remaining =seconds - timeAccum;return prevBeat + (remaining / 60) *prevBPM;}
+bpmAt(beat) {let bpm =this.bpmList[0].bpm;for (const pt of this.bpmList) {if (pt.beat >beat) break;bpm =pt.bpm;}
+return bpm;}
+beatToMeasure(beat,subdivDenominator =4) {const measure =Math.floor(beat / 4);const rem =beat - measure *4;const beatInMeasure =Math.floor(rem);const frac =rem - beatInMeasure;const subdiv =Math.round(frac *subdivDenominator);return {measure,beat:beatInMeasure,subdiv };}
+addBPMPoint(beat,bpm) {this.bpmList =this.bpmList.filter(p =>p.beat !==beat ||p.beat ===0);this.bpmList.push({beat,bpm });this.bpmList.sort((a,b) =>a.beat - b.beat);if (beat ===0) this.baseBPM =bpm;}
+removeBPMPoint(beat) {if (beat ===0) return;this.bpmList =this.bpmList.filter(p =>p.beat !==beat);}
+toJSON() {return {version:1,meta:{title:this.title,artist:this.artist,charter:this.charter,difficulty:this.difficulty,offset:this.offset,baseBPM:this.baseBPM,},timing:this.bpmList,baseSpeed:this.baseSpeed,notes:this.notes.map(n =>({id:n.id,lane:n.lane,type:n.type,beat:round4(n.beat),endBeat:n.type ==='hold' ?round4(n.endBeat) :undefined,speedMultiplier:n.speedMultiplier,timeDivisor:n.timeDivisor ||4,endTimeDivisor:n.endTimeDivisor ||n.timeDivisor ||4,})),edgeEvents:this.edgeEvents.map(ev =>({id:ev.id,edgeId:ev.edgeId,beat:round4(ev.beat),loSpread:round4(ev.loSpread),lfSpread:round4(ev.lfSpread),interval:round4(ev.interval),loGradient:ev.loGradient,lfGradient:ev.lfGradient,loGlowIntensity:ev.loGlowIntensity,loGlowRadius:ev.loGlowRadius,lfGlowIntensity:ev.lfGlowIntensity,lfGlowRadius:ev.lfGlowRadius,})),globalEvents:(this.globalEvents ||[]).map(g =>({id:g.id,type:g.type,beat:round4(g.beat),duration:round4(g.duration),startValue:g.startValue,endValue:g.endValue,easing:g.easing,direction:g.direction,fadeIn:g.fadeIn,fadeOut:g.fadeOut,curvePoints:g.curvePoints ||null,})),};}
+static fromJSON(obj) {const c =new Chart();if (obj.meta) {c.title =obj.meta.title ||'Untitled';c.artist =obj.meta.artist ||'';c.charter =obj.meta.charter ||'';c.difficulty =obj.meta.difficulty ||'';c.offset =obj.meta.offset ||0;c.baseBPM =obj.meta.baseBPM ||120;}
+c.bpmList =(obj.timing &&obj.timing.length) ?obj.timing :[{beat:0,bpm:c.baseBPM }];c.baseSpeed =obj.baseSpeed ||1.0;let maxIdNum =0;if (obj.notes) {c.notes =obj.notes.map(n =>{const note =new Note(n.id ||c.generateId(),n.lane,n.type,n.beat,n.endBeat,n.speedMultiplier ||1.0,n.timeDivisor ||4);note.endTimeDivisor =n.endTimeDivisor ||n.timeDivisor ||4;if (n.id) {const num =parseInt(n.id,36);if (!isNaN(num) &&num >maxIdNum) maxIdNum =num;}
+return note;});}
+if (obj.edgeEvents) {c.edgeEvents =obj.edgeEvents.map(ev =>{const e =new EdgeEvent(ev.id ||c.generateId(),ev.edgeId,ev.beat,ev.loSpread ??1,ev.lfSpread ??1,ev.interval ??2,ev.loGradient ??0,ev.lfGradient ??0,ev.loGlowIntensity ??1,ev.loGlowRadius ??0,ev.lfGlowIntensity ??1,ev.lfGlowRadius ??0
+);if (ev.id) {const num =parseInt(ev.id,36);if (!isNaN(num) &&num >maxIdNum) maxIdNum =num;}
+return e;});}
+c.globalEvents =(obj.globalEvents ||[]).map(g =>new GlobalEvent(g.id ||c.generateId(),g.type,g.beat,g.duration,g
+));for (const g of c.globalEvents) {if (g.id) {const num =parseInt(g.id,36);if (!isNaN(num) &&num >maxIdNum) maxIdNum =num;}
+}
+c.nextId =maxIdNum + 1;return c;}
+}
+class Note {constructor(id,lane,type,beat,endBeat =null,speedMultiplier =1.0,timeDivisor =4) {this.id =id;this.lane =lane;this.type =type;this.beat =beat;this.endBeat =endBeat;this.speedMultiplier =speedMultiplier;this.timeDivisor =timeDivisor ||4;this.endTimeDivisor =timeDivisor ||4;}
+get duration() {return this.type ==='hold' ?(this.endBeat - this.beat) :0;}
+}
+class EdgeEvent {constructor(id,edgeId,beat,loSpread =1,lfSpread =1,interval =2,loGradient =0,lfGradient =0,loGlowIntensity =1,loGlowRadius =0,lfGlowIntensity =1,lfGlowRadius =0
+) {this.id =id;this.edgeId =edgeId;this.beat =beat;this.loSpread =loSpread;this.lfSpread =lfSpread;this.interval =interval;this.loGradient =loGradient;this.lfGradient =lfGradient;this.loGlowIntensity =loGlowIntensity;this.loGlowRadius =loGlowRadius;this.lfGlowIntensity =lfGlowIntensity;this.lfGlowRadius =lfGlowRadius;}
+get lfStartBeat() {return this.beat + this.interval;}
+get endBeat() {return this.lfStartBeat + this.lfSpread;}
+get duration() {return this.interval + this.lfSpread;}
+}
+function round4(n) {return Math.round(n *10000) / 10000;}
+class GlobalEvent {constructor(id,type,beat,duration =1,data ={}) {this.id =id;this.type =type;this.beat =beat;this.duration =duration;this.startValue =data.startValue !=null ?data.startValue :(type ==='camera' ?100 :1);this.endValue =data.endValue !=null ?data.endValue :(type ==='camera' ?100 :1);this.easing =data.easing ||'linear';this.direction =data.direction ||'all';this.fadeIn =data.fadeIn !=null ?data.fadeIn :0.5;this.fadeOut =data.fadeOut !=null ?data.fadeOut :0.5;this.curvePoints =data.curvePoints ||null;}
+get endBeat() {return this.beat + this.duration;}
+}
+const ChartRuntime =(() =>{function clamp01(t) {return Math.max(0,Math.min(1,t));}
+function sampleEasing(name,t,curvePoints) {t =clamp01(t);if (name ==='custom' &&curvePoints &&curvePoints.length >=2) {const pts =curvePoints;let a =pts[0],b =pts[pts.length - 1];for (let i =0;i < pts.length - 1;i++) {if (t >=pts[i].t &&t <=pts[i + 1].t) {a =pts[i];b =pts[i + 1];break;}
+}
+const u =(b.t - a.t) < 1e-9 ?0 :(t - a.t) / (b.t - a.t);return a.v + (b.v - a.v) *u;}
+switch (name) {case 'easeIn':return t *t;case 'easeOut':return 1 - (1 - t) *(1 - t);case 'easeInOut':return t < 0.5 ?2 *t *t :1 - Math.pow(-2 *t + 2,2) / 2;case 'easeInCubic':return t *t *t;case 'easeOutCubic':return 1 - Math.pow(1 - t,3);case 'easeInOutCubic':return t < 0.5 ?4 *t *t *t :1 - Math.pow(-2 *t + 2,3) / 2;case 'easeInExpo':return t ===0 ?0 :Math.pow(2,10 *t - 10);case 'easeOutExpo':return t ===1 ?1 :1 - Math.pow(2,-10 *t);case 'easeInBack':{const c1 =1.70158,c3 =c1 + 1;return c3 *t *t *t - c1 *t *t;}
+case 'easeOutBack':{const c1 =1.70158,c3 =c1 + 1;return 1 + c3 *Math.pow(t - 1,3) + c1 *Math.pow(t - 1,2);}
+case 'linear':default:return t;}
+}
+function lerp(a,b,t) {return a + (b - a) *t;}
+function sampleValueEvents(events,type,nowBeat,defaultValue) {let value =defaultValue;const list =(events ||[]).filter(g =>g.type ===type).sort((a,b) =>a.beat - b.beat);for (const g of list) {const dur =Math.max(1e-6,g.duration ||0);if (nowBeat < g.beat) continue;if (nowBeat >g.beat + dur) {value =g.endValue !=null ?g.endValue :value;continue;}
+const t =(nowBeat - g.beat) / dur;const e =sampleEasing(g.easing ||'linear',t,g.curvePoints);const s =g.startValue !=null ?g.startValue :defaultValue;const en =g.endValue !=null ?g.endValue :defaultValue;value =lerp(s,en,e);}
+return value;}
+function sampleCensors(events,nowBeat) {const out =[];for (const g of (events ||[])) {if (g.type !=='censor') continue;const dur =g.duration ||0;if (nowBeat < g.beat ||nowBeat >g.beat + dur) continue;const local =nowBeat - g.beat;const fi =g.fadeIn ||0;const fo =g.fadeOut ||0;let alpha =1;if (local < fi) alpha =fi <=0 ?1 :local / fi;else if (local >dur - fo) alpha =fo <=0 ?0 :Math.max(0,(dur - local) / fo);out.push({direction:g.direction ||'all',alpha:Math.max(0,Math.min(1,alpha)),id:g.id,});}
+return out;}
+function sampleEdgeFronts(edgeEvents,edgeId,nowBeat) {let loFront =0;let lfFront =0;let loGlow =1,lfGlow =1,loGrad =0,lfGrad =0;for (const ev of (edgeEvents ||[])) {if (ev.edgeId !==edgeId) continue;if (nowBeat >=ev.beat) {const p =Math.min(1,Math.max(0,(nowBeat - ev.beat) / Math.max(1e-6,ev.loSpread ||0.25)));if (p >=loFront) {loFront =p;loGlow =ev.loGlowIntensity !=null ?ev.loGlowIntensity :1;loGrad =ev.loGradient ||0;}
+}
+const lfStart =ev.beat + (ev.interval ||0);if (nowBeat >=lfStart) {const p =Math.min(1,Math.max(0,(nowBeat - lfStart) / Math.max(1e-6,ev.lfSpread ||0.5)));if (p >=lfFront) {lfFront =p;lfGlow =ev.lfGlowIntensity !=null ?ev.lfGlowIntensity :1;lfGrad =ev.lfGradient ||0;}
+}
+}
+return {loFront,lfFront,loGlow,lfGlow,loGrad,lfGrad,lit:loFront >lfFront };}
+function sampleAt(chart,nowBeat) {const globals =chart.globalEvents ||[];return {beat:nowBeat,sv:sampleValueEvents(globals,'sv',nowBeat,1),camera:sampleValueEvents(globals,'camera',nowBeat,100),censors:sampleCensors(globals,nowBeat),edges:Array.from({length:7 },(_,id) =>sampleEdgeFronts(chart.edgeEvents ||[],id,nowBeat)),};}
+return {sampleEasing,sampleAt,sampleValueEvents,sampleCensors,sampleEdgeFronts,lerp,clamp01,};})();if (typeof window !=='undefined') window.ChartRuntime =ChartRuntime;class AudioEngine {constructor() {this.ctx =null;this.buffer =null;this.source =null;this.gainNode =null;this.isPlaying =false;this.startTime =0;this.offset =0;this.duration =0;this.playbackRate =1.0;}
+async init() {if (!this.ctx) {this.ctx =new (window.AudioContext ||window.webkitAudioContext)();this.gainNode =this.ctx.createGain();this.gainNode.connect(this.ctx.destination);}
+if (this.ctx.state ==='suspended') {await this.ctx.resume();}
+}
+async loadArrayBuffer(arrayBuffer) {await this.init();this.buffer =await this.ctx.decodeAudioData(arrayBuffer.slice(0));this.duration =this.buffer.duration;this.offset =0;this.isPlaying =false;return this.duration;}
+play() {if (!this.buffer ||this.isPlaying) return;this.init().then(() =>{this.source =this.ctx.createBufferSource();this.source.buffer =this.buffer;this.source.playbackRate.value =this.playbackRate;this.source.connect(this.gainNode);this.startTime =this.ctx.currentTime;this.source.start(0,this.offset);this.isPlaying =true;this.source.onended =() =>{if (this.isPlaying &&this.getCurrentTime() >=this.duration - 0.01) {this.isPlaying =false;this.offset =0;}
+};});}
+pause() {if (!this.isPlaying) return;this.offset =this.getCurrentTime();this._stopSource();this.isPlaying =false;}
+stop() {this._stopSource();this.isPlaying =false;this.offset =0;}
+seek(seconds) {const wasPlaying =this.isPlaying;this.offset =Math.max(0,Math.min(seconds,this.duration));if (wasPlaying) {this._stopSource();this.isPlaying =false;this.play();}
+}
+setRate(rate) {this.playbackRate =rate;if (this.source) {this.source.playbackRate.value =rate;}
+}
+getCurrentTime() {if (!this.isPlaying) return this.offset;const elapsed =(this.ctx.currentTime - this.startTime) *this.playbackRate;return Math.min(this.offset + elapsed,this.duration);}
+_stopSource() {try {if (this.source) {this.source.stop();} } catch (e) {}
+this.source =null;}
+}
+class CommandStack {constructor(limit =200) {this.stack =[];this.index =-1;this.limit =limit;}
+execute(cmd) {if (this.index < this.stack.length - 1) {this.stack =this.stack.slice(0,this.index + 1);}
+cmd.execute();this.stack.push(cmd);if (this.stack.length >this.limit) {this.stack.shift();} else {this.index++;}
+}
+undo() {if (this.index < 0) return false;this.stack[this.index].undo();this.index--;return true;}
+redo() {if (this.index >=this.stack.length - 1) return false;this.index++;this.stack[this.index].execute();return true;}
+canUndo() {return this.index >=0;}
+canRedo() {return this.index < this.stack.length - 1;}
+clear() {this.stack =[];this.index =-1;}
+}
+class AddNoteCommand {constructor(chart,noteData) {this.chart =chart;this.note =null;this.noteData =noteData;}
+execute() {this.note =new Note(this.chart.generateId(),this.noteData.lane,this.noteData.type,this.noteData.beat,this.noteData.endBeat,this.noteData.speedMultiplier ||1.0,this.noteData.timeDivisor ||4
+);this.note.endTimeDivisor =this.noteData.endTimeDivisor ||this.noteData.timeDivisor ||4;this.chart.notes.push(this.note);}
+undo() {this.chart.notes =this.chart.notes.filter(n =>n.id !==this.note.id);}
+}
+class DeleteNoteCommand {constructor(chart,noteId) {this.chart =chart;this.noteId =noteId;this.removed =null;this.index =-1;}
+execute() {this.index =this.chart.notes.findIndex(n =>n.id ===this.noteId);if (this.index >=0) {this.removed =this.chart.notes[this.index];this.chart.notes.splice(this.index,1);}
+}
+undo() {if (this.removed &&this.index >=0) {this.chart.notes.splice(this.index,0,this.removed);}
+}
+}
+class MoveNoteCommand {constructor(chart,noteId,newBeat,newEndBeat =null,extraPatch =null) {this.chart =chart;this.noteId =noteId;this.newBeat =newBeat;this.newEndBeat =newEndBeat;this.extraPatch =extraPatch;this.oldBeat =null;this.oldEndBeat =null;this.oldExtra =null;}
+execute() {const n =this.chart.getNoteById(this.noteId);if (!n) return;if (this.oldBeat ===null) {this.oldBeat =n.beat;this.oldEndBeat =n.endBeat;if (this.extraPatch) {this.oldExtra ={};Object.keys(this.extraPatch).forEach(k =>{this.oldExtra[k] =n[k];});}
+}
+n.beat =this.newBeat;if (n.type ==='hold' &&this.newEndBeat !==null) n.endBeat =this.newEndBeat;if (this.extraPatch) Object.assign(n,this.extraPatch);}
+undo() {const n =this.chart.getNoteById(this.noteId);if (!n) return;n.beat =this.oldBeat;n.endBeat =this.oldEndBeat;if (this.oldExtra) Object.assign(n,this.oldExtra);}
+}
+class ChangeLaneCommand {constructor(chart,noteId,newLane) {this.chart =chart;this.noteId =noteId;this.newLane =newLane;this.oldLane =0;}
+execute() {const n =this.chart.getNoteById(this.noteId);if (!n) return;this.oldLane =n.lane;n.lane =this.newLane;}
+undo() {const n =this.chart.getNoteById(this.noteId);if (!n) return;n.lane =this.oldLane;}
+}
+class AddBPMPointCommand {constructor(chart,beat,bpm) {this.chart =chart;this.beat =beat;this.bpm =bpm;this.previous =null;}
+execute() {const existing =this.chart.bpmList.find(p =>p.beat ===this.beat);if (existing) this.previous ={beat:existing.beat,bpm:existing.bpm };this.chart.addBPMPoint(this.beat,this.bpm);}
+undo() {if (this.beat ===0) {if (this.previous) this.chart.bpmList[0].bpm =this.previous.bpm;} else {if (this.previous) {this.chart.addBPMPoint(this.beat,this.previous.bpm);} else {this.chart.removeBPMPoint(this.beat);}
+}
+if (this.beat ===0 &&this.previous) this.chart.baseBPM =this.previous.bpm;}
+}
+class BatchCommand {constructor(commands =[]) {this.commands =commands;}
+add(cmd) {this.commands.push(cmd);}
+execute() {this.commands.forEach(c =>c.execute());}
+undo() {for (let i =this.commands.length - 1;i >=0;i--) this.commands[i].undo();}
+}
+function _clonePlain(obj) {return obj ==null ?obj :JSON.parse(JSON.stringify(obj));}
+class AddEdgeEventCommand {constructor(chart,edgeData) {this.chart =chart;this.edgeData =edgeData;this.edge =null;}
+execute() {const d =this.edgeData;this.edge =new EdgeEvent(d.id ||this.chart.generateId(),d.edgeId,d.beat,d.loSpread ??0.25,d.lfSpread ??0.5,d.interval ??0.5,d.loGradient ??0,d.lfGradient ??0,d.loGlowIntensity ??1,d.loGlowRadius ??0,d.lfGlowIntensity ??1,d.lfGlowRadius ??0
+);this.edgeData.id =this.edge.id;this.chart.edgeEvents.push(this.edge);}
+undo() {this.chart.edgeEvents =this.chart.edgeEvents.filter(e =>e.id !==this.edge.id);}
+}
+class DeleteEdgeEventCommand {constructor(chart,edgeId) {this.chart =chart;this.edgeId =edgeId;this.removed =null;this.index =-1;}
+execute() {this.index =this.chart.edgeEvents.findIndex(e =>e.id ===this.edgeId);if (this.index >=0) {this.removed =this.chart.edgeEvents[this.index];this.chart.edgeEvents.splice(this.index,1);}
+}
+undo() {if (this.removed &&this.index >=0) this.chart.edgeEvents.splice(this.index,0,this.removed);}
+}
+class UpdateEdgeEventCommand {constructor(chart,edgeId,patch) {this.chart =chart;this.edgeId =edgeId;this.patch =patch;this.before =null;}
+execute() {const ev =this.chart.edgeEvents.find(e =>e.id ===this.edgeId);if (!ev) return;if (!this.before) {this.before ={};Object.keys(this.patch).forEach(k =>{this.before[k] =ev[k];});}
+Object.assign(ev,this.patch);}
+undo() {const ev =this.chart.edgeEvents.find(e =>e.id ===this.edgeId);if (!ev ||!this.before) return;Object.assign(ev,this.before);}
+}
+class AddGlobalEventCommand {constructor(chart,data) {this.chart =chart;this.data =data;this.event =null;}
+execute() {const d =this.data;this.event =new GlobalEvent(d.id ||this.chart.generateId(),d.type ||'sv',d.beat ||0,d.duration !=null ?d.duration :1,d
+);this.data.id =this.event.id;if (!this.chart.globalEvents) this.chart.globalEvents =[];this.chart.globalEvents.push(this.event);}
+undo() {this.chart.globalEvents =(this.chart.globalEvents ||[]).filter(g =>g.id !==this.event.id);}
+}
+class DeleteGlobalEventCommand {constructor(chart,eventId) {this.chart =chart;this.eventId =eventId;this.removed =null;this.index =-1;}
+execute() {this.index =(this.chart.globalEvents ||[]).findIndex(g =>g.id ===this.eventId);if (this.index >=0) {this.removed =this.chart.globalEvents[this.index];this.chart.globalEvents.splice(this.index,1);}
+}
+undo() {if (this.removed &&this.index >=0) this.chart.globalEvents.splice(this.index,0,this.removed);}
+}
+class UpdateGlobalEventCommand {constructor(chart,eventId,patch) {this.chart =chart;this.eventId =eventId;this.patch =patch;this.before =null;}
+execute() {const g =(this.chart.globalEvents ||[]).find(e =>e.id ===this.eventId);if (!g) return;if (!this.before) {this.before ={};Object.keys(this.patch).forEach(k =>{this.before[k] =_clonePlain(g[k]);});}
+Object.keys(this.patch).forEach(k =>{g[k] =_clonePlain(this.patch[k]);});}
+undo() {const g =(this.chart.globalEvents ||[]).find(e =>e.id ===this.eventId);if (!g ||!this.before) return;Object.keys(this.before).forEach(k =>{g[k] =_clonePlain(this.before[k]);});}
+}
+class UpdateNoteParamsCommand {constructor(chart,noteId,patch) {this.chart =chart;this.noteId =noteId;this.patch =patch;this.before =null;}
+execute() {const n =this.chart.getNoteById(this.noteId);if (!n) return;if (!this.before) {this.before ={};Object.keys(this.patch).forEach(k =>{this.before[k] =n[k];});}
+Object.assign(n,this.patch);}
+undo() {const n =this.chart.getNoteById(this.noteId);if (!n ||!this.before) return;Object.assign(n,this.before);}
+}
+const PLAY_COLS =6;const PARAM_COLS =6;const EDGE_COLS =7;const GLOBAL_COLS =3;const TOTAL_COLS =PLAY_COLS + PARAM_COLS + EDGE_COLS + GLOBAL_COLS;const PLAYHEAD_RATIO =0.72;const GLOBAL_TYPES =['sv','camera','censor'];const GLOBAL_LABELS =['SV','CAM','CEN'];const COL_WEIGHTS =(() =>{const w =[];for (let i =0;i < PLAY_COLS;i++) w.push(1.0);for (let i =0;i < PARAM_COLS;i++) w.push(0.42);for (let i =0;i < EDGE_COLS;i++) w.push(0.55);for (let i =0;i < GLOBAL_COLS;i++) w.push(0.7);return w;})();const COL_PLAY_START =0;const COL_PARAM_START =PLAY_COLS;const COL_EDGE_START =PLAY_COLS + PARAM_COLS;const COL_GLOBAL_START =PLAY_COLS + PARAM_COLS + EDGE_COLS;const COLOR_LANE_PLAY =['rgba(102,252,241,0.06)','rgba(102,252,241,0.10)'];const COLOR_LANE_PARAM =['rgba(79,172,254,0.05)','rgba(79,172,254,0.08)'];const COLOR_LANE_EDGE =['rgba(255,215,0,0.04)','rgba(255,215,0,0.07)'];const COLOR_LANE_GLOBAL =['rgba(255,42,109,0.05)','rgba(255,42,109,0.08)'];class Renderer {constructor(canvas) {this.canvas =canvas;this.ctx =canvas.getContext('2d');this.dpr =window.devicePixelRatio ||1;this.pixelsPerBeat =120;this.scrollBeat =0;this.currentBeat =0;this.isPlaying =false;this.colX =[];this.colW =[];this.selectedNoteId =null;this.selectedIds =null;this.selectedEdgeId =null;this.hoverBeat =0;this.hoverLane =-1;this.snapDivisor =4;this.overlappingIds =new Set();}
+resize() {const rect =this.canvas.parentElement.getBoundingClientRect();this.canvas.width =rect.width *this.dpr;this.canvas.height =rect.height *this.dpr;this.canvas.style.width =rect.width + 'px';this.canvas.style.height =rect.height + 'px';this.ctx.setTransform(this.dpr,0,0,this.dpr,0,0);this._calcCols(rect.width);}
+_calcCols(totalWidth) {const totalWeight =COL_WEIGHTS.reduce((a,b) =>a + b,0);const unit =totalWidth / totalWeight;this.colW =COL_WEIGHTS.map(w =>w *unit);this.colX =[0];for (let i =1;i < TOTAL_COLS;i++) {this.colX.push(this.colX[i - 1] + this.colW[i - 1]);}
+}
+getLaneCenterX(col) {return this.colX[col] + this.colW[col] / 2;}
+beatToY(beat) {const anchor =this.isPlaying ?this.currentBeat :this.scrollBeat;const h =this.canvas.height / this.dpr;const anchorY =h *PLAYHEAD_RATIO;return (anchor - beat) *this.pixelsPerBeat + anchorY;}
+yToBeat(y) {const anchor =this.isPlaying ?this.currentBeat :this.scrollBeat;const h =this.canvas.height / this.dpr;const anchorY =h *PLAYHEAD_RATIO;return anchor - (y - anchorY) / this.pixelsPerBeat;}
+getVisibleBeatRange() {const h =this.canvas.height / this.dpr;return {min:this.yToBeat(h),max:this.yToBeat(0) };}
+colAtX(x) {for (let i =0;i < TOTAL_COLS;i++) {if (x >=this.colX[i] &&x < this.colX[i] + this.colW[i]) return i;}
+return -1;}
+laneToParamCol(lane) {if (lane >=0 &&lane < PLAY_COLS) return COL_PARAM_START + lane;return -1;}
+render(chart) {const w =this.canvas.width / this.dpr;const h =this.canvas.height / this.dpr;const ctx =this.ctx;ctx.clearRect(0,0,w,h);this._drawLanes(ctx,w,h,chart);this._drawGrid(ctx,w,h,chart);this._drawBPMMarkers(ctx,w,h,chart);this._drawEdgeEvents(ctx,chart);try {this._drawGlobalEvents(ctx,chart);} catch (e) {console.warn('global draw',e);}
+this._drawParamNodes(ctx,chart);this._drawNotes(ctx,chart);this._drawPlayhead(ctx,w,h);this._drawSelection(ctx,chart);if (!this.isPlaying &&this.hoverLane >=0) {this._drawHoverIndicator(ctx);}
+}
+_drawLanes(ctx,w,h,chart) {const totalBeats =(typeof window.__getTotalBeats ==='function')
+?window.__getTotalBeats(chart)
+:(typeof chart.getTotalBeats ==='function' ?window.__getTotalBeats(chart) :64);const yEnd =this.beatToY(totalBeats);for (let i =0;i < PLAY_COLS;i++) {ctx.fillStyle =COLOR_LANE_PLAY[i % 2];ctx.fillRect(this.colX[i],0,this.colW[i],h);}
+for (let i =0;i < PARAM_COLS;i++) {const idx =COL_PARAM_START + i;ctx.fillStyle =COLOR_LANE_PARAM[i % 2];ctx.fillRect(this.colX[idx],0,this.colW[idx],h);}
+for (let i =0;i < EDGE_COLS;i++) {const idx =COL_EDGE_START + i;let base =COLOR_LANE_EDGE[i % 2];if (this.edgeAddMode &&this.edgeAddSelected &&this.edgeAddSelected.has(i)) {base ='rgba(255,215,0,0.25)';}
+ctx.fillStyle =base;ctx.fillRect(this.colX[idx],0,this.colW[idx],h);}
+for (let i =0;i < GLOBAL_COLS;i++) {const idx =COL_GLOBAL_START + i;ctx.fillStyle =COLOR_LANE_GLOBAL[i % 2];ctx.fillRect(this.colX[idx],0,this.colW[idx],h);}
+ 
+ const y0 =this.beatToY(0);const yEndLine =this.beatToY(totalBeats);ctx.fillStyle ='rgba(0,0,0,0.55)';if (y0 < h) {const top =Math.max(0,y0);if (top < h) ctx.fillRect(0,top,w,h - top);}
+ if (yEndLine >0) {const bottom =Math.min(h,yEndLine);if (bottom >0) ctx.fillRect(0,0,w,bottom);}
+ctx.strokeStyle ='rgba(255,255,255,0.06)';ctx.lineWidth =1;ctx.beginPath();for (let i =1;i < TOTAL_COLS;i++) {const x =Math.floor(this.colX[i]) + 0.5;ctx.moveTo(x,0);ctx.lineTo(x,h);}
+ctx.stroke();ctx.strokeStyle ='rgba(255,255,255,0.22)';ctx.lineWidth =1.5;ctx.beginPath();[COL_PARAM_START,COL_EDGE_START,COL_GLOBAL_START].forEach(idx =>{const x =Math.floor(this.colX[idx]) + 0.5;ctx.moveTo(x,0);ctx.lineTo(x,h);});ctx.stroke();ctx.fillStyle ='rgba(255,255,255,0.25)';ctx.font ='10px sans-serif';ctx.textAlign ='center';for (let i =0;i < PLAY_COLS;i++) ctx.fillText('L' + i,this.colX[i] + this.colW[i] / 2,14);for (let i =0;i < PARAM_COLS;i++) {const idx =COL_PARAM_START + i;ctx.fillText('P' + i,this.colX[idx] + this.colW[idx] / 2,14);}
+for (let i =0;i < EDGE_COLS;i++) {const idx =COL_EDGE_START + i;ctx.fillText('E' + i,this.colX[idx] + this.colW[idx] / 2,14);}
+for (let i =0;i < GLOBAL_COLS;i++) {const idx =COL_GLOBAL_START + i;ctx.fillText(GLOBAL_LABELS[i],this.colX[idx] + this.colW[idx] / 2,14);}
+}
+_drawGrid(ctx,w,h,chart) {const range =this.getVisibleBeatRange();const maxBeat =(typeof window.__getTotalBeats ==='function')
+?window.__getTotalBeats(chart)
+:(typeof chart.getTotalBeats ==='function' ?window.__getTotalBeats(chart) :64);const renderMin =Math.max(0,range.min);const renderMax =Math.min(maxBeat,range.max);const minBeat =Math.floor(renderMin);const maxB =Math.ceil(renderMax);ctx.strokeStyle ='rgba(255,255,255,0.32)';ctx.lineWidth =1.25;ctx.beginPath();for (let b =minBeat;b <=maxB;b++) {if (b < 0) continue;const y =this.beatToY(b);if (y < -20 ||y >h + 20) continue;const yy =Math.floor(y) + 0.5;ctx.moveTo(0,yy);ctx.lineTo(w,yy);}
+ctx.stroke();for (let b =minBeat;b <=maxB;b++) {if (b < 0) continue;const y =this.beatToY(b);if (y < 8 ||y >h + 2) continue;const yy =Math.floor(y) + 0.5;ctx.fillStyle ='rgba(255,255,255,0.42)';ctx.font ='10px sans-serif';ctx.textAlign ='left';ctx.fillText(String(b),4,yy - 3);}
+ 
+ if (this.snapDivisor >1) {const step =1 / this.snapDivisor;ctx.strokeStyle ='rgba(255,255,255,0.16)';ctx.lineWidth =1;ctx.beginPath();const start =Math.floor(renderMin *this.snapDivisor) / this.snapDivisor;for (let b =start;b <=renderMax + step;b +=step) {if (b < 0) continue;if (Math.abs(b - Math.round(b)) < 1e-9) continue;const y =this.beatToY(b);if (y < -1 ||y >h + 1) continue;const yy =Math.floor(y) + 0.5;ctx.moveTo(0,yy);ctx.lineTo(w,yy);}
+ctx.stroke();}
+ if (renderMin <=0 &&renderMax >=0) {const y0 =this.beatToY(0);ctx.strokeStyle ='rgba(255,255,255,0.60)';ctx.lineWidth =2;ctx.beginPath();ctx.moveTo(0,y0);ctx.lineTo(w,y0);ctx.stroke();ctx.fillStyle ='rgba(255,255,255,0.60)';ctx.font ='bold 11px sans-serif';ctx.textAlign ='left';ctx.fillText('START',4,y0 - 4);}
+}
+_drawBPMMarkers(ctx,w,h,chart) {ctx.fillStyle ='#f1c40f';ctx.font ='bold 11px sans-serif';ctx.textAlign ='right';for (const pt of chart.bpmList) {if (pt.beat < 0) continue;const y =this.beatToY(pt.beat);if (y < -20 ||y >h + 20) continue;const yy =Math.floor(y) + 0.5;ctx.fillText('♩=' + pt.bpm,w - 6,yy - 4);ctx.strokeStyle ='rgba(241,196,15,0.5)';ctx.setLineDash([4,4]);ctx.lineWidth =1;ctx.beginPath();ctx.moveTo(0,yy);ctx.lineTo(w,yy);ctx.stroke();ctx.setLineDash([]);}
+}
+_drawEdgeEvents(ctx,chart) {const range =this.getVisibleBeatRange();for (const ev of chart.edgeEvents) {if (ev.endBeat < range.min - 2 ||ev.beat >range.max + 2) continue;const col =COL_EDGE_START + ev.edgeId;if (col < COL_EDGE_START ||col >=COL_GLOBAL_START) continue;const cx =this.colX[col] + this.colW[col] / 2;const yStart =this.beatToY(ev.beat);const yEnd =this.beatToY(ev.endBeat);const top =Math.min(yStart,yEnd);const hh =Math.abs(yEnd - yStart);const isSelected =ev.id ===this.selectedEdgeId;ctx.strokeStyle =isSelected ?'rgba(255,215,0,1.0)' :'rgba(255,215,0,0.85)';ctx.lineWidth =isSelected ?7 :5;ctx.shadowColor ='rgba(255,215,0,0.5)';ctx.shadowBlur =isSelected ?10 :6;ctx.beginPath();ctx.moveTo(cx,top);ctx.lineTo(cx,top + hh);ctx.stroke();ctx.shadowBlur =0;const r =4;[yStart,yEnd].forEach(y =>{ctx.strokeStyle =isSelected ?'#ff2a6d' :'rgba(255,215,0,0.9)';ctx.lineWidth =2;ctx.beginPath();ctx.arc(cx,y,r,0,Math.PI *2);ctx.stroke();ctx.fillStyle ='rgba(0,0,0,0.6)';ctx.fill();});}
+}
+_drawGlobalEvents(ctx,chart) {const range =this.getVisibleBeatRange();for (const g of (chart.globalEvents ||[])) {const typeIdx =GLOBAL_TYPES.indexOf(g.type);if (typeIdx < 0) continue;const col =COL_GLOBAL_START + typeIdx;if (col < 0 ||col >=this.colX.length) continue;const gEnd =(typeof g.endBeat ==='number') ?g.endBeat :((g.beat ||0) + (g.duration ||0));if (gEnd < range.min - 2 ||g.beat >range.max + 2) continue;const cx =this.colX[col] + this.colW[col] / 2;const yStart =this.beatToY(g.beat);const yEnd =this.beatToY(gEnd);const top =Math.min(yStart,yEnd);const hh =Math.abs(yEnd - yStart);const isSelected =g.id ===this.selectedGlobalId;let color ='rgba(102,252,241,0.9)';if (g.type ==='camera') color ='rgba(167,139,250,0.95)';if (g.type ==='censor') color ='rgba(148,163,184,0.95)';if (isSelected) {ctx.strokeStyle ='#ff2a6d';ctx.lineWidth =6;ctx.shadowColor ='#ff2a6d';ctx.shadowBlur =10;} else {ctx.strokeStyle =color;ctx.lineWidth =5;ctx.shadowColor =color;ctx.shadowBlur =6;}
+ctx.beginPath();ctx.moveTo(cx,top);ctx.lineTo(cx,top + hh);ctx.stroke();ctx.shadowBlur =0;const r =4;[yStart,yEnd].forEach(y =>{ctx.strokeStyle =isSelected ?'#ff2a6d' :color;ctx.lineWidth =2;ctx.beginPath();ctx.arc(cx,y,r,0,Math.PI *2);ctx.stroke();ctx.fillStyle ='rgba(0,0,0,0.6)';ctx.fill();});}
+}
+_drawParamNodes(ctx,chart) {const range =this.getVisibleBeatRange();const notes =chart.getNotesInRange(range.min - 2,range.max + 2);for (const n of notes) {if (n.lane < 0 ||n.lane >=PLAY_COLS) continue;if (n.speedMultiplier ===1.0) continue;const pcol =this.laneToParamCol(n.lane);if (pcol < 0) continue;const cx =this.colX[pcol] + this.colW[pcol] / 2;const cy =this.beatToY(n.beat);ctx.fillStyle ='#4facfe';ctx.shadowColor ='rgba(79,172,254,0.6)';ctx.shadowBlur =6;ctx.beginPath();ctx.arc(cx,cy,4,0,Math.PI *2);ctx.fill();ctx.shadowBlur =0;if (n.id ===this.selectedNoteId) {ctx.strokeStyle ='#fff';ctx.lineWidth =1.5;ctx.beginPath();ctx.arc(cx,cy,6,0,Math.PI *2);ctx.stroke();}
+}
+}
+_drawNotes(ctx,chart) {const range =this.getVisibleBeatRange();const notes =chart.getNotesInRange(range.min - 2,range.max + 2);const JUDGE_LINE_W =2;const NOTE_THICK =JUDGE_LINE_W *3;for (const n of notes) {if (n.lane < 0 ||n.lane >=PLAY_COLS) continue;const x =this.colX[n.lane];const lw =this.colW[n.lane];const isOverlap =this.overlappingIds.has(n.id);const noteLen =Math.max(4,lw - 4);const nx =x + (lw - noteLen) / 2;const thick =NOTE_THICK;if (n.type ==='tap') {const y =this.beatToY(n.beat);const yTop =y - thick / 2;ctx.fillStyle =isOverlap ?'rgba(239,68,68,0.90)' :'rgba(102,252,241,0.9)';ctx.shadowColor =isOverlap ?'rgba(239,68,68,0.7)' :'rgba(102,252,241,0.45)';ctx.shadowBlur =4;roundRect(ctx,nx,yTop,noteLen,thick,2);ctx.fill();ctx.shadowBlur =0;} else if (n.type ==='hold') {const yStart =this.beatToY(n.beat);const yEnd =this.beatToY(n.endBeat);const top =Math.min(yStart,yEnd);const hh =Math.abs(yEnd - yStart);if (hh < 1) continue;const bodyLen =Math.max(4,noteLen *0.72);const bx =x + (lw - bodyLen) / 2;ctx.fillStyle =isOverlap ?'rgba(239,68,68,0.45)' :'rgba(241,196,15,0.4)';ctx.fillRect(bx,top,bodyLen,hh);ctx.fillStyle =isOverlap ?'rgba(239,68,68,0.95)' :'rgba(241,196,15,0.95)';roundRect(ctx,nx,yStart - thick / 2,noteLen,thick,2);ctx.fill();ctx.fillStyle =isOverlap ?'rgba(239,68,68,0.7)' :'rgba(241,196,15,0.7)';ctx.fillRect(bx,yEnd - 1,bodyLen,2);}
+}
+}
+_drawPlayhead(ctx,w,h) {const y =Math.floor(h *PLAYHEAD_RATIO) + 0.5;ctx.save();ctx.strokeStyle ='rgba(0,0,0,0.55)';ctx.lineWidth =4;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();ctx.strokeStyle ='rgba(255,42,109,1)';ctx.lineWidth =2;ctx.shadowColor ='rgba(255,42,109,0.85)';ctx.shadowBlur =12;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();ctx.shadowBlur =0;ctx.fillStyle ='rgba(255,42,109,1)';ctx.font ='bold 12px sans-serif';ctx.textAlign ='left';ctx.fillText('▶ NOW',4,y - 6);ctx.restore();}
+_drawSelection(ctx,chart) {const thick =6;const outline =(n,color,lwStroke,glow) =>{if (!n ||n.lane < 0 ||n.lane >=PLAY_COLS) return;const x =this.colX[n.lane];const laneW =this.colW[n.lane];const noteLen =Math.max(4,laneW - 4);const nx =x + (laneW - noteLen) / 2;ctx.strokeStyle =color;ctx.lineWidth =lwStroke;if (glow) {ctx.shadowColor =glow;ctx.shadowBlur =10;}
+if (n.type ==='tap') {const y =this.beatToY(n.beat);ctx.strokeRect(nx - 1,y - thick / 2 - 1,noteLen + 2,thick + 2);} else {const yStart =this.beatToY(n.beat);const yEnd =this.beatToY(n.endBeat);const top =Math.min(yStart,yEnd);const hh =Math.abs(yEnd - yStart);ctx.strokeRect(nx - 1,top - 1,noteLen + 2,hh + 2);}
+ctx.shadowBlur =0;};if (this.selectedIds &&this.selectedIds.size) {this.selectedIds.forEach(id =>outline(chart.getNoteById(id),'rgba(255,255,255,0.75)',1.5,null));}
+if (this.selectedNoteId) {outline(chart.getNoteById(this.selectedNoteId),'#ff2a6d',2,'#ff2a6d');}
+ }
+_drawHoverIndicator(ctx) {if (this.hoverLane < 0 ||this.hoverLane >=PLAY_COLS) return;const x =this.colX[this.hoverLane];const y =this.beatToY(this.hoverBeat);const lw =this.colW[this.hoverLane];const noteLen =Math.max(4,lw - 4);const thick =6;const nx =x + (lw - noteLen) / 2;ctx.fillStyle ='rgba(255,255,255,0.14)';roundRect(ctx,nx,y - thick / 2,noteLen,thick,2);ctx.fill();}
+}
+function roundRect(ctx,x,y,w,h,r) {if (w < 2 *r) r =w / 2;if (h < 2 *r) r =h / 2;ctx.beginPath();ctx.moveTo(x + r,y);ctx.lineTo(x + w - r,y);ctx.quadraticCurveTo(x + w,y,x + w,y + r);ctx.lineTo(x + w,y + h - r);ctx.quadraticCurveTo(x + w,y + h,x + w - r,y + h);ctx.lineTo(x + r,y + h);ctx.quadraticCurveTo(x,y + h,x,y + h - r);ctx.lineTo(x,y + r);ctx.quadraticCurveTo(x,y,x + r,y);ctx.closePath();}
+const Tool ={SELECT:0,TAP:1,HOLD:2 };const OVERLAP_THRESHOLD =1 / 16;class InputHandler {constructor(canvas,engine,chart,audio,commands) {this.canvas =canvas;this.engine =engine;this.chart =chart;this.audio =audio;this.cmd =commands;this.tool =Tool.SELECT;this.state ='IDLE';this.dragStart ={x:0,y:0,beat:0,lane:0 };this.dragCurrent ={x:0,y:0 };this.activeNoteId =null;this.snapDivisor =4;this.selectedIds =new Set();this.clipboard =[];this.boxSelect =null;this.edgeAddMode =false;this.edgeAddSelected =new Set();this._bindEvents();}
+setTool(t) {this.tool =t;}
+setSnap(d) {this.snapDivisor =d;this.engine.snapDivisor =d;}
+_bindEvents() {const c =this.canvas;c.addEventListener('mousedown',e =>this.onMouseDown(e));c.addEventListener('mousemove',e =>this.onMouseMove(e));window.addEventListener('mouseup',e =>this.onMouseUp(e));c.addEventListener('contextmenu',e =>{e.preventDefault();});c.addEventListener('wheel',e =>this.onWheel(e),{passive:false });c.addEventListener('touchstart',e =>{if (e.touches.length ===1) {const t =e.touches[0];this.onMouseDown({button:0,clientX:t.clientX,clientY:t.clientY,preventDefault:() =>e.preventDefault() });}
+},{passive:false });c.addEventListener('touchmove',e =>{if (e.touches.length ===1) {const t =e.touches[0];this.onMouseMove({clientX:t.clientX,clientY:t.clientY,preventDefault:() =>e.preventDefault() });}
+},{passive:false });window.addEventListener('touchend',e =>this.onMouseUp({}));}
+_getPos(e) {const rect =this.canvas.getBoundingClientRect();const cx =e.clientX !=null ?e.clientX :0;const cy =e.clientY !=null ?e.clientY :0;return {x:cx - rect.left,y:cy - rect.top };}
+_hitTest(x,y) {const col =this.engine.colAtX(x);if (col < 0) return {col:-1,lane:-1,note:null,edgeEvent:null,globalEvent:null };let lane =-1;if (col >=COL_PLAY_START &&col < COL_PLAY_START + PLAY_COLS) {lane =col - COL_PLAY_START;} else if (col >=COL_PARAM_START &&col < COL_PARAM_START + PARAM_COLS) {lane =col - COL_PARAM_START;}
+const beat =this.engine.yToBeat(y);const range =this.engine.getVisibleBeatRange();if (col >=COL_GLOBAL_START &&col < COL_GLOBAL_START + GLOBAL_COLS) {const type =GLOBAL_TYPES[col - COL_GLOBAL_START];const events =(this.chart.globalEvents ||[]).slice().reverse();for (const g of events) {if (g.type !==type) continue;const yS =this.engine.beatToY(g.beat);const yE =this.engine.beatToY(g.endBeat);const top =Math.min(yS,yE) - 6;const bot =Math.max(yS,yE) + 6;const cx =this.engine.colX[col] + this.engine.colW[col] / 2;if (y >=top &&y <=bot &&Math.abs(x - cx) <=this.engine.colW[col] / 2 + 4) {return {col,lane:-1,note:null,edgeEvent:null,globalEvent:g };}
+}
+}
+ if (col >=COL_EDGE_START &&col < COL_GLOBAL_START) {const edgeId =col - COL_EDGE_START;for (const ev of this.chart.edgeEvents) {if (ev.edgeId !==edgeId) continue;const yS =this.engine.beatToY(ev.beat);const yE =this.engine.beatToY(ev.endBeat);const top =Math.min(yS,yE);const bot =Math.max(yS,yE);if (y >=top - 6 &&y <=bot + 6 &&Math.abs(x - (this.engine.colX[col] + this.engine.colW[col] / 2)) < this.engine.colW[col] / 2 + 4) {return {col,lane:-1,note:null,edgeEvent:ev,globalEvent:null };}
+}
+}
+ const notes =this.chart.getNotesInRange(range.min - 2,range.max + 2);for (let i =notes.length - 1;i >=0;i--) {const n =notes[i];if (n.lane !==lane) continue;if (this._hitNote(n,x,y)) return {col,lane,note:n,edgeEvent:null,globalEvent:null };}
+return {col,lane,note:null,edgeEvent:null,globalEvent:null };}
+_hitNote(n,x,y) {const playCol =n.lane;const paramCol =COL_PARAM_START + n.lane;const inPlay =x >=this.engine.colX[playCol] &&x < this.engine.colX[playCol] + this.engine.colW[playCol];const inParam =x >=this.engine.colX[paramCol] &&x < this.engine.colX[paramCol] + this.engine.colW[paramCol];if (!inPlay &&!inParam) return false;if (n.type ==='tap') {const ny =this.engine.beatToY(n.beat);const h =6;return Math.abs(y - ny) <=h / 2 + 4;} else {const yS =this.engine.beatToY(n.beat);const yE =this.engine.beatToY(n.endBeat);const top =Math.min(yS,yE);const bot =Math.max(yS,yE);return y >=top - 6 &&y <=bot + 6;}
+}
+_snap(beat) {const d =this.snapDivisor;return Math.round(beat *d) / d;}
+_clampScroll() {const total =(typeof window.__getTotalBeats ==='function')
+?window.__getTotalBeats(this.chart)
+:(typeof this.chart.getTotalBeats ==='function' ?this.window.__getTotalBeats(chart) :64);if (this.engine.scrollBeat < 0) this.engine.scrollBeat =0;if (this.engine.scrollBeat >total + 4) this.engine.scrollBeat =total + 4;}
+onMouseDown(e) {if (e.button !==0 &&e.button !==2) return;const pos =this._getPos(e);const ht =this._hitTest(pos.x,pos.y);if (e.button ===2) {this.state ='SCRUBBING';this.dragStart ={x:pos.x,y:pos.y,scrollBeat:this.engine.scrollBeat };e.preventDefault();return;}
+ if (this.edgeAddMode) {if (ht.col >=COL_EDGE_START &&ht.col < COL_GLOBAL_START) {const edgeId =ht.col - COL_EDGE_START;if (this.edgeAddSelected.has(edgeId)) {this.edgeAddSelected.delete(edgeId);} else {this.edgeAddSelected.add(edgeId);}
+if (window.updateEdgeAddUI) window.updateEdgeAddUI();}
+return;}
+if (this.tool ===Tool.SELECT) {if (ht.globalEvent) {this.engine.selectedGlobalId =ht.globalEvent.id;this.engine.selectedEdgeId =null;this.engine.selectedNoteId =null;this.activeNoteId =null;const g =ht.globalEvent;const yS =this.engine.beatToY(g.beat);const yE =this.engine.beatToY(g.endBeat);if (Math.abs(pos.y - yS) < 10) this.state ='DRAGGING_GLOBAL_START';else if (Math.abs(pos.y - yE) < 10) this.state ='DRAGGING_GLOBAL_END';else this.state ='DRAGGING_GLOBAL_BODY';this.dragStart ={x:pos.x,y:pos.y,beat:g.beat,duration:g.duration,oldBeat:g.beat,oldDuration:g.duration
+};this.refreshUI();return;}
+if (ht.edgeEvent) {this.engine.selectedEdgeId =ht.edgeEvent.id;this.engine.selectedGlobalId =null;this.engine.selectedNoteId =null;this.activeNoteId =null;const col =COL_EDGE_START + ht.edgeEvent.edgeId;const cx =this.engine.colX[col] + this.engine.colW[col] / 2;const yS =this.engine.beatToY(ht.edgeEvent.beat);const yE =this.engine.beatToY(ht.edgeEvent.endBeat);if (Math.abs(pos.y - yS) < 10) {this.state ='DRAGGING_EDGE_START';} else if (Math.abs(pos.y - yE) < 10) {this.state ='DRAGGING_EDGE_END';} else {this.state ='DRAGGING_EDGE_BODY';}
+const ev0 =ht.edgeEvent;this.dragStart ={x:pos.x,y:pos.y,beat:ev0.beat,endBeat:ev0.endBeat,edgeId:ev0.edgeId,oldBeat:ev0.beat,oldInterval:ev0.interval,oldLfSpread:ev0.lfSpread,oldLoSpread:ev0.loSpread
+};this.refreshUI();return;}
+if (ht.note) {if (e.shiftKey) {if (this.selectedIds.has(ht.note.id)) this.selectedIds.delete(ht.note.id);else this.selectedIds.add(ht.note.id);this.engine.selectedNoteId =ht.note.id;this.engine.selectedIds =this.selectedIds;this.refreshUI();return;} else {this.selectedIds =new Set([ht.note.id]);this.engine.selectedIds =this.selectedIds;}
+this.engine.selectedNoteId =ht.note.id;this.engine.selectedEdgeId =null;this.engine.selectedGlobalId =null;this.activeNoteId =ht.note.id;if (ht.note.type ==='hold') {const yS =this.engine.beatToY(ht.note.beat);const yE =this.engine.beatToY(ht.note.endBeat);if (Math.abs(pos.y - yS) < 10) {this.state ='DRAGGING_HEAD';} else if (Math.abs(pos.y - yE) < 10) {this.state ='DRAGGING_TAIL';} else {this.state ='DRAGGING_NOTE';}
+} else {this.state ='DRAGGING_NOTE';}
+this.dragStart ={x:pos.x,y:pos.y,beat:ht.note.beat,lane:ht.note.lane };if (ht.note.type ==='hold') {this.dragStart.endBeat =ht.note.endBeat;}
+this.refreshUI();} else {this.engine.selectedNoteId =null;this.engine.selectedEdgeId =null;this.engine.selectedGlobalId =null;this.selectedIds =new Set();this.engine.selectedIds =this.selectedIds;this.refreshUI();this.state ='IDLE';this.dragStart ={x:pos.x,y:pos.y,scrollBeat:this.engine.scrollBeat };}
+return;}
+if (this.tool ===Tool.TAP) {if (ht.lane >=0 &&ht.lane < PLAY_COLS) {const beat =this._snap(this.engine.yToBeat(pos.y));if (beat < 0) return;const cmd =new AddNoteCommand(this.chart,{lane:ht.lane,type:'tap',beat,speedMultiplier:1.0,timeDivisor:this.snapDivisor,endTimeDivisor:this.snapDivisor
+});this.cmd.execute(cmd);this.engine.selectedNoteId =cmd.note.id;this._checkOverlapForNote(cmd.note);this.refreshUI();}
+return;}
+if (this.tool ===Tool.HOLD) {if (ht.lane >=0 &&ht.lane < PLAY_COLS) {this.state ='PLACING_HOLD';const beat =this._snap(this.engine.yToBeat(pos.y));this.dragStart ={x:pos.x,y:pos.y,lane:ht.lane,beat };this.activeNoteId =null;}
+return;}
+}
+onMouseMove(e) {const pos =this._getPos(e);const ht =this._hitTest(pos.x,pos.y);this.engine.hoverLane =ht.lane;this.engine.hoverBeat =ht.lane >=0 ?this._snap(this.engine.yToBeat(pos.y)) :0;if (this.engine.hoverBeat < 0) this.engine.hoverBeat =0;if (this.edgeAddMode) {this.canvas.style.cursor =(ht.col >=COL_EDGE_START &&ht.col < COL_GLOBAL_START) ?'pointer' :'default';return;}
+if (this.state ==='IDLE') {if (ht.edgeEvent ||ht.note) this.canvas.style.cursor ='pointer';else if (this.tool !==Tool.SELECT) this.canvas.style.cursor ='crosshair';else this.canvas.style.cursor ='default';return;}
+if (this.state ==='SCRUBBING') {const dy =pos.y - this.dragStart.y;const dBeat =dy / this.engine.pixelsPerBeat;this.engine.scrollBeat =this.dragStart.scrollBeat + dBeat;this._clampScroll();this.canvas.style.cursor ='grabbing';return;}
+if (this.state ==='PLACING_HOLD') {this.dragCurrent =pos;return;}
+if (this.state ==='DRAGGING_NOTE') {const n =this.chart.getNoteById(this.activeNoteId);if (!n) {this.state ='IDLE';return;}
+const dy =pos.y - this.dragStart.y;const dBeat =-dy / this.engine.pixelsPerBeat;const rawBeat =this.dragStart.beat + dBeat;const newBeat =Math.max(0,this._snap(rawBeat));const delta =newBeat - n.beat;if (n.type ==='hold') {n.endBeat =this.dragStart.endBeat + delta;}
+n.beat =newBeat;if (ht.lane >=0 &&ht.lane < PLAY_COLS) {n.lane =ht.lane;}
+return;}
+if (this.state ==='DRAGGING_HEAD') {const n =this.chart.getNoteById(this.activeNoteId);if (!n ||n.type !=='hold') {this.state ='IDLE';return;}
+const dy =pos.y - this.dragStart.y;const dBeat =-dy / this.engine.pixelsPerBeat;const newBeat =Math.max(0,this._snap(this.dragStart.beat + dBeat));if (newBeat < n.endBeat - 0.125) {n.beat =newBeat;}
+return;}
+if (this.state ==='DRAGGING_TAIL') {const n =this.chart.getNoteById(this.activeNoteId);if (!n ||n.type !=='hold') {this.state ='IDLE';return;}
+const dy =pos.y - this.dragStart.y;const dBeat =-dy / this.engine.pixelsPerBeat;const newEnd =Math.max(0,this._snap(this.dragStart.endBeat + dBeat));if (newEnd >n.beat + 0.125) {n.endBeat =newEnd;}
+return;}
+if (this.state ==='DRAGGING_EDGE_START') {const ev =this.chart.edgeEvents.find(e =>e.id ===this.engine.selectedEdgeId);if (!ev) {this.state ='IDLE';return;}
+const newBeat =Math.max(0,this._snap(this.engine.yToBeat(pos.y)));if (newBeat < ev.endBeat - 0.125) {ev.beat =newBeat;}
+return;}
+if (this.state ==='DRAGGING_EDGE_END') {const ev =this.chart.edgeEvents.find(e =>e.id ===this.engine.selectedEdgeId);if (!ev) {this.state ='IDLE';return;}
+const newEnd =Math.max(0,this._snap(this.engine.yToBeat(pos.y)));if (newEnd >ev.beat + 0.125) {const newInterval =ev.lfStartBeat - ev.beat;ev.lfSpread =newEnd - ev.lfStartBeat;if (ev.lfSpread < 0.125) ev.lfSpread =0.125;}
+return;}
+if (this.state ==='DRAGGING_GLOBAL_START') {const g =(this.chart.globalEvents ||[]).find(e =>e.id ===this.engine.selectedGlobalId);if (!g) {this.state ='IDLE';return;}
+const newBeat =Math.max(0,this._snap(this.engine.yToBeat(pos.y)));const end =g.beat + g.duration;if (newBeat < end - 0.125) {const newDur =end - newBeat;g.beat =newBeat;g.duration =newDur;}
+return;}
+if (this.state ==='DRAGGING_GLOBAL_END') {const g =(this.chart.globalEvents ||[]).find(e =>e.id ===this.engine.selectedGlobalId);if (!g) {this.state ='IDLE';return;}
+const newEnd =Math.max(0,this._snap(this.engine.yToBeat(pos.y)));if (newEnd >g.beat + 0.125) g.duration =newEnd - g.beat;return;}
+if (this.state ==='DRAGGING_GLOBAL_BODY') {const g =(this.chart.globalEvents ||[]).find(e =>e.id ===this.engine.selectedGlobalId);if (!g) {this.state ='IDLE';return;}
+const dy =pos.y - this.dragStart.y;const dBeat =-dy / this.engine.pixelsPerBeat;g.beat =Math.max(0,this._snap(this.dragStart.beat + dBeat));return;}
+if (this.state ==='DRAGGING_EDGE_BODY') {const ev =this.chart.edgeEvents.find(e =>e.id ===this.engine.selectedEdgeId);if (!ev) {this.state ='IDLE';return;}
+const dy =pos.y - this.dragStart.y;const dBeat =-dy / this.engine.pixelsPerBeat;const newBeat =Math.max(0,this._snap(this.dragStart.beat + dBeat));const delta =newBeat - ev.beat;ev.beat =newBeat;return;}
+}
+onMouseUp(e) {let addedNote =null;if (this.state ==='PLACING_HOLD') {const pos =this._getPos(e);const lane =this.dragStart.lane;const startBeat =this.dragStart.beat;const endBeat =this._snap(this.engine.yToBeat(pos.y));if (Math.abs(endBeat - startBeat) >=0.125) {const realEnd =endBeat >startBeat ?endBeat :startBeat;const realStart =endBeat >startBeat ?startBeat :endBeat;if (realStart < 0) return;const cmd =new AddNoteCommand(this.chart,{lane,type:'hold',beat:realStart,endBeat:realEnd,speedMultiplier:1.0,timeDivisor:this.snapDivisor,endTimeDivisor:this.snapDivisor
+});this.cmd.execute(cmd);addedNote =cmd.note;this.engine.selectedNoteId =cmd.note.id;this.refreshUI();}
+}
+if (this.state ==='DRAGGING_NOTE' ||this.state ==='DRAGGING_HEAD' ||this.state ==='DRAGGING_TAIL') {const n =this.chart.getNoteById(this.activeNoteId);if (n) {const oldLane =this.dragStart.lane;const oldBeat =this.dragStart.beat;const oldEnd =this.dragStart.endBeat ||null;const newLane =n.lane;const newBeat =n.beat;const newEnd =n.endBeat;if (oldLane !==newLane) {this.cmd.execute(new ChangeLaneCommand(this.chart,n.id,newLane));}
+if (oldBeat !==newBeat ||oldEnd !==newEnd) {const extra ={timeDivisor:this.snapDivisor };if (n.type ==='hold') extra.endTimeDivisor =this.snapDivisor;this.cmd.execute(new MoveNoteCommand(this.chart,n.id,newBeat,newEnd,extra));}
+if (oldLane !==newLane &&!(oldBeat !==newBeat ||oldEnd !==newEnd)) {}
+this._checkOverlapForNote(n);}
+}
+if (this.state ==='DRAGGING_EDGE_START' ||this.state ==='DRAGGING_EDGE_END' ||this.state ==='DRAGGING_EDGE_BODY') {const ev =this.chart.edgeEvents.find(e =>e.id ===this.engine.selectedEdgeId);if (ev) {const patch ={beat:ev.beat,interval:ev.interval,lfSpread:ev.lfSpread,loSpread:ev.loSpread
+};const before ={beat:this.dragStart.oldBeat,interval:this.dragStart.oldInterval,lfSpread:this.dragStart.oldLfSpread,loSpread:this.dragStart.oldLoSpread
+};const changed =Object.keys(patch).some(k =>patch[k] !==before[k]);if (changed) {Object.assign(ev,before);this.cmd.execute(new UpdateEdgeEventCommand(this.chart,ev.id,patch));}
+if (window.updateEdgePanel) window.updateEdgePanel();}
+}
+if (this.state ==='DRAGGING_GLOBAL_START' ||this.state ==='DRAGGING_GLOBAL_END' ||this.state ==='DRAGGING_GLOBAL_BODY') {const g =(this.chart.globalEvents ||[]).find(e =>e.id ===this.engine.selectedGlobalId);if (g) {const patch ={beat:g.beat,duration:g.duration };const before ={beat:this.dragStart.oldBeat,duration:this.dragStart.oldDuration };const changed =patch.beat !==before.beat ||patch.duration !==before.duration;if (changed) {Object.assign(g,before);this.cmd.execute(new UpdateGlobalEventCommand(this.chart,g.id,patch));}
+if (window.updateGlobalPanel) window.updateGlobalPanel();}
+}
+if (addedNote) {this._checkOverlapForNote(addedNote);}
+this.state ='IDLE';this.activeNoteId =null;this.canvas.style.cursor =this.tool ===Tool.SELECT ?'default' :'crosshair';}
+onWheel(e) {e.preventDefault();const pos =this._getPos(e);if (e.ctrlKey ||e.metaKey) {const zoomFactor =e.deltaY >0 ?0.9 :1.1;const newPPB =Math.max(20,Math.min(2000,this.engine.pixelsPerBeat *zoomFactor));const anchorBeat =this.engine.yToBeat(pos.y);this.engine.pixelsPerBeat =newPPB;const h =this.canvas.height / (window.devicePixelRatio ||1);this.engine.scrollBeat =anchorBeat - (h *PLAYHEAD_RATIO - pos.y) / newPPB;this._clampScroll();if (window.updateZoomSlider) window.updateZoomSlider(newPPB);} else {const scrollAmount =e.deltaY >0 ?-0.75 :0.75;this.engine.scrollBeat +=scrollAmount;this._clampScroll();}
+}
+_checkOverlapForNote(note) {const conflicts =[];for (const other of this.chart.notes) {if (other.id ===note.id) continue;if (other.lane !==note.lane) continue;if (this._notesOverlap(note,other)) conflicts.push(other);}
+if (conflicts.length ===0) {this.engine.overlappingIds.delete(note.id);if (window.refreshOverlapPanel) window.refreshOverlapPanel();return;}
+this.engine.overlappingIds.add(note.id);if (window.reportOverlap) window.reportOverlap(note,conflicts);}
+_notesOverlap(a,b) {const aStart =a.beat;const aEnd =a.type ==='hold' ?a.endBeat :a.beat;const bStart =b.beat;const bEnd =b.type ==='hold' ?b.endBeat :b.beat;const minDist =Math.min(Math.abs(aStart - bStart),Math.abs(aStart - bEnd),Math.abs(aEnd - bStart),Math.abs(aEnd - bEnd)
+);const intersect =!(aEnd < bStart - OVERLAP_THRESHOLD ||bEnd < aStart - OVERLAP_THRESHOLD);return intersect ||minDist <=OVERLAP_THRESHOLD;}
+refreshUI() {if (window.updateSidePanel) window.updateSidePanel();if (window.updateEdgePanel) window.updateEdgePanel();if (window.updateGlobalPanel) window.updateGlobalPanel();if (window.updateStatus) window.updateStatus();}
+copySelection() {const ids =this.selectedIds &&this.selectedIds.size ?this.selectedIds :(this.engine.selectedNoteId ?new Set([this.engine.selectedNoteId]) :new Set());this.clipboard =[];ids.forEach(id =>{const n =this.chart.getNoteById(id);if (n) this.clipboard.push({lane:n.lane,type:n.type,beat:n.beat,endBeat:n.endBeat,speedMultiplier:n.speedMultiplier,timeDivisor:n.timeDivisor ||this.snapDivisor,endTimeDivisor:n.endTimeDivisor ||n.timeDivisor ||this.snapDivisor
+});});return this.clipboard.length;}
+pasteClipboard() {if (!this.clipboard.length) return 0;const base =Math.min(...this.clipboard.map(n =>n.beat));const target =Math.max(0,this.engine.isPlaying ?this.engine.currentBeat :this.engine.scrollBeat);const delta =target - base;const newIds =[];this.clipboard.forEach(src =>{const cmd =new AddNoteCommand(this.chart,{lane:src.lane,type:src.type,beat:src.beat + delta,endBeat:src.type ==='hold' ?(src.endBeat + delta) :null,speedMultiplier:src.speedMultiplier ||1,timeDivisor:src.timeDivisor ||this.snapDivisor,endTimeDivisor:src.endTimeDivisor ||src.timeDivisor ||this.snapDivisor
+});this.cmd.execute(cmd);newIds.push(cmd.note.id);});this.selectedIds =new Set(newIds);this.engine.selectedIds =this.selectedIds;if (newIds[0]) this.engine.selectedNoteId =newIds[0];this.refreshUI();return newIds.length;}
+}
+const APP_VERSION ='v0.3.5';function initUI(chart,audio,engine,input,commands) {const btnPlay =document.getElementById('btn-play');const btnStop =document.getElementById('btn-stop');const inputBPM =document.getElementById('input-bpm');const btnAddBPM =document.getElementById('btn-add-bpm');const selectSnap =document.getElementById('select-snap');const inputCustomSnap =document.getElementById('input-custom-snap');const inputZoom =document.getElementById('input-zoom');const selectRate =document.getElementById('select-rate');const btnAudio =document.getElementById('btn-audio');const fileAudio =document.getElementById('file-audio');const btnImport =document.getElementById('btn-import');const fileImport =document.getElementById('file-import');const btnExport =document.getElementById('btn-export');const btnUndo =document.getElementById('btn-undo');const btnRedo =document.getElementById('btn-redo');const btnEdgeAdd =document.getElementById('btn-edge-add');const btnGlobalAdd =document.getElementById('btn-global-add');const btnPreview =document.getElementById('btn-preview');const btnQuantize =document.getElementById('btn-quantize');const inputTitle =document.getElementById('input-title');const inputArtist =document.getElementById('input-artist');const inputCharter =document.getElementById('input-charter');const inputDiff =document.getElementById('input-diff');const inputOffset =document.getElementById('input-offset');if (document.getElementById('app-version')) document.getElementById('app-version').textContent =APP_VERSION;if (inputTitle) {inputTitle.value =chart.title ||'';inputTitle.onchange =() =>{chart.title =inputTitle.value ||'Untitled';};}
+if (inputArtist) {inputArtist.value =chart.artist ||'';inputArtist.onchange =() =>{chart.artist =inputArtist.value ||'';};}
+if (inputCharter) {inputCharter.value =chart.charter ||'';inputCharter.onchange =() =>{chart.charter =inputCharter.value ||'';};}
+if (inputDiff) {inputDiff.value =chart.difficulty ||'';inputDiff.onchange =() =>{chart.difficulty =inputDiff.value ||'';};}
+if (inputOffset) {inputOffset.value =Math.round((chart.offset ||0) *1000);inputOffset.onchange =() =>{chart.offset =(parseFloat(inputOffset.value) ||0) / 1000;};}
+const audioBar =document.getElementById('audio-progress-bg');const audioFill =document.getElementById('audio-progress-fill');const audioThumb =document.getElementById('audio-progress-thumb');const audioTime =document.getElementById('audio-time');let audioDragging =false;if (!document.getElementById('app-version')) {const ver =document.createElement('div');ver.className ='tool-group';ver.innerHTML =`<span id="app-version" style="color:var(--accent);font-size:12px;font-weight:bold;">${APP_VERSION}</span>`;document.getElementById('toolbar').appendChild(ver);} else {document.getElementById('app-version').textContent =APP_VERSION;}
+ const toolGroup =document.createElement('div');toolGroup.className ='tool-group';toolGroup.innerHTML =`
+    <button id="tool-select" class="active">选择</button>
+    <button id="tool-tap">Tap</button>
+    <button id="tool-hold">Hold</button>
+  `;document.getElementById('toolbar').insertBefore(toolGroup,document.getElementById('toolbar').children[1]);const btnToolSelect =document.getElementById('tool-select');const btnToolTap =document.getElementById('tool-tap');const btnToolHold =document.getElementById('tool-hold');function setToolUI(t) {input.setTool(t);[btnToolSelect,btnToolTap,btnToolHold].forEach(b =>b.classList.remove('active'));if (t ===Tool.SELECT) btnToolSelect.classList.add('active');if (t ===Tool.TAP) btnToolTap.classList.add('active');if (t ===Tool.HOLD) btnToolHold.classList.add('active');}
+btnToolSelect.onclick =() =>setToolUI(Tool.SELECT);btnToolTap.onclick =() =>setToolUI(Tool.TAP);btnToolHold.onclick =() =>setToolUI(Tool.HOLD);function sliderToPPB(val) {const h =engine.canvas.height / (window.devicePixelRatio ||1);const ppbMax =h / 1;const totalBeats =(chart.audioData &&chart.audioData.duration)
+?chart.timeToBeat(chart.audioData.duration) :500;const ppbMin =Math.max(5,(h *0.9) / totalBeats);return ppbMin *Math.pow(ppbMax / Math.max(ppbMin,1e-6),val / 100);}
+function ppbToSlider(ppb) {const h =engine.canvas.height / (window.devicePixelRatio ||1);const totalBeats =(chart.audioData &&chart.audioData.duration)
+?chart.timeToBeat(chart.audioData.duration) :500;const ppbMax =h / 1;const ppbMin =Math.max(5,(h *0.9) / totalBeats);return Math.max(0,Math.min(100,Math.round(Math.log(ppb / ppbMin) / Math.log(ppbMax / Math.max(ppbMin,1e-6)) *100)));}
+window.updateZoomSlider =(ppb) =>{inputZoom.value =ppbToSlider(ppb);};inputZoom.oninput =() =>{engine.pixelsPerBeat =sliderToPPB(parseInt(inputZoom.value,10));engine.scrollBeat =engine.isPlaying ?engine.currentBeat :engine.scrollBeat;};window.updateZoomSlider(engine.pixelsPerBeat);function togglePlay() {if (audio.isPlaying) {audio.pause();engine.isPlaying =false;engine.scrollBeat =engine.currentBeat;btnPlay.textContent ='▶';} else if (audio.buffer) {const t =chart.beatToTime(engine.scrollBeat);audio.seek(Math.max(0,t));audio.play();engine.isPlaying =true;btnPlay.textContent ='⏸';}
+}
+btnPlay.onclick =togglePlay;btnStop.onclick =() =>{audio.stop();engine.isPlaying =false;engine.currentBeat =0;engine.scrollBeat =0;btnPlay.textContent ='▶';};window.updateAudioBar =() =>{const duration =audio.duration ||(chart.audioData &&chart.audioData.duration) ||0;if (!duration) {audioFill.style.width ='0%';audioThumb.style.left ='0%';audioTime.textContent ='0:00 / 0:00';return;}
+let cur =audio.isPlaying ?audio.getCurrentTime() :Math.max(0,chart.beatToTime(engine.scrollBeat));cur =Math.max(0,Math.min(cur,duration));const pct =Math.min(100,(cur / duration) *100);audioFill.style.width =pct + '%';audioThumb.style.left =pct + '%';const fmt =(s) =>{s =Math.max(0,s ||0);return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;};audioTime.textContent =`${fmt(cur)} / ${fmt(duration)}`;};audioBar.addEventListener('mousedown',(e) =>{audioDragging =true;seekFromBar(e);});window.addEventListener('mousemove',(e) =>{if (audioDragging) seekFromBar(e);});window.addEventListener('mouseup',() =>{audioDragging =false;});function seekFromBar(e) {const rect =audioBar.getBoundingClientRect();const pct =Math.max(0,Math.min(1,(e.clientX - rect.left) / rect.width));const duration =audio.duration ||(chart.audioData &&chart.audioData.duration) ||0;if (duration) {const t =pct *duration;audio.seek(t);engine.scrollBeat =Math.max(0,chart.timeToBeat(t));if (audio.isPlaying) engine.currentBeat =engine.scrollBeat;}
+}
+inputBPM.value =chart.baseBPM;inputBPM.onchange =() =>{chart.baseBPM =parseFloat(inputBPM.value) ||120;chart.bpmList[0].bpm =chart.baseBPM;updateStatus();};btnAddBPM.onclick =() =>{const beat =engine.isPlaying ?engine.currentBeat :engine.scrollBeat;commands.execute(new AddBPMPointCommand(chart,Math.max(0,beat),parseFloat(inputBPM.value) ||chart.bpmAt(beat)));updateStatus();};function updateSnap() {const v =parseInt(inputCustomSnap.value,10);input.setSnap(v &&v >0 ?v :parseInt(selectSnap.value,10));}
+selectSnap.onchange =updateSnap;inputCustomSnap.oninput =updateSnap;updateSnap();selectRate.onchange =() =>audio.setRate(parseFloat(selectRate.value));btnAudio.onclick =() =>fileAudio.click();fileAudio.onchange =async (e) =>{const file =e.target.files[0];if (!file) return;try {const ab =await file.arrayBuffer();const dur =await audio.loadArrayBuffer(ab);chart.audioData ={name:file.name,type:file.type,duration:dur,_arrayBuffer:ab.slice(0) };document.getElementById('status-audio').textContent =`音频: ${file.name} (${dur.toFixed(2)}s)`;window.updateZoomSlider(engine.pixelsPerBeat);} catch (err) {alert('音频解码失败: ' + err.message);}
+};btnImport.onclick =() =>fileImport.click();fileImport.onchange =async (e) =>{const file =e.target.files[0];if (!file) return;try {const zip =await JSZip.loadAsync(file);let cFile =null,aFile =null;zip.forEach((p,o) =>{if (p.endsWith('chart.json')) cFile =o;else if (!o.dir &&/\.(mp3|ogg|wav|m4a)$/.test(p)) aFile =o;});if (!cFile) {alert('ZIP 内未找到 chart.json');return;}
+const data =JSON.parse(await cFile.async('string'));const nc =Chart.fromJSON(data);if (aFile) {const ab =await aFile.async('arraybuffer');const dur =await audio.loadArrayBuffer(ab);nc.audioData ={name:aFile.name,type:'audio/*',duration:dur,_arrayBuffer:ab.slice(0) };document.getElementById('status-audio').textContent =`音频: ${aFile.name} (${dur.toFixed(2)}s)`;}
+chart.title =nc.title;chart.artist =nc.artist;chart.charter =nc.charter;chart.difficulty =nc.difficulty;chart.offset =nc.offset;chart.baseBPM =nc.baseBPM;chart.bpmList =nc.bpmList;chart.baseSpeed =nc.baseSpeed;chart.notes =nc.notes;chart.edgeEvents =nc.edgeEvents ||[];chart.globalEvents =nc.globalEvents ||[];chart.audioData =nc.audioData ||chart.audioData;commands.clear();engine.selectedNoteId =null;engine.selectedEdgeId =null;engine.selectedGlobalId =null;engine.overlappingIds.clear();engine.scrollBeat =0;engine.currentBeat =0;inputBPM.value =chart.baseBPM;updateStatus();window.updateSidePanel();window.updateEdgePanel();window.updateGlobalPanel();if (window.refreshOverlapPanel) window.refreshOverlapPanel();alert('谱面导入成功!');} catch (err) {alert('导入失败: ' + err.message);}
+};btnExport.onclick =async () =>{const zip =new JSZip();zip.file('chart.json',JSON.stringify(chart.toJSON(),null,2));if (chart.audioData &&chart.audioData._arrayBuffer) zip.file(chart.audioData.name,chart.audioData._arrayBuffer);const blob =await zip.generateAsync({type:'blob' });const a =document.createElement('a');a.href =URL.createObjectURL(blob);a.download =(chart.title ||'chart') + '.zip';a.click();URL.revokeObjectURL(a.href);};btnUndo.onclick =() =>{commands.undo();updateStatus();if (window.refreshOverlapPanel) window.refreshOverlapPanel();};btnRedo.onclick =() =>{commands.redo();updateStatus();if (window.refreshOverlapPanel) window.refreshOverlapPanel();};const panelPlaceholder =document.getElementById('panel-placeholder');const notePanel =document.getElementById('note-panel');const edgePanel =document.getElementById('edge-panel');const globalPanel =document.getElementById('global-panel');const pnBeat =document.getElementById('pn-beat');const pnEndWrap =document.getElementById('pn-endbeat-wrap');const pnEnd =document.getElementById('pn-endbeat');const pnSpeed =document.getElementById('pn-speed');const pnDelete =document.getElementById('pn-delete');function gcd(a,b) {a =Math.abs(a|0);b =Math.abs(b|0);while (b) {const t =a % b;a =b;b =t;}
+return a ||1;}
+ function formatBeatTime(beat,divisor) {const a =Math.floor(beat + 1e-9);let frac =Math.max(0,beat - a);let C =Math.max(1,divisor ||4);let B =Math.round(frac *C);if (B >=C) return `${a + 1}:0/1`;if (B <=0) return `${a}:0/1`;const g =gcd(B,C);B =B / g;C =C / g;return `${a}:${B}/${C}`;}
+function hideAllPanels() {panelPlaceholder.style.display ='none';notePanel.style.display ='none';if (edgePanel) edgePanel.style.display ='none';if (globalPanel) globalPanel.style.display ='none';}
+window.updateSidePanel =() =>{const id =engine.selectedNoteId;if (!id) {notePanel.style.display ='none';return;}
+const n =chart.getNoteById(id);if (!n) {engine.selectedNoteId =null;window.updateSidePanel();return;}
+hideAllPanels();notePanel.style.display ='';pnBeat.textContent =formatBeatTime(n.beat,n.timeDivisor ||4);if (n.type ==='hold') {pnEndWrap.style.display ='';pnEnd.textContent =formatBeatTime(n.endBeat,n.endTimeDivisor ||n.timeDivisor ||4);}
+else pnEndWrap.style.display ='none';pnSpeed.value =n.speedMultiplier;};pnSpeed.onchange =() =>{const n =chart.getNoteById(engine.selectedNoteId);if (!n) return;const v =parseFloat(pnSpeed.value) ||1.0;if (v ===n.speedMultiplier) return;commands.execute(new UpdateNoteParamsCommand(chart,n.id,{speedMultiplier:v }));};pnDelete.onclick =() =>{const id =engine.selectedNoteId;if (!id) return;commands.execute(new DeleteNoteCommand(chart,id));engine.selectedNoteId =null;engine.overlappingIds.delete(id);window.updateSidePanel();updateStatus();if (window.refreshOverlapPanel) window.refreshOverlapPanel();};const epEdgeId =document.getElementById('ep-edge-id');const epLoSpread =document.getElementById('ep-lo-spread');const epLoSpreadUnit =document.getElementById('ep-lo-spread-unit');const epLoGrad =document.getElementById('ep-lo-grad');const epLfSpread =document.getElementById('ep-lf-spread');const epLfSpreadUnit =document.getElementById('ep-lf-spread-unit');const epLfGrad =document.getElementById('ep-lf-grad');const epInterval =document.getElementById('ep-interval');const epIntervalUnit =document.getElementById('ep-interval-unit');const epDuration =document.getElementById('ep-duration');const epLoGlowI =document.getElementById('ep-lo-glow-i');const epLoGlowR =document.getElementById('ep-lo-glow-r');const epLfGlowI =document.getElementById('ep-lf-glow-i');const epLfGlowR =document.getElementById('ep-lf-glow-r');const epSelectMode =document.getElementById('ep-select-mode');const epDelete =document.getElementById('ep-delete');const epClone =document.getElementById('ep-clone');function beatToUnit(beat,unit,atBeat) {if (unit ==='sec') return (beat / chart.bpmAt(atBeat)) *60;return beat;}
+function unitToBeat(val,unit,atBeat) {if (unit ==='sec') return (val / 60) *chart.bpmAt(atBeat);return val;}
+window.updateEdgePanel =() =>{if (!edgePanel) return;const id =engine.selectedEdgeId;if (!id) {edgePanel.style.display ='none';return;}
+const ev =chart.edgeEvents.find(e =>e.id ===id);if (!ev) {engine.selectedEdgeId =null;window.updateEdgePanel();return;}
+hideAllPanels();edgePanel.style.display ='';epEdgeId.textContent =`E${ev.edgeId}`;epLoSpread.value =beatToUnit(ev.loSpread,epLoSpreadUnit.value,ev.beat).toFixed(3);epLoGrad.value =ev.loGradient;epLfSpread.value =beatToUnit(ev.lfSpread,epLfSpreadUnit.value,ev.lfStartBeat).toFixed(3);epLfGrad.value =ev.lfGradient;epInterval.value =beatToUnit(ev.interval,epIntervalUnit.value,ev.beat).toFixed(3);epDuration.textContent =`${ev.duration.toFixed(3)} 拍`;epLoGlowI.value =ev.loGlowIntensity;epLoGlowR.value =ev.loGlowRadius;epLfGlowI.value =ev.lfGlowIntensity;epLfGlowR.value =ev.lfGlowRadius;};function applyEdgeChange() {const ev =chart.edgeEvents.find(e =>e.id ===engine.selectedEdgeId);if (!ev) return;const patch ={loSpread:Math.max(0.01,unitToBeat(parseFloat(epLoSpread.value) ||0.25,epLoSpreadUnit.value,ev.beat)),loGradient:parseFloat(epLoGrad.value) ||0,lfSpread:Math.max(0.01,unitToBeat(parseFloat(epLfSpread.value) ||0.25,epLfSpreadUnit.value,ev.lfStartBeat)),lfGradient:parseFloat(epLfGrad.value) ||0,interval:Math.max(0.01,unitToBeat(parseFloat(epInterval.value) ||0.5,epIntervalUnit.value,ev.beat)),loGlowIntensity:parseFloat(epLoGlowI.value) ||1,loGlowRadius:parseFloat(epLoGlowR.value) ||0,lfGlowIntensity:parseFloat(epLfGlowI.value) ||1,lfGlowRadius:parseFloat(epLfGlowR.value) ||0,};const changed =Object.keys(patch).some(k =>patch[k] !==ev[k]);if (changed) commands.execute(new UpdateEdgeEventCommand(chart,ev.id,patch));window.updateEdgePanel();}
+[epLoSpread,epLfSpread,epInterval,epLoSpreadUnit,epLfSpreadUnit,epIntervalUnit,epLoGrad,epLfGrad,epLoGlowI,epLoGlowR,epLfGlowI,epLfGlowR].forEach(el =>{if (el) el.onchange =applyEdgeChange;});if (epSelectMode) epSelectMode.onclick =() =>alert('请在画布上直接拖拽线段端点调整起止时间。');if (epDelete) epDelete.onclick =() =>{const id =engine.selectedEdgeId;if (!id) return;commands.execute(new DeleteEdgeEventCommand(chart,id));engine.selectedEdgeId =null;window.updateEdgePanel();updateStatus();};let cloneSourceEdge =null;if (epClone) epClone.onclick =() =>{const id =engine.selectedEdgeId;const ev =chart.edgeEvents.find(e =>e.id ===id);if (!ev) return;cloneSourceEdge ={loSpread:ev.loSpread,lfSpread:ev.lfSpread,interval:ev.interval,loGradient:ev.loGradient,lfGradient:ev.lfGradient,loGlowIntensity:ev.loGlowIntensity,loGlowRadius:ev.loGlowRadius,lfGlowIntensity:ev.lfGlowIntensity,lfGlowRadius:ev.lfGlowRadius,beat:ev.beat,duration:ev.duration,edgeId:ev.edgeId,id:ev.id
+};alert('已复制边线参数。请点击目标边线线段，将弹出克隆选项。');};const _oldUpdateEdgePanel =window.updateEdgePanel;window.updateEdgePanel =() =>{_oldUpdateEdgePanel &&_oldUpdateEdgePanel();if (!cloneSourceEdge ||!engine.selectedEdgeId) return;if (engine.selectedEdgeId ===cloneSourceEdge.id) return;const target =chart.edgeEvents.find(e =>e.id ===engine.selectedEdgeId);if (!target) return;openCloneDialog(cloneSourceEdge,target);};function openCloneDialog(src,dst) {const old =document.getElementById('clone-dialog');if (old) old.remove();const dlg =document.createElement('div');dlg.id ='clone-dialog';dlg.style.cssText ='position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:2000;display:flex;align-items:center;justify-content:center;';dlg.innerHTML =`
+      <div style="width:360px;background:#1a1d26;border:1px solid #374151;border-radius:10px;padding:14px;color:#fff;">
+        <div style="font-weight:bold;margin-bottom:10px;">克隆参数信息 E${src.edgeId} → E${dst.edgeId}</div>
+        <label style="display:block;margin:4px 0;"><input type="checkbox" data-k="loSpread" checked> LO蔓延</label>
+        <label style="display:block;margin:4px 0;"><input type="checkbox" data-k="lfSpread" checked> LF蔓延</label>
+        <label style="display:block;margin:4px 0;"><input type="checkbox" data-k="interval" checked> 启动间隔</label>
+        <label style="display:block;margin:4px 0;"><input type="checkbox" data-k="loGradient" checked> LO渐变</label>
+        <label style="display:block;margin:4px 0;"><input type="checkbox" data-k="lfGradient" checked> LF渐变</label>
+        <label style="display:block;margin:4px 0;"><input type="checkbox" data-k="loGlowIntensity" checked> LO发光强度</label>
+        <label style="display:block;margin:4px 0;"><input type="checkbox" data-k="loGlowRadius" checked> LO发光半径</label>
+        <label style="display:block;margin:4px 0;"><input type="checkbox" data-k="lfGlowIntensity" checked> LF发光强度</label>
+        <label style="display:block;margin:4px 0;"><input type="checkbox" data-k="lfGlowRadius" checked> LF发光半径</label>
+        <label style="display:block;margin:4px 0;"><input type="checkbox" data-k="duration"> 线段总时长</label>
+        <label style="display:block;margin:4px 0 10px;"><input type="checkbox" id="clone-keep-start"> 保留起始端（复制起止时间位置）</label>
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+          <button id="clone-cancel" style="padding:4px 10px;">取消</button>
+          <button id="clone-ok" style="padding:4px 10px;background:#45a29e;border:none;color:#000;font-weight:bold;">确认</button>
+        </div>
+      </div>`;document.body.appendChild(dlg);dlg.querySelector('#clone-cancel').onclick =() =>{cloneSourceEdge =null;dlg.remove();};dlg.querySelector('#clone-ok').onclick =() =>{const patch ={};dlg.querySelectorAll('input[data-k]').forEach(cb =>{if (!cb.checked) return;const k =cb.getAttribute('data-k');if (k ==='duration') return;patch[k] =src[k];});const durCb =dlg.querySelector('input[data-k="duration"]');const keepStart =dlg.querySelector('#clone-keep-start').checked;if (durCb &&durCb.checked) {if (keepStart) {patch.beat =src.beat;patch.interval =src.interval;patch.lfSpread =src.lfSpread;} else {const total =src.interval + src.lfSpread;const ratio =total >0 ?src.interval / total :0.5;patch.interval =total *ratio;patch.lfSpread =total - patch.interval;}
+} else if (keepStart) {patch.beat =src.beat;}
+if (Object.keys(patch).length) commands.execute(new UpdateEdgeEventCommand(chart,dst.id,patch));cloneSourceEdge =null;dlg.remove();window.updateEdgePanel();};}
+ let edgeAddBar =null;if (btnEdgeAdd) btnEdgeAdd.onclick =() =>{if (input.edgeAddMode) {input.edgeAddMode =false;input.edgeAddSelected.clear();btnEdgeAdd.textContent ='+ 边线参数';if (edgeAddBar) {edgeAddBar.remove();edgeAddBar =null;}
+return;}
+input.edgeAddMode =true;input.edgeAddSelected.clear();btnEdgeAdd.textContent ='选择边线';edgeAddBar =document.createElement('div');edgeAddBar.style.cssText ='position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:#1a1d26;border:1px solid var(--border);padding:6px 12px;border-radius:6px;display:flex;gap:8px;align-items:center;z-index:1000;';edgeAddBar.innerHTML =`
+      <span style="font-size:12px;color:var(--text-dim);">点击轨道选择边线</span>
+      <button id="edge-add-ok" style="background:var(--accent-dim);border:none;color:#000;padding:3px 10px;border-radius:3px;cursor:pointer;font-size:12px;font-weight:bold;">✓ 确认</button>
+      <button id="edge-add-cancel" style="background:var(--bg-hover);border:1px solid var(--border);color:var(--text);padding:3px 10px;border-radius:3px;cursor:pointer;font-size:12px;">✗ 取消</button>
+    `;document.body.appendChild(edgeAddBar);document.getElementById('edge-add-ok').onclick =() =>{if (input.edgeAddSelected.size ===0) {alert('请至少选择一条边线');return;}
+const beat =Math.max(0,engine.isPlaying ?engine.currentBeat :engine.scrollBeat);const batch =new BatchCommand();input.edgeAddSelected.forEach(edgeId =>{batch.add(new AddEdgeEventCommand(chart,{edgeId,beat,loSpread:0.25,lfSpread:0.5,interval:0.5,loGradient:0,lfGradient:0,loGlowIntensity:1,loGlowRadius:0,lfGlowIntensity:1,lfGlowRadius:0
+}));});commands.execute(batch);input.edgeAddMode =false;input.edgeAddSelected.clear();btnEdgeAdd.textContent ='+ 边线参数';edgeAddBar.remove();edgeAddBar =null;updateStatus();};document.getElementById('edge-add-cancel').onclick =() =>{input.edgeAddMode =false;input.edgeAddSelected.clear();btnEdgeAdd.textContent ='+ 边线参数';edgeAddBar.remove();edgeAddBar =null;};};window.updateEdgeAddUI =() =>{};const gpType =document.getElementById('gp-type');const gpKind =document.getElementById('gp-kind');const gpDuration =document.getElementById('gp-duration');const gpStart =document.getElementById('gp-start');const gpEnd =document.getElementById('gp-end');const gpEasing =document.getElementById('gp-easing');const gpSvcam =document.getElementById('gp-svcam');const gpCensor =document.getElementById('gp-censor');const gpDir =document.getElementById('gp-dir');const gpFadeIn =document.getElementById('gp-fadein');const gpFadeOut =document.getElementById('gp-fadeout');const gpDelete =document.getElementById('gp-delete');const gpCurve =document.getElementById('gp-curve');function sampleEasing(name,t,curvePoints) {if (window.ChartRuntime &&ChartRuntime.sampleEasing) {return ChartRuntime.sampleEasing(name,t,curvePoints);}
+t =Math.max(0,Math.min(1,t));switch (name) {case 'easeIn':return t*t;case 'easeOut':return 1 - (1-t)*(1-t);case 'easeInOut':return t < 0.5 ?2*t*t :1 - Math.pow(-2*t+2,2)/2;case 'custom':return t;default:return t;}
+}
+function drawCurveEditor(g) {if (!gpCurve ||!g ||g.type ==='censor') return;const c =gpCurve.getContext('2d');const W =gpCurve.width,H =gpCurve.height;c.clearRect(0,0,W,H);c.strokeStyle ='rgba(255,255,255,0.08)';c.beginPath();for (let i=0;i<=4;i++){const x=i*W/4;c.moveTo(x,0);c.lineTo(x,H);const y=i*H/4;c.moveTo(0,y);c.lineTo(W,y);} 
+c.stroke();c.strokeStyle ='#66fcf1';c.lineWidth=2;c.beginPath();const pts =(g.curvePoints &&g.curvePoints.length) ?g.curvePoints :[{t:0,v:0},{t:1,v:1}];function yAt(t){if (g.easing !=='custom') return sampleEasing(g.easing,t);let a=pts[0],b=pts[pts.length-1];for (let i=0;i<pts.length-1;i++){if (t>=pts[i].t &&t<=pts[i+1].t){a=pts[i];b=pts[i+1];break;} }
+const u =(b.t-a.t)<1e-9 ?0 :(t-a.t)/(b.t-a.t);return a.v + (b.v-a.v)*u;}
+for (let i=0;i<=50;i++){const tt=i/50;const vv=yAt(tt);const x=tt*W;const y=(1-vv)*H;if(i===0) c.moveTo(x,y);else c.lineTo(x,y);}
+c.stroke();if (g.easing ==='custom') {pts.forEach((p,idx)=>{c.fillStyle =idx===0||idx===pts.length-1 ?'#f1c40f' :'#4facfe';c.beginPath();c.arc(p.t*W,(1-p.v)*H,4,0,Math.PI*2);c.fill();});}
+}
+if (gpCurve) {let dragIdx =-1;let curveDirty =false;let curveBefore =null;gpCurve.onmousedown =(e) =>{const g =getSelectedGlobal();if (!g ||g.type==='censor') return;curveBefore ={easing:g.easing ||'linear',curvePoints:g.curvePoints ?JSON.parse(JSON.stringify(g.curvePoints)) :[{t:0,v:0},{t:1,v:1}]
+};if (g.easing !=='custom') {g.easing ='custom';if (gpEasing) gpEasing.value='custom';}
+if (!g.curvePoints ||g.curvePoints.length<2) g.curvePoints=[{t:0,v:0},{t:1,v:1}];const rect =gpCurve.getBoundingClientRect();const x=(e.clientX-rect.left)/rect.width;const y=1-(e.clientY-rect.top)/rect.height;dragIdx=-1;g.curvePoints.forEach((p,i)=>{const dx=p.t-x,dy=p.v-y;if (dx*dx+dy*dy<0.01) dragIdx=i;});if (dragIdx<0) {g.curvePoints.push({t:Math.max(0.02,Math.min(0.98,x)),v:Math.max(0,Math.min(1,y))});g.curvePoints.sort((a,b)=>a.t-b.t);g.curvePoints[0].t=0;g.curvePoints[g.curvePoints.length-1].t=1;}
+curveDirty =true;drawCurveEditor(g);};window.addEventListener('mousemove',(e) =>{if (dragIdx<0) return;const g =getSelectedGlobal();if (!g) return;const rect =gpCurve.getBoundingClientRect();let x=(e.clientX-rect.left)/rect.width;let y=1-(e.clientY-rect.top)/rect.height;y=Math.max(0,Math.min(1,y));if (dragIdx===0){g.curvePoints[0].t=0;g.curvePoints[0].v=y;}
+else if (dragIdx===g.curvePoints.length-1){g.curvePoints[dragIdx].t=1;g.curvePoints[dragIdx].v=y;}
+else {g.curvePoints[dragIdx].t=Math.max(0.02,Math.min(0.98,x));g.curvePoints[dragIdx].v=y;g.curvePoints.sort((a,b)=>a.t-b.t);}
+drawCurveEditor(g);curveDirty =true;});window.addEventListener('mouseup',() =>{if (curveDirty) {const g =getSelectedGlobal();if (g &&g.type !=='censor' &&g.curvePoints &&curveBefore) {const after ={easing:'custom',curvePoints:JSON.parse(JSON.stringify(g.curvePoints))
+};g.easing =curveBefore.easing;g.curvePoints =JSON.parse(JSON.stringify(curveBefore.curvePoints));commands.execute(new UpdateGlobalEventCommand(chart,g.id,after));}
+}
+dragIdx=-1;curveDirty=false;curveBefore=null;});}
+const _oldUpdateGlobalPanel =window.updateGlobalPanel;window.updateGlobalPanel =() =>{_oldUpdateGlobalPanel &&_oldUpdateGlobalPanel();const g =getSelectedGlobal();if (g) drawCurveEditor(g);};function getSelectedGlobal() {if (!engine.selectedGlobalId) return null;return (chart.globalEvents ||[]).find(g =>g.id ===engine.selectedGlobalId) ||null;}
+window.updateGlobalPanel =() =>{if (!globalPanel) return;const g =getSelectedGlobal();if (!g) {globalPanel.style.display ='none';return;}
+hideAllPanels();globalPanel.style.display ='';if (gpType) gpType.textContent =(g.type ||'').toUpperCase();if (gpKind) gpKind.value =g.type;if (gpDuration) gpDuration.value =g.duration;if (g.type ==='censor') {if (gpSvcam) gpSvcam.style.display ='none';if (gpCensor) gpCensor.style.display ='';if (gpDir) gpDir.value =g.direction ||'all';if (gpFadeIn) gpFadeIn.value =g.fadeIn;if (gpFadeOut) gpFadeOut.value =g.fadeOut;} else {if (gpSvcam) gpSvcam.style.display ='';if (gpCensor) gpCensor.style.display ='none';if (gpStart) gpStart.value =g.startValue;if (gpEnd) gpEnd.value =g.endValue;if (gpEasing) gpEasing.value =g.easing ||'linear';}
+};function applyGlobal() {const g =getSelectedGlobal();if (!g) return;const patch ={};patch.type =gpKind ?gpKind.value :g.type;patch.duration =Math.max(0.125,parseFloat(gpDuration &&gpDuration.value) ||1);if (patch.type ==='censor') {patch.direction =gpDir ?gpDir.value :'all';patch.fadeIn =Math.max(0,parseFloat(gpFadeIn &&gpFadeIn.value) ||0);patch.fadeOut =Math.max(0,parseFloat(gpFadeOut &&gpFadeOut.value) ||0);if (patch.fadeIn + patch.fadeOut >patch.duration + 1e-9) {alert('淡入+淡出不能大于总时长');const half =patch.duration / 2;patch.fadeIn =Math.min(patch.fadeIn,half);patch.fadeOut =Math.min(patch.fadeOut,patch.duration - patch.fadeIn);}
+} else {patch.startValue =parseFloat(gpStart &&gpStart.value);patch.endValue =parseFloat(gpEnd &&gpEnd.value);patch.easing =gpEasing ?gpEasing.value :'linear';if (patch.type ==='sv') {if (isNaN(patch.startValue)) patch.startValue =1;if (isNaN(patch.endValue)) patch.endValue =1;} else {if (isNaN(patch.startValue)) patch.startValue =100;if (isNaN(patch.endValue)) patch.endValue =100;}
+if (g.curvePoints) patch.curvePoints =g.curvePoints;}
+const changed =Object.keys(patch).some(k =>JSON.stringify(patch[k]) !==JSON.stringify(g[k]));if (changed) commands.execute(new UpdateGlobalEventCommand(chart,g.id,patch));window.updateGlobalPanel();}
+[gpKind,gpDuration,gpStart,gpEnd,gpEasing,gpDir,gpFadeIn,gpFadeOut].forEach(el =>{if (el) el.onchange =applyGlobal;});if (gpDelete) gpDelete.onclick =() =>{const id =engine.selectedGlobalId;if (!id) return;commands.execute(new DeleteGlobalEventCommand(chart,id));engine.selectedGlobalId =null;window.updateGlobalPanel();updateStatus();};if (btnGlobalAdd) btnGlobalAdd.onclick =() =>{const beat =Math.max(0,engine.isPlaying ?engine.currentBeat :engine.scrollBeat);const cmd =new AddGlobalEventCommand(chart,{type:'sv',beat,duration:1,startValue:1,endValue:1,easing:'linear'
+});commands.execute(cmd);engine.selectedGlobalId =cmd.event.id;engine.selectedNoteId =null;engine.selectedEdgeId =null;window.updateGlobalPanel();updateStatus();};window.updateStatus =() =>{document.getElementById('status-note-count').textContent =`Notes: ${chart.notes.length} | Edges: ${chart.edgeEvents.length} | Global: ${(chart.globalEvents || []).length}`;const bpms =chart.bpmList.map(p =>`♩${p.bpm}@${p.beat.toFixed(1)}`).join(', ');document.getElementById('status-bpm-list').textContent =`BPM: ${bpms || chart.baseBPM}`;};if (btnQuantize) btnQuantize.onclick =() =>{const ids =(input.selectedIds &&input.selectedIds.size)
+?[...input.selectedIds]
+:(engine.selectedNoteId ?[engine.selectedNoteId] :[]);if (!ids.length) {alert('请先选中音符（可 Shift 多选）');return;}
+const d =input.snapDivisor ||4;const snap =(b) =>Math.round(b *d) / d;const batch =new BatchCommand();ids.forEach(id =>{const n =chart.getNoteById(id);if (!n) return;const nb =snap(n.beat);const ne =n.type ==='hold' ?snap(n.endBeat) :null;const extra ={timeDivisor:d };if (n.type ==='hold') extra.endTimeDivisor =d;if (nb !==n.beat ||(ne !=null &&ne !==n.endBeat)) {batch.add(new MoveNoteCommand(chart,id,nb,ne,extra));}
+});if (batch.commands.length) commands.execute(batch);window.updateSidePanel();updateStatus();if (window.refreshOverlapPanel) window.refreshOverlapPanel();};let previewMode =false;let previewCanvas =null;let previewRaf =0;function ensurePreviewUI() {if (previewCanvas) return;const wrap =document.createElement('div');wrap.id ='preview-wrap';wrap.style.cssText ='position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:3000;display:none;flex-direction:column;';wrap.innerHTML =`
+      <div style="padding:8px 12px;display:flex;gap:8px;align-items:center;background:#111;">
+        <strong style="color:#66fcf1;">谱面预览</strong>
+        <button id="preview-close" style="margin-left:auto;">退出预览</button>
+      </div>
+      <canvas id="preview-canvas" style="flex:1;width:100%;"></canvas>`;document.body.appendChild(wrap);previewCanvas =document.getElementById('preview-canvas');document.getElementById('preview-close').onclick =() =>stopPreview();}
+function stopPreview() {previewMode =false;if (previewRaf) cancelAnimationFrame(previewRaf);const wrap =document.getElementById('preview-wrap');if (wrap) wrap.style.display ='none';if (btnPreview) btnPreview.textContent ='▶ 预览';}
+function startPreview() {ensurePreviewUI();previewMode =true;document.getElementById('preview-wrap').style.display ='flex';if (btnPreview) btnPreview.textContent ='■ 退出预览';if (audio.buffer &&!audio.isPlaying) {const t =chart.beatToTime(engine.scrollBeat);audio.seek(Math.max(0,t));audio.play();engine.isPlaying =true;document.getElementById('btn-play').textContent ='⏸';}
+const loopP =() =>{if (!previewMode) return;drawPreview();previewRaf =requestAnimationFrame(loopP);};previewRaf =requestAnimationFrame(loopP);}
+function drawPreview() {const c =previewCanvas;const dpr =window.devicePixelRatio ||1;const rect =c.parentElement.getBoundingClientRect();const W =Math.max(100,rect.width);const H =Math.max(100,rect.height - 40);c.width =W *dpr;c.height =H *dpr;c.style.width =W+'px';c.style.height =H+'px';const ctx =c.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);ctx.fillStyle ='#05060a';ctx.fillRect(0,0,W,H);const nowBeat =audio.isPlaying ?chart.timeToBeat(audio.getCurrentTime()) :engine.scrollBeat;const rt =(window.ChartRuntime &&ChartRuntime.sampleAt)
+?ChartRuntime.sampleAt(chart,nowBeat)
+:{sv:1,camera:100,censors:[],edges:[] };const cam =rt.camera;const sv =rt.sv;const scale =100 / Math.max(20,cam);const laneCount =6;const laneW =Math.min(70,W *0.08) *scale;const totalW =laneW *laneCount;const left =(W - totalW) / 2;const judgeY =H *0.82;const pxPerBeat =140 *sv *scale;for (let i=0;i<laneCount;i++){const x =left + i*laneW;ctx.fillStyle =i%2?'rgba(102,252,241,0.06)':'rgba(102,252,241,0.10)';ctx.fillRect(x,0,laneW,H);ctx.strokeStyle='rgba(255,255,255,0.08)';ctx.strokeRect(x,0,laneW,H);}
+ for (let e=0;e<7;e++){const x =left + e *laneW;const fr =(rt.edges &&rt.edges[e]) ||{loFront:0,lfFront:0,lit:false,loGlow:1 };const lo =fr.loFront ||0,lf =fr.lfFront ||0;const topY =20;const botY =judgeY;const loY =topY + (botY - topY) *lo;const lfY =topY + (botY - topY) *lf;if (lo >lf) {const glow =Math.max(0.2,fr.loGlow ||1);const grad =ctx.createLinearGradient(0,lfY,0,loY);grad.addColorStop(0,`rgba(255,215,0,${0.05*glow})`);grad.addColorStop(1,`rgba(255,215,0,${0.85*Math.min(1,glow)})`);ctx.strokeStyle =grad;ctx.lineWidth =3;ctx.shadowColor =`rgba(255,215,0,${0.55*glow})`;ctx.shadowBlur =8 + 6*glow;ctx.beginPath();ctx.moveTo(x,lfY);ctx.lineTo(x,loY);ctx.stroke();ctx.shadowBlur =0;}
+}
+ for (const n of chart.notes) {const dy =(n.beat - nowBeat) *pxPerBeat;const y =judgeY - dy;if (y < -50 ||y >H + 50) continue;const x =left + n.lane *laneW + laneW/2;const noteLen =Math.max(8,laneW - 6);const thick =6;if (n.type ==='tap') {ctx.fillStyle ='rgba(102,252,241,0.9)';ctx.beginPath();const r=2;const nx=x-noteLen/2,ny=y-thick/2,nw=noteLen,nh=thick;ctx.moveTo(nx+r,ny);ctx.arcTo(nx+nw,ny,nx+nw,ny+nh,r);ctx.arcTo(nx+nw,ny+nh,nx,ny+nh,r);ctx.arcTo(nx,ny+nh,nx,ny,r);ctx.arcTo(nx,ny,nx+nw,ny,r);ctx.closePath();ctx.fill();} else {const dy2 =(n.endBeat - nowBeat) *pxPerBeat;const y2 =judgeY - dy2;const top =Math.min(y,y2),hh=Math.abs(y2-y);const bodyLen =noteLen *0.72;ctx.fillStyle='rgba(241,196,15,0.35)';ctx.fillRect(x-bodyLen/2,top,bodyLen,Math.max(2,hh));ctx.fillStyle='rgba(241,196,15,0.95)';ctx.fillRect(x-noteLen/2,y-thick/2,noteLen,thick);}
+}
+ ctx.strokeStyle='#ff2a6d';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(left-20,judgeY);ctx.lineTo(left+totalW+20,judgeY);ctx.stroke();for (const cnv of (rt.censors ||[])) {const alpha =cnv.alpha ||0;if (alpha <=0.001) continue;ctx.fillStyle =`rgba(0,0,0,${0.85*alpha})`;const dir =cnv.direction||'all';const m =Math.min(W,H)*0.25;if (dir==='top' ||dir==='all') ctx.fillRect(0,0,W,m);if (dir==='bottom' ||dir==='all') ctx.fillRect(0,H-m,W,m);if (dir==='left' ||dir==='all') {ctx.fillRect(0,0,m,H);ctx.fillRect(W-m,0,m,H);}
+}
+ctx.fillStyle='#66fcf1';ctx.font='12px sans-serif';ctx.fillText(`Beat ${nowBeat.toFixed(2)} | SV ${sv.toFixed(2)} | CAM ${cam.toFixed(1)}`,12,18);}
+if (btnPreview) btnPreview.onclick =() =>{if (previewMode) stopPreview();else startPreview();};window.addEventListener('keydown',(e) =>{if (e.target.tagName ==='INPUT' ||e.target.tagName ==='SELECT') return;if (e.code ==='Space') {e.preventDefault();togglePlay();}
+if (e.key ==='z' &&(e.ctrlKey ||e.metaKey)) {e.preventDefault();commands.undo();updateStatus();if (window.refreshOverlapPanel) window.refreshOverlapPanel();}
+if (e.key ==='y' &&(e.ctrlKey ||e.metaKey)) {e.preventDefault();commands.redo();updateStatus();if (window.refreshOverlapPanel) window.refreshOverlapPanel();}
+if (e.key ==='Delete' ||e.key ==='Backspace') {if (engine.selectedNoteId) {const id =engine.selectedNoteId;commands.execute(new DeleteNoteCommand(chart,id));engine.selectedNoteId =null;engine.overlappingIds.delete(id);window.updateSidePanel();updateStatus();if (window.refreshOverlapPanel) window.refreshOverlapPanel();} else if (engine.selectedEdgeId) {commands.execute(new DeleteEdgeEventCommand(chart,engine.selectedEdgeId));engine.selectedEdgeId =null;window.updateEdgePanel();updateStatus();} else if (engine.selectedGlobalId) {commands.execute(new DeleteGlobalEventCommand(chart,engine.selectedGlobalId));engine.selectedGlobalId =null;window.updateGlobalPanel();updateStatus();}
+}
+if (e.key ==='1') setToolUI(Tool.SELECT);if (e.key ==='2') setToolUI(Tool.TAP);if (e.key ==='3') setToolUI(Tool.HOLD);if (e.key ==='c' &&(e.ctrlKey ||e.metaKey)) {e.preventDefault();const n =input.copySelection ?input.copySelection() :0;if (n) console.log('copied',n);}
+if (e.key ==='v' &&(e.ctrlKey ||e.metaKey)) {e.preventDefault();const n =input.pasteClipboard ?input.pasteClipboard() :0;updateStatus();if (window.refreshOverlapPanel) window.refreshOverlapPanel();if (n) console.log('pasted',n);}
+});window.addEventListener('resize',() =>engine.resize());if (screen.orientation &&screen.orientation.lock) screen.orientation.lock('landscape').catch(() =>{});const overlapPanel =document.createElement('div');overlapPanel.id ='overlap-panel';overlapPanel.style.cssText ='position:fixed;bottom:44px;right:16px;width:320px;background:#1a1d26;border:1px solid #ef4444;border-radius:8px;color:#fff;font-size:13px;z-index:1000;display:none;flex-direction:column;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.5);';overlapPanel.innerHTML =`
+    <div id="overlap-header" style="padding:8px 12px;background:rgba(239,68,68,0.15);border-bottom:1px solid rgba(239,68,68,0.4);font-weight:bold;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;">
+      <span>⚠️ 重叠按键 <span id="overlap-count" style="color:#fca5a5;font-weight:normal;">(0)</span></span>
+      <span id="overlap-toggle" style="color:#fca5a5;font-size:12px;">收起 ▾</span>
+    </div>
+    <div id="overlap-list" style="overflow-y:auto;padding:8px 12px;max-height:200px;"></div>
+  `;document.body.appendChild(overlapPanel);let overlapCollapsed =false;const overlapListEl =document.getElementById('overlap-list');const overlapCountEl =document.getElementById('overlap-count');const overlapToggleEl =document.getElementById('overlap-toggle');document.getElementById('overlap-header').onclick =() =>{overlapCollapsed =!overlapCollapsed;overlapListEl.style.display =overlapCollapsed ?'none' :'block';overlapToggleEl.textContent =overlapCollapsed ?'展开 ▸' :'收起 ▾';};const overlapRegistry =new Map();function formatBeatSimple(beat,div) {return formatBeatTime(beat,div ||4);}
+function renderOverlapPanel() {for (const id of [...overlapRegistry.keys()]) {if (!chart.getNoteById(id) ||!engine.overlappingIds.has(id)) {overlapRegistry.delete(id);engine.overlappingIds.delete(id);}
+}
+for (const id of engine.overlappingIds) {const n =chart.getNoteById(id);if (!n) {engine.overlappingIds.delete(id);continue;}
+overlapRegistry.set(id,n);}
+const div =input.snapDivisor ||4;const items =[...overlapRegistry.values()].sort((a,b) =>a.beat - b.beat ||a.lane - b.lane);overlapCountEl.textContent =`(${items.length})`;overlapListEl.innerHTML ='';if (items.length ===0) {overlapPanel.style.display ='none';return;}
+overlapPanel.style.display ='flex';overlapListEl.style.display =overlapCollapsed ?'none' :'block';overlapToggleEl.textContent =overlapCollapsed ?'展开 ▸' :'收起 ▾';items.forEach(n =>{const row =document.createElement('div');row.style.cssText ='display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.06);gap:8px;';row.innerHTML =`
+        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+          ${n.type === 'tap' ? 'Tap' : 'Hold'} · L${n.lane} · ${formatBeatSimple(n.beat, div)}
+        </span>
+        <button data-id="${n.id}" class="overlap-del" style="background:rgba(239,68,68,0.2);border:1px solid #ef4444;color:#ef4444;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:12px;flex-shrink:0;">删除</button>
+      `;overlapListEl.appendChild(row);});overlapListEl.querySelectorAll('.overlap-del').forEach(btn =>{btn.onclick =(e) =>{e.stopPropagation();const id =btn.getAttribute('data-id');commands.execute(new DeleteNoteCommand(chart,id));engine.overlappingIds.delete(id);overlapRegistry.delete(id);if (engine.selectedNoteId ===id) engine.selectedNoteId =null;updateStatus();if (window.updateSidePanel) window.updateSidePanel();rescanOverlaps();};});}
+function rescanOverlaps() {engine.overlappingIds.clear();overlapRegistry.clear();const list =[...chart.notes];for (let i =0;i < list.length;i++) {const n =list[i];for (let j =0;j < i;j++) {const o =list[j];if (o.lane !==n.lane) continue;if (input._notesOverlap &&input._notesOverlap(n,o)) {engine.overlappingIds.add(n.id);overlapRegistry.set(n.id,n);break;}
+}
+}
+renderOverlapPanel();}
+window.reportOverlap =(note) =>{if (!note) return;engine.overlappingIds.add(note.id);overlapRegistry.set(note.id,note);renderOverlapPanel();};window.refreshOverlapPanel =() =>renderOverlapPanel();window.showOverlapPopup =(notes) =>{if (notes &&notes[0]) window.reportOverlap(notes[0]);};const AUTOSAVE_KEY ='chart-editor-autosave-v1';function serializeChartLite() {try {const json =chart.toJSON();return JSON.stringify({chart:json,hasAudioName:chart.audioData &&chart.audioData.name ||null,ts:Date.now()
+});} catch (e) {return null;}
+}
+function autosave() {const s =serializeChartLite();if (!s) return;try {localStorage.setItem(AUTOSAVE_KEY,s);} catch (e) {}
+}
+setInterval(autosave,8000);window.addEventListener('beforeunload',autosave);try {const raw =localStorage.getItem(AUTOSAVE_KEY);if (raw) {const data =JSON.parse(raw);if (data &&data.chart &&(!chart.notes.length &&!(chart.edgeEvents||[]).length)) {const nc =Chart.fromJSON(data.chart);chart.title =nc.title;chart.artist =nc.artist;chart.charter =nc.charter;chart.difficulty =nc.difficulty;chart.offset =nc.offset;chart.baseBPM =nc.baseBPM;chart.bpmList =nc.bpmList;chart.baseSpeed =nc.baseSpeed;chart.notes =nc.notes;chart.edgeEvents =nc.edgeEvents ||[];chart.globalEvents =nc.globalEvents ||[];if (inputBPM) inputBPM.value =chart.baseBPM;if (inputTitle) inputTitle.value =chart.title ||'';if (inputArtist) inputArtist.value =chart.artist ||'';if (inputCharter) inputCharter.value =chart.charter ||'';if (inputDiff) inputDiff.value =chart.difficulty ||'';if (inputOffset) inputOffset.value =Math.round((chart.offset ||0) *1000);updateStatus();const tip =document.createElement('div');tip.style.cssText ='position:fixed;top:12px;left:50%;transform:translateX(-50%);background:#1f2833;border:1px solid #45a29e;color:#c5c6c7;padding:6px 12px;border-radius:6px;z-index:2500;font-size:12px;';tip.textContent ='已恢复本地自动保存谱面（音频需重新导入）';document.body.appendChild(tip);setTimeout(() =>tip.remove(),3200);}
+}
+} catch (e) {}
+ const _exec =commands.execute.bind(commands);commands.execute =(c) =>{_exec(c);autosave();if (window.refreshOverlapPanel) window.refreshOverlapPanel();};renderOverlapPanel();updateStatus();}
+let chart,audioEngine,renderer,inputHandler,commandStack;let __lastRenderError ='';let __renderErrorCount =0;(function ensureGetTotalBeats() {function computeTotalBeats(c) {try {let maxBeat =0;for (const n of (c.notes ||[])) {const e =n.type ==='hold' &&n.endBeat !=null ?n.endBeat :n.beat;if (e >maxBeat) maxBeat =e;}
+for (const ev of (c.edgeEvents ||[])) {const e =(typeof ev.endBeat ==='number')
+?ev.endBeat
+:((ev.beat ||0) + (ev.interval ||0) + (ev.lfSpread ||0));if (e >maxBeat) maxBeat =e;}
+for (const g of (c.globalEvents ||[])) {const e =(g.beat ||0) + (g.duration ||0);if (e >maxBeat) maxBeat =e;}
+if (c.audioData &&c.audioData.duration &&typeof c.timeToBeat ==='function') {const ab =c.timeToBeat(c.audioData.duration);if (ab >maxBeat) maxBeat =ab;}
+return Math.max(16,maxBeat + 4);} catch (e) {return 64;}
+}
+window.__getTotalBeats =function (c) {if (c &&typeof c.getTotalBeats ==='function') {try {return c.getTotalBeats();} catch (e) {}
+}
+return computeTotalBeats(c ||{});};if (typeof Chart !=='undefined') {Chart.prototype.getTotalBeats =function () {return computeTotalBeats(this);};}
+})();function init() {if (typeof Chart !=='undefined' &&typeof Chart.prototype.getTotalBeats !=='function') {Chart.prototype.getTotalBeats =function () {return window.__getTotalBeats(this);};}
+chart =new Chart();if (typeof chart.getTotalBeats !=='function') {chart.getTotalBeats =function () {return window.__getTotalBeats(this);};}
+audioEngine =new AudioEngine();commandStack =new CommandStack();const canvas =document.getElementById('editor-canvas');renderer =new Renderer(canvas);renderer.resize();inputHandler =new InputHandler(canvas,renderer,chart,audioEngine,commandStack);initUI(chart,audioEngine,renderer,inputHandler,commandStack);renderer.scrollBeat =0;renderer.currentBeat =0;if (typeof updateStatus ==='function') updateStatus();else if (window.updateStatus) window.updateStatus();requestAnimationFrame(loop);}
+function loop() {try {if (audioEngine.isPlaying) {const t =audioEngine.getCurrentTime();renderer.currentBeat =chart.timeToBeat(t);if (audioEngine.duration &&t >=audioEngine.duration - 0.001) {audioEngine.stop();renderer.isPlaying =false;document.getElementById('btn-play').textContent ='▶';}
+}
+renderer.edgeAddMode =inputHandler.edgeAddMode;renderer.edgeAddSelected =inputHandler.edgeAddSelected;const curBeat =audioEngine.isPlaying ?renderer.currentBeat :renderer.scrollBeat;const curTime =Math.max(0,chart.beatToTime(curBeat));const mm =Math.floor(curTime / 60);const ss =Math.floor(curTime % 60);const ms =Math.floor((curTime % 1) *1000);document.getElementById('time-display').textContent =`${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;document.getElementById('beat-display').textContent =`| Beat: ${curBeat.toFixed(2)}`;if (window.updateAudioBar) window.updateAudioBar();renderer.render(chart);} catch (err) {const msg =String(err &&err.message ?err.message :err);if (msg !==__lastRenderError) {__lastRenderError =msg;__renderErrorCount =1;console.error('render loop error',err);} else {__renderErrorCount++;if (__renderErrorCount <=3 ||__renderErrorCount % 300 ===0) {console.error('render loop error (x' + __renderErrorCount + ')',err);}
+}
+}
+requestAnimationFrame(loop);}
+window.addEventListener('DOMContentLoaded',init);</script>
+</body>
+</html>
