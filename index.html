@@ -692,13 +692,13 @@
         <div class="modal-content modal-login">
             <div class="modal-header">
                 <h3>登录</h3>
-                <button class="modal-close" onclick="closeLoginModal()">×</button>
+                <button class="modal-close" onclick="if(window.closeLoginModal) closeLoginModal()">×</button>
             </div>
             <div class="login-body">
                 <p class="login-tip">打开网页版捏 ta - 个人主页左上角 - 隐私设置 - 获取 NETA TOKEN</p>
                 
                 <!-- 快捷登录按钮 -->
-                <button id="quick-login-btn" class="btn btn-secondary btn-full" onclick="showQuickLogin()">
+                <button id="quick-login-btn" class="btn btn-secondary btn-full" onclick="if(window.showQuickLogin) showQuickLogin()">
                     👤 快捷登录
                 </button>
                 
@@ -710,7 +710,7 @@
                 </div>
                 
                 <input type="text" id="token-input" placeholder="输入 NETA TOKEN" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
-                <button id="login-btn" class="btn btn-primary btn-full" onclick="handleLoginClick()">登录</button>
+                <button id="login-btn" class="btn btn-primary btn-full" onclick="if(window.handleLoginClick) handleLoginClick()">登录</button>
                 <div id="login-status" class="status"></div>
             </div>
         </div>

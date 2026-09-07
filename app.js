@@ -721,7 +721,8 @@ function setupLogin() {
             loginModal.classList.remove('show');
             console.log('登录窗口已关闭');
         }
-        updateProfileUI();
+        // 注意: 不在这里调用 updateProfileUI(), 因为 userProfile 还没加载
+        // loadUserProfile() 成功后会自动调用 updateProfileUI()
     } else {
         console.log('未登录,保持登录窗口显示');
     }
@@ -800,14 +801,6 @@ function closeLoginModal() {
         console.log('登录窗口已关闭');
     }
 }
-
-// 暴露到全局作用域
-window.closeLoginModal = closeLoginModal;
-window.handleLoginClick = handleLoginClick;
-window.showQuickLogin = showQuickLogin;
-window.selectQuickLogin = selectQuickLogin;
-window.deleteQuickLogin = deleteQuickLogin;
-window.copyToken = copyToken;
 
 // 记录登录到 Cloudflare Workers
 async function updateAccountInHistory(token, profile) {
@@ -5603,3 +5596,11 @@ function handleImageFile(file) {
 document.addEventListener('DOMContentLoaded', () => {
     initPixelArtPage();
 });
+
+// ============ 全局函数暴露（放在文件末尾，确保所有函数已定义） ============
+window.closeLoginModal = closeLoginModal;
+window.handleLoginClick = handleLoginClick;
+window.showQuickLogin = showQuickLogin;
+window.selectQuickLogin = selectQuickLogin;
+window.deleteQuickLogin = deleteQuickLogin;
+window.copyToken = copyToken;
