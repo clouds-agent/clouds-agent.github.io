@@ -610,6 +610,11 @@ async function loadUserProfile() {
 
         if (!res.ok) {
             console.error('获取用户信息失败:', res.status);
+            // 401/403 表示 token 无效或过期，自动清除
+            if (res.status === 401 || res.status === 403) {
+                console.log('Token 无效或已过期，自动清除');
+                clearToken();
+            }
             return null;
         }
 
@@ -3168,10 +3173,20 @@ function init() {
     const token = getToken();
     if (token) {
         console.log('发现已保存的 Token,加载用户信息...');
-        loadUserProfile().then(() => {
+        loadUserProfile().then((profile) => {
             const loginModal = document.getElementById('login-modal');
-            if (loginModal) {
-                loginModal.classList.remove('show');
+            if (profile) {
+                // 登录成功，关闭弹窗
+                console.log('登录成功，关闭登录窗口');
+                if (loginModal) {
+                    loginModal.classList.remove('show');
+                }
+            } else {
+                // 登录失败（token无效/过期），显示登录窗口
+                console.log('登录失败，显示登录窗口');
+                if (loginModal) {
+                    loginModal.classList.add('show');
+                }
             }
         });
     } else {
