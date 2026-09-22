@@ -3601,35 +3601,31 @@ const copyNietaLoginBtn = document.getElementById('copy-nieta-login-btn');
 if (copyNietaLoginBtn) {
     copyNietaLoginBtn.addEventListener('click', async () => {
         // 获取当前登录用户的 token
-        const currentToken = localStorage.getItem('neta_token') || '';
+        const currentToken = getToken() || '';
         
         let loginCode;
         if (currentToken) {
             // 已登录，填入当前 token
             loginCode = `const userInfo = {data:{token:'${currentToken}',expiresAt:31536000,refreshToken:'${currentToken}',refreshExpiresAt:31536000,isRegister:false,version:1}};\nlocalStorage.setItem('local-user-info', JSON.stringify(userInfo));\nlocation.reload();`;
+            showToast('✅ 登录代码已复制(含当前token)');
         } else {
             // 未登录，用模板
             loginCode = `const userInfo = {data:{token:'你的TOKEN粘贴到这里',expiresAt:31536000,refreshToken:'你的TOKEN粘贴到这里',refreshExpiresAt:31536000,isRegister:false,version:1}};\nlocalStorage.setItem('local-user-info', JSON.stringify(userInfo));\nlocation.reload();`;
+            showToast('ℹ️ 模板代码已复制(未登录)');
         }
         
         try {
             await navigator.clipboard.writeText(loginCode);
-            copyNietaLoginBtn.textContent = '✅ 已复制！去捏Ta控制台粘贴吧';
-            setTimeout(() => {
-                copyNietaLoginBtn.textContent = '点击复制登录代码';
-            }, 2000);
         } catch (err) {
             // 降级方案
             const textarea = document.createElement('textarea');
             textarea.value = loginCode;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
             document.body.appendChild(textarea);
             textarea.select();
             document.execCommand('copy');
             document.body.removeChild(textarea);
-            copyNietaLoginBtn.textContent = '✅ 已复制！去捏Ta控制台粘贴吧';
-            setTimeout(() => {
-                copyNietaLoginBtn.textContent = '点击复制登录代码';
-            }, 2000);
         }
     });
 }
