@@ -3596,6 +3596,44 @@ document.querySelectorAll('.hidden-link[data-url]').forEach(link => {
     });
 });
 
+// 复制捏Ta登录代码按钮
+const copyNietaLoginBtn = document.getElementById('copy-nieta-login-btn');
+if (copyNietaLoginBtn) {
+    copyNietaLoginBtn.addEventListener('click', async () => {
+        // 获取当前登录用户的 token
+        const currentToken = localStorage.getItem('neta_token') || '';
+        
+        let loginCode;
+        if (currentToken) {
+            // 已登录，填入当前 token
+            loginCode = `const userInfo = {data:{token:'${currentToken}',expiresAt:31536000,refreshToken:'${currentToken}',refreshExpiresAt:31536000,isRegister:false,version:1}};\nlocalStorage.setItem('local-user-info', JSON.stringify(userInfo));\nlocation.reload();`;
+        } else {
+            // 未登录，用模板
+            loginCode = `const userInfo = {data:{token:'你的TOKEN粘贴到这里',expiresAt:31536000,refreshToken:'你的TOKEN粘贴到这里',refreshExpiresAt:31536000,isRegister:false,version:1}};\nlocalStorage.setItem('local-user-info', JSON.stringify(userInfo));\nlocation.reload();`;
+        }
+        
+        try {
+            await navigator.clipboard.writeText(loginCode);
+            copyNietaLoginBtn.textContent = '✅ 已复制！去捏Ta控制台粘贴吧';
+            setTimeout(() => {
+                copyNietaLoginBtn.textContent = '点击复制登录代码';
+            }, 2000);
+        } catch (err) {
+            // 降级方案
+            const textarea = document.createElement('textarea');
+            textarea.value = loginCode;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            copyNietaLoginBtn.textContent = '✅ 已复制！去捏Ta控制台粘贴吧';
+            setTimeout(() => {
+                copyNietaLoginBtn.textContent = '点击复制登录代码';
+            }, 2000);
+        }
+    });
+}
+
 function closeDanbooruDetailModal() {
     const modal = document.getElementById('danbooru-detail-modal');
     if (modal) {
