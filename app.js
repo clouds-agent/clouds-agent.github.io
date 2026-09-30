@@ -1731,9 +1731,6 @@ async function startUserLikeLoop(users) {
                 const currentPage = userPageMap[user.uuid] || 0;
                 const stories = await getUserStories(user.uuid, currentPage, 20);
 
-                // 添加延迟,避免 API 限流
-                await new Promise(r => setTimeout(r, 300));
-
                 if (stories.length === 0) {
                     // 当前页没有作品,标记这个用户完成
                     userFinished[user.uuid] = true;
