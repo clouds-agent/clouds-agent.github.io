@@ -1559,9 +1559,6 @@ async function startLikeLoop(tags) {
                 const currentPage = tagPageMap[tag.name] || 0;
                 const stories = await getStories(tag.name, currentPage, 10);
 
-                // 添加延迟,避免 API 限流
-                await new Promise(r => setTimeout(r, 200));
-
                 if (stories.length === 0) {
                     // 当前页没有作品,标记这个标签完成
                     tagFinished[tag.name] = true;
