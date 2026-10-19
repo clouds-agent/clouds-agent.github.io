@@ -10,8 +10,59 @@
     <meta name="color-scheme" content="light">
     <meta name="theme-color" content="#eef4ff">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-    <link rel="stylesheet" href="style.css?v=20261019f">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <link rel="preconnect" href="https://lib.baomitu.com" crossorigin>
+    <link rel="stylesheet" href="style.css?v=20261019g">
+    <script>
+    // Chart.js 加载器：主源走 jsDelivr，失败自动切国内可达镜像，避免 CDN 被墙导致统计图表空白
+    (function () {
+        var SOURCES = [
+            'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js',
+            'https://lib.baomitu.com/Chart.js/4.4.0/chart.umd.min.js',
+            'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js',
+            'https://unpkg.com/chart.js@4.4.0/dist/chart.umd.js'
+        ];
+        var done = false;
+        var resolveReady;
+        window.chartLibReady = new Promise(function (resolve) { resolveReady = resolve; });
+
+        function finish(ok) {
+            if (done) return;
+            done = true;
+            resolveReady(ok && typeof window.Chart === 'function');
+        }
+
+        function load(index) {
+            if (index >= SOURCES.length) return finish(false);
+            var script = document.createElement('script');
+            var settled = false;
+            var timer = setTimeout(function () {
+                if (settled) return;
+                settled = true;
+                script.onload = script.onerror = null;
+                load(index + 1);
+            }, 6000);
+            script.src = SOURCES[index];
+            script.async = true;
+            script.onload = function () {
+                if (settled) return;
+                settled = true;
+                clearTimeout(timer);
+                if (typeof window.Chart === 'function') finish(true);
+                else load(index + 1);
+            };
+            script.onerror = function () {
+                if (settled) return;
+                settled = true;
+                clearTimeout(timer);
+                load(index + 1);
+            };
+            document.head.appendChild(script);
+        }
+
+        load(0);
+        setTimeout(function () { finish(typeof window.Chart === 'function'); }, 20000);
+    })();
+    </script>
 </head>
 <body>
     <div class="sky" aria-hidden="true">
@@ -743,7 +794,7 @@
         <span class="site-footer__dim">所有数据只保存在你自己的浏览器里</span>
     </footer>
 
-    <script src="app.js?v=20260922v182"></script>
+    <script src="app.js?v=20261019a"></script>
     <button id="back-to-top" class="back-to-top" type="button" aria-label="回到顶部">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 18.4V6.2" /><path d="M6.4 11.6 12 6l5.6 5.6" /></svg>
     </button>

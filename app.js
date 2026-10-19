@@ -2640,9 +2640,26 @@ async function loadStatsData(type, days) {
 }
 
 // 渲染统计图表(Chart.js 折线图)
-function renderStatsChart(stats, type) {
+async function renderStatsChart(stats, type) {
     const ctx = document.getElementById('stats-chart');
     if (!ctx || !stats || !stats.byDate) return;
+
+    // Chart.js 可能还在加载（主源被墙时自动切镜像），等它一会儿
+    if (typeof Chart === 'undefined' && window.chartLibReady) {
+        await window.chartLibReady;
+    }
+    if (typeof Chart === 'undefined') {
+        const wrapper = document.getElementById('stats-chart-wrapper');
+        if (wrapper) {
+            const tip = document.createElement('p');
+            tip.className = 'chart-unavailable';
+            tip.textContent = '图表组件加载失败，统计数据仍可在上方卡片查看';
+            const existing = wrapper.querySelector('.chart-unavailable');
+            if (existing) existing.remove();
+            wrapper.appendChild(tip);
+        }
+        return;
+    }
 
     // 销毁旧图表
     if (statsChart) {
