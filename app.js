@@ -85,6 +85,8 @@ function setupNavigation() {
 let galleryPageIndex = 0;
 let galleryTotal = 0;
 let galleryLoading = false;
+let galleryModality = 'PICTURE';
+let galleryKeyword = '';
 
 // ============ 工具函数 ============
 
@@ -2949,31 +2951,203 @@ function setupStats() {
 
 // ============ 图库功能 ============
 
+function setGalleryStatus(text) {
+    const el = document.getElementById('gallery-search-status');
+    if (el) el.textContent = text || '';
+}
+
 function setupGallery() {
     const loadBtn = document.getElementById('load-gallery');
     const loadMoreBtn = document.getElementById('load-more-gallery');
-    const modalitySelect = document.getElementById('gallery-modality');
+    const tabs = Array.from(document.querySelectorAll('[data-gallery-modality]'));
+    const searchInput = document.getElementById('gallery-search');
+    const searchBtn = document.getElementById('gallery-search-btn');
+    const clearBtn = document.getElementById('gallery-search-clear');
+    const gridEl = document.getElementById('gallery-grid');
+
+    function resetGrid() {
+        galleryPageIndex = 0;
+        if (gridEl) gridEl.innerHTML = '';
+        if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+    }
+
+    function syncClearBtn() {
+        if (clearBtn) clearBtn.style.display = galleryKeyword ? 'inline-flex' : 'none';
+    }
+
+    function startSearch() {
+        const kw = searchInput ? searchInput.value.trim() : '';
+        galleryKeyword = kw;
+        syncClearBtn();
+        resetGrid();
+        loadGallery(true);
+    }
 
     if (loadBtn) {
         loadBtn.addEventListener('click', () => {
-            galleryPageIndex = 0;
-            document.getElementById('gallery-grid').innerHTML = '';
+            galleryKeyword = '';
+            if (searchInput) searchInput.value = '';
+            syncClearBtn();
+            resetGrid();
             loadGallery(true);
         });
     }
 
     if (loadMoreBtn) {
-        loadMoreBtn.addEventListener('click', () => {
-            loadGallery(false);
+        loadMoreBtn.addEventListener('click', () => loadGallery(false));
+    }
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const modality = tab.getAttribute('data-gallery-modality');
+            if (!modality || modality === galleryModality) return;
+            galleryModality = modality;
+            tabs.forEach(t => {
+                const on = t === tab;
+                t.classList.toggle('active', on);
+                t.setAttribute('aria-selected', on ? 'true' : 'false');
+            });
+            // 视频作品没有保存提示词，搜索框对视频不可用
+            if (searchInput) {
+                const video = modality === 'VIDEO';
+                searchInput.disabled = video;
+                searchInput.placeholder = video
+                    ? '视频作品没有保存提示词，暂不支持搜索'
+                    : '搜索提示词里含这个词的作品，回车或点「搜索」';
+            }
+            resetGrid();
+            setGalleryStatus('');
+            loadGallery(true);
+        });
+    });
+
+    if (searchBtn) searchBtn.addEventListener('click', startSearch);
+
+    if (searchInput) {
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                startSearch();
+            }
+        });
+        // 手动删空输入框 → 自动回到原样列表
+        let clearTimer = null;
+        searchInput.addEventListener('input', () => {
+            if (searchInput.value.trim() || !galleryKeyword) return;
+            clearTimeout(clearTimer);
+            clearTimer = setTimeout(() => {
+                if (searchInput.value.trim()) return;
+                galleryKeyword = '';
+                syncClearBtn();
+                resetGrid();
+                loadGallery(true);
+            }, 340);
         });
     }
 
-    if (modalitySelect) {
-        modalitySelect.addEventListener('change', () => {
-            galleryPageIndex = 0;
-            document.getElementById('gallery-grid').innerHTML = '';
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            if (searchInput) searchInput.value = '';
+            galleryKeyword = '';
+            syncClearBtn();
+            resetGrid();
+            loadGallery(true);
         });
     }
+}
+
+function buildGalleryItem(item, modality, preferDirectUrl = false) {
+    const itemEl = document.createElement('div');
+    itemEl.className = 'gallery-item';
+
+    const directUrl = typeof item.url === 'string' ? item.url : '';
+    const pngUrl = `https://oss.talesofai.cn/picture/${item.uuid}.png`;
+    const jpgUrl = `https://oss.talesofai.cn/picture/${item.uuid}.jpg`;
+    const webpUrl = `https://oss.talesofai.cn/picture/${item.uuid}.webp`;
+    const isSuccess = item.status === 'SUCCESS';
+
+    let mediaHtml = '';
+    let displayUrl = '';
+
+    if (modality === 'VIDEO') {
+        const videoUrl = `https://oss.talesofai.cn/picture/${item.uuid}.mp4`;
+        displayUrl = videoUrl;
+        mediaHtml = isSuccess
+            ? `<video src="${videoUrl}" class="gallery-item-media" muted loop onmouseover="this.play()" onmouseout="this.pause()" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"></video><div class="gallery-item-media" style="display:none;align-items:center;justify-content:center;background:#000;color:#fff;font-size:2rem;">🎬</div>`
+            : `<div class="gallery-item-media" style="display:flex;align-items:center;justify-content:center;background:#000;color:#fff;font-size:2rem;">🎬</div>`;
+    } else if (isSuccess) {
+        displayUrl = (preferDirectUrl && directUrl) ? directUrl : pngUrl;
+        mediaHtml = `<img src="${displayUrl}" alt="${item.uuid}" class="gallery-item-media" loading="lazy"/><div class="gallery-item-media" style="display:none;align-items:center;justify-content:center;color:#86868b;">❌</div>`;
+    } else {
+        displayUrl = (preferDirectUrl && directUrl) ? directUrl : webpUrl;
+        mediaHtml = `<div class="gallery-item-media" style="display:flex;align-items:center;justify-content:center;color:#86868b;">❌</div>`;
+    }
+
+    itemEl.innerHTML = `
+        ${mediaHtml}
+        <div class="gallery-item-info">
+            <div class="gallery-item-url">${displayUrl}</div>
+            <div class="gallery-item-time">${item.ctime || item.mtime || ''}</div>
+            <div class="item-meta-row">
+                <span class="gallery-item-status ${isSuccess ? 'success' : 'failure'}">${isSuccess ? '成功' : '失败'}</span>
+                <button class="item-detail-btn" onclick="showImageDetail('${item.uuid}', event)" title="查看详情">详情</button>
+            </div>
+        </div>
+    `;
+
+    // 图片地址:优先用接口给的直链,失败再按 png→jpg→webp 依次退
+    if (isSuccess && modality === 'PICTURE') {
+        const img = itemEl.querySelector('img');
+        const urlEl = itemEl.querySelector('.gallery-item-url');
+        const candidates = [];
+        const pushUrl = (url) => {
+            if (url && candidates.indexOf(url) === -1) candidates.push(url);
+        };
+        pushUrl(directUrl);
+        pushUrl(pngUrl);
+        pushUrl(jpgUrl);
+        pushUrl(webpUrl);
+
+        let idx = Math.max(0, candidates.indexOf(displayUrl));
+
+        const syncUrl = () => {
+            if (!urlEl) return;
+            urlEl.textContent = candidates[idx];
+            urlEl.title = candidates[idx];
+        };
+        syncUrl();
+
+        if (img) {
+            img.addEventListener('error', function() {
+                if (idx < candidates.length - 1) {
+                    idx++;
+                    this.src = candidates[idx];
+                    syncUrl();
+                } else {
+                    this.style.display = 'none';
+                    if (this.nextElementSibling) this.nextElementSibling.style.display = 'flex';
+                }
+            });
+        }
+    }
+
+    // 点击复制 URL(无论成功失败都可以复制),但详情按钮除外
+    itemEl.addEventListener('click', async (e) => {
+        if (e.target.closest('.item-detail-btn')) {
+            return;
+        }
+
+        try {
+            const urlEl = itemEl.querySelector('.gallery-item-url');
+            const urlToCopy = urlEl?.textContent || displayUrl;
+            await navigator.clipboard.writeText(urlToCopy);
+            showToast('已复制 URL,点击打开→', urlToCopy);
+        } catch (e) {
+            showToast('复制失败');
+        }
+    });
+
+    return itemEl;
 }
 
 async function loadGallery(isFirstLoad = false) {
@@ -2985,20 +3159,38 @@ async function loadGallery(isFirstLoad = false) {
         return;
     }
 
+    const modality = galleryModality;
+    const keyword = galleryKeyword.trim();
+    const searching = !!keyword && modality === 'PICTURE';
+    const pageSize = 50;
+
     galleryLoading = true;
     const loadingEl = document.getElementById('gallery-loading');
     const loadMoreBtn = document.getElementById('load-more-gallery');
     const gridEl = document.getElementById('gallery-grid');
-    const modalitySelect = document.getElementById('gallery-modality');
 
     if (loadingEl) loadingEl.style.display = 'block';
     if (loadMoreBtn) loadMoreBtn.style.display = 'none';
 
-    const modality = modalitySelect ? modalitySelect.value : 'PICTURE';
-    const pageSize = 50;
-
     try {
-        const res = await fetch(`${API_BASE}/v1/artifact/list?page_index=${galleryPageIndex}&page_size=${pageSize}&modality=${modality}`, {
+        let url = '';
+
+        if (searching) {
+            let userUuid = (userProfile && userProfile.uuid) || '';
+            if (!userUuid) {
+                const profile = await loadUserProfile();
+                userUuid = (profile && profile.uuid) || '';
+            }
+            if (!userUuid) {
+                showToast('获取用户信息失败，请重新登录');
+                return;
+            }
+            url = `${API_BASE}/v1/picture/search?keywords=${encodeURIComponent(keyword)}&user_uuid=${encodeURIComponent(userUuid)}&page_index=${galleryPageIndex}&page_size=${pageSize}`;
+        } else {
+            url = `${API_BASE}/v1/artifact/list?page_index=${galleryPageIndex}&page_size=${pageSize}&modality=${modality}`;
+        }
+
+        const res = await fetch(url, {
             headers: {
                 'x-token': token,
                 'x-platform': 'nieta-app/web'
@@ -3013,124 +3205,34 @@ async function loadGallery(isFirstLoad = false) {
         galleryTotal = data.total || 0;
         const list = data.list || [];
 
-        if (isFirstLoad) {
+        if (isFirstLoad && gridEl) {
             gridEl.innerHTML = '';
         }
 
-        // 渲染图库项
         list.forEach(item => {
-            const itemEl = document.createElement('div');
-            itemEl.className = 'gallery-item';
-
-            let mediaHtml = '';
-            let originalUrl = '';
-            let pngUrl = '', jpgUrl = '', webpUrl = '';
-
-            if (modality === 'VIDEO') {
-                // 视频用 mp4
-                originalUrl = `https://oss.talesofai.cn/picture/${item.uuid}.mp4`;
-                if (item.status === 'SUCCESS') {
-                    mediaHtml = `<video src="${originalUrl}" class="gallery-item-media" muted loop onmouseover="this.play()" onmouseout="this.pause()" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"></video><div class="gallery-item-media" style="display:none;align-items:center;justify-content:center;background:#000;color:#fff;font-size:2rem;">🎬</div>`;
-                } else {
-                    mediaHtml = `<div class="gallery-item-media" style="display:flex;align-items:center;justify-content:center;background:#000;color:#fff;font-size:2rem;">🎬</div>`;
-                }
-            } else {
-                // 图片:尝试 png、jpg、webp 三种格式
-                pngUrl = `https://oss.talesofai.cn/picture/${item.uuid}.png`;
-                jpgUrl = `https://oss.talesofai.cn/picture/${item.uuid}.jpg`;
-                webpUrl = `https://oss.talesofai.cn/picture/${item.uuid}.webp`;
-
-                if (item.status === 'SUCCESS') {
-                    // 先尝试 png,失败再尝试 jpg,最后 webp
-                    mediaHtml = `<img src="${pngUrl}" alt="${item.uuid}" class="gallery-item-media" loading="lazy"/><div class="gallery-item-media" style="display:none;align-items:center;justify-content:center;color:#86868b;">❌</div>`;
-                } else {
-                    mediaHtml = `<div class="gallery-item-media" style="display:flex;align-items:center;justify-content:center;color:#86868b;">❌</div>`;
-                }
-            }
-
-            // 生成失败的图片也要显示 URL 并可复制
-            const displayUrl = item.status === 'SUCCESS' ? pngUrl : `https://oss.talesofai.cn/picture/${item.uuid}.webp`;
-
-            itemEl.innerHTML = `
-                ${mediaHtml}
-                <div class="gallery-item-info">
-                    <div class="gallery-item-url">${displayUrl}</div>
-                    <div class="gallery-item-time">${item.ctime || ''}</div>
-                    <div class="item-meta-row">
-                        <span class="gallery-item-status ${item.status === 'SUCCESS' ? 'success' : 'failure'}">${item.status === 'SUCCESS' ? '成功' : '失败'}</span>
-                        <button class="item-detail-btn" onclick="showImageDetail('${item.uuid}', event)" title="查看详情">详情</button>
-                    </div>
-                </div>
-            `;
-
-            // 图片加载逻辑:尝试 png→jpg→webp(仅图片模式)
-            if (item.status === 'SUCCESS' && modality === 'PICTURE') {
-                const img = itemEl.querySelector('img');
-                const urlEl = itemEl.querySelector('.gallery-item-url');
-                let currentUrl = pngUrl;
-
-                // 更新显示的 URL
-                const updateUrl = (url) => {
-                    currentUrl = url;
-                    if (urlEl) {
-                        urlEl.textContent = url;
-                        urlEl.title = url;
-                    }
-                };
-
-                // 初始设置为 png
-                updateUrl(pngUrl);
-
-                // 加载成功
-                if (img) {
-                    img.addEventListener('load', () => {
-                        updateUrl(currentUrl);
-                    });
-
-                    // 加载失败,尝试下一个格式
-                    img.addEventListener('error', function() {
-                        if (currentUrl === pngUrl) {
-                            this.src = jpgUrl;
-                            updateUrl(jpgUrl);
-                        } else if (currentUrl === jpgUrl) {
-                            this.src = webpUrl;
-                            updateUrl(webpUrl);
-                        } else {
-                            // 所有格式都失败
-                            this.style.display = 'none';
-                            this.nextElementSibling.style.display = 'flex';
-                        }
-                    });
-                }
-            }
-
-            // 点击复制 URL(无论成功失败都可以复制),但搜索按钮除外
-            itemEl.addEventListener('click', async (e) => {
-                // 如果点击的是搜索按钮,不复制 URL
-                if (e.target.closest('.item-detail-btn')) {
-                    return;
-                }
-
-                try {
-                    const urlEl = itemEl.querySelector('.gallery-item-url');
-                    const urlToCopy = urlEl?.textContent || displayUrl;
-                    await navigator.clipboard.writeText(urlToCopy);
-                    showToast('已复制 URL,点击打开→', urlToCopy);
-                } catch (e) {
-                    showToast('复制失败');
-                }
-            });
-
-            gridEl.appendChild(itemEl);
+            if (gridEl) gridEl.appendChild(buildGalleryItem(item, modality, searching));
         });
 
         galleryPageIndex++;
 
+        if (!gridEl) return;
+
+        if (searching) {
+            setGalleryStatus(`命中 ${galleryTotal} 个含「${keyword}」的图片 · 已显示 ${gridEl.children.length} 个`);
+        } else {
+            setGalleryStatus('');
+        }
+
+        if (list.length === 0 && gridEl.children.length === 0) {
+            const empty = document.createElement('p');
+            empty.className = 'gallery-empty';
+            empty.textContent = searching ? `没有找到含「${keyword}」的图片` : '这里还什么都没有';
+            gridEl.appendChild(empty);
+        }
+
         // 显示加载更多按钮(如果返回的数据是满的)
         if (loadMoreBtn) {
-            if (list.length === pageSize) {
-                loadMoreBtn.style.display = 'block';
-            }
+            loadMoreBtn.style.display = list.length === pageSize ? 'block' : 'none';
         }
 
     } catch (error) {

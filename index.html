@@ -247,15 +247,18 @@
             <div class="card">
                 <h3>🖼️ 我的图库</h3>
                 <div class="gallery-controls">
-                    <div class="gallery-filter">
-                        <label class="gallery-label">类型：</label>
-                        <select id="gallery-modality" class="gallery-select">
-                            <option value="PICTURE">图片</option>
-                            <option value="VIDEO">视频</option>
-                        </select>
+                    <div class="stats-tabs" id="gallery-tabs" role="tablist" aria-label="作品类型">
+                        <button class="stats-tab active" data-gallery-modality="PICTURE" role="tab" aria-selected="true">图片</button>
+                        <button class="stats-tab" data-gallery-modality="VIDEO" role="tab" aria-selected="false">视频</button>
                     </div>
                     <button id="load-gallery" class="btn btn-primary">加载图库</button>
                 </div>
+                <div class="gallery-search">
+                    <input type="text" id="gallery-search" placeholder="搜索提示词里含这个词的作品，回车或点「搜索」" autocomplete="off" />
+                    <button id="gallery-search-btn" class="btn btn-secondary">搜索</button>
+                    <button id="gallery-search-clear" class="btn btn-secondary" style="display:none">清空</button>
+                </div>
+                <p id="gallery-search-status" class="gallery-search-status"></p>
                 <div id="gallery-grid" class="gallery-grid"></div>
                 <div id="gallery-loading" class="gallery-loading" style="display:none">加载中...</div>
                 <button id="load-more-gallery" class="btn btn-secondary" style="display:none">加载更多</button>
