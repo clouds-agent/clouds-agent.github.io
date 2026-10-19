@@ -6,30 +6,57 @@
     <meta name="referrer" content="no-referrer">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <title>Hail to the Empyrean</title>
-    <link rel="stylesheet" href="style.css">
+    <meta name="description" content="CLOUDS 的捏ta 网页工作台：批量点赞、数据统计、图库、D 站 tag、翻译与像素画。">
+    <meta name="color-scheme" content="light">
+    <meta name="theme-color" content="#eef4ff">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="stylesheet" href="style.css?v=20261019f">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
 </head>
 <body>
+    <div class="sky" aria-hidden="true">
+        <div class="sky__wash"></div>
+        <div class="sky__aurora sky__aurora--a"></div>
+        <div class="sky__aurora sky__aurora--b"></div>
+        <div class="sky__aurora sky__aurora--c"></div>
+        <div class="sky__clouds"></div>
+        <div class="sky__stars"></div>
+    </div>
+
     <div class="header">
-        <span class="signature">from CLOUDS</span>
+        <div class="brand">
+            <span class="brand__glyph" aria-hidden="true"></span>
+            <span class="brand__text">
+                <span class="signature">from CLOUDS</span>
+                <span class="brand__tagline">Hail to the Empyrean</span>
+            </span>
+        </div>
         <div id="user-profile" class="profile-btn" title="个人主页" style="display:none;">
             <img id="header-avatar" src="" alt="头像" class="header-avatar" />
             <span id="header-name" class="header-name">-</span>
         </div>
     </div>
 
-    <nav class="navbar">
-        <button class="nav-link active" data-page="like">点赞</button>
-        <button class="nav-link" data-page="tools">工具</button>
+    <nav class="navbar" aria-label="主导航">
+        <button class="nav-link active" data-page="like">
+            <span class="nav-text">点赞</span><span class="nav-run" aria-hidden="true"><svg class="nav-run__svg nav-run__heart" viewBox="0 0 24 24" pathLength="1"><path pathLength="1" d="M12 20.1c-1.9-1.3-7.4-5.4-7.4-9.7A3.95 3.95 0 0 1 12 7.95a3.95 3.95 0 0 1 7.4 2.45c0 4.3-5.5 8.4-7.4 9.7Z" /></svg></span>
+        </button>
+        <button class="nav-link" data-page="tools">
+            <span class="nav-text">工具</span><span class="nav-run" aria-hidden="true"><svg class="nav-run__svg nav-run__wrench" viewBox="0 0 24 24"><g class="nav-run__wrench-g"><path d="M3.9 12h9.6" /><path d="M18.97 11.2A2.6 2.6 0 1 0 18.97 12.8" /></g></svg></span>
+        </button>
         <button class="nav-link" data-page="danbooru">D 站 tag</button>
         <button class="nav-link" data-page="translate">翻译</button>
         <button class="nav-link" data-page="pixel">像素画</button>
-        <button class="nav-link" id="kards-btn"></button>
+        <button class="nav-link" id="kards-btn" aria-label="隐藏工具（彩蛋）"></button>
     </nav>
 
     <main class="container">
         <!-- 点赞页 -->
         <section id="like" class="section active">
+            <header class="page-head">
+                <span class="page-kicker"><i class="page-kicker__dot"></i>01 · LIKE</span>
+                <h1 class="page-title">点赞</h1>
+            </header>
             <div class="card">
                 <div class="search-box">
                     <input type="text" id="tag-search" placeholder="请输入标签名" autocomplete="off" />
@@ -37,15 +64,15 @@
                     <div id="tag-suggestions" class="suggestions"></div>
                 </div>
                 <div id="selected-tags" class="tag-list"></div>
-                
+
                 <div class="divider">或</div>
-                
+
                 <div class="search-box">
                     <input type="text" id="user-search" placeholder="输入用户昵称（支持模糊搜索）" autocomplete="off" />
                     <div id="user-suggestions" class="suggestions"></div>
                 </div>
                 <div id="selected-users" class="user-list"></div>
-                
+
                 <div class="like-speed-settings">
                     <div class="setting-row">
                         <label class="setting-label">点赞速度：</label>
@@ -56,7 +83,7 @@
                         <span class="setting-desc">快速 (20ms) ← → 慢速 (2000ms)</span>
                     </div>
                 </div>
-                
+
                 <div class="timeout-settings">
                     <div class="setting-row">
                         <label class="setting-label">无增长停止时间：</label>
@@ -76,7 +103,7 @@
                         </select>
                     </div>
                 </div>
-                
+
                 <div class="btn-group">
                     <button id="start-like" class="btn btn-primary">开始</button>
                     <button id="pause-like" class="btn btn-secondary" disabled>暂停</button>
@@ -102,39 +129,14 @@
                 <button id="load-ranking" class="btn btn-secondary">加载热度排行 TOP20</button>
                 <div id="ranking-list" class="ranking-list"></div>
             </div>
-            </div>
         </section>
-
-        <!-- SVG全屏弹窗 -->
-        <div id="pixel-svg-modal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center;">
-            <div style="position: relative; width: 90%; height: 90%; max-width: 1200px; background: white; border-radius: 12px; padding: 2rem; display: flex; flex-direction: column;">
-                <!-- 弹窗头部 -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h3 style="margin: 0;">🔍 矢量图预览</h3>
-                    <button id="pixel-svg-modal-close" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #86868b; padding: 0 8px;">×</button>
-                </div>
-                
-                <!-- 缩放调节 -->
-                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; padding: 0.5rem 1rem; background: #f5f5f7; border-radius: 8px;">
-                    <span style="font-size: 0.9rem; color: #86868b; white-space: nowrap;">缩放:</span>
-                    <input type="range" id="pixel-svg-size-slider" min="25" max="500" value="100" style="flex: 1;">
-                    <span id="pixel-svg-size-value" style="font-weight: 600; color: #0071e3; min-width: 60px; text-align: right;">100%</span>
-                </div>
-                
-                <!-- SVG显示区域 -->
-                <div style="flex: 1; overflow: auto; background: #fafafa; border-radius: 8px; display: flex; justify-content: center; align-items: flex-start; padding: 1rem;">
-                    <div id="pixel-svg-modal-svg" style="background: white; border-radius: 4px; flex-shrink: 0;"></div>
-                </div>
-                
-                <!-- 底部操作 -->
-                <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
-                    <button id="pixel-svg-download-btn" class="btn btn-primary">📥 下载SVG</button>
-                </div>
-            </div>
-        </div>
 
         <!-- 工具页 -->
         <section id="tools" class="section">
+            <header class="page-head">
+                <span class="page-kicker"><i class="page-kicker__dot"></i>02 · INSIGHT</span>
+                <h1 class="page-title">工具</h1>
+            </header>
             <div class="card">
                 <h3>📊 数据统计</h3>
                 <div class="stats-tabs">
@@ -164,7 +166,7 @@
                     <button id="load-stats" class="btn btn-primary">加载数据</button>
                 </div>
                 <div id="stats-summary" class="stats-summary"></div>
-                <div id="stats-chart-wrapper" class="chart-wrapper">
+                <div id="stats-chart-wrapper" class="chart-wrapper is-collapsed">
                     <canvas id="stats-chart"></canvas>
                 </div>
             </div>
@@ -176,7 +178,7 @@
                 </div>
                 <div id="uuid-result" class="result"></div>
             </div>
-            
+
             <div class="card">
                 <h3>🖼️ 我的图库</h3>
                 <div class="gallery-controls">
@@ -193,20 +195,23 @@
                 <div id="gallery-loading" class="gallery-loading" style="display:none">加载中...</div>
                 <button id="load-more-gallery" class="btn btn-secondary" style="display:none">加载更多</button>
             </div>
-            </div>
         </section>
 
         <!-- Danbooru 标签探索页 -->
         <section id="danbooru" class="section">
+            <header class="page-head">
+                <span class="page-kicker"><i class="page-kicker__dot"></i>03 · EXPLORE</span>
+                <h1 class="page-title">D 站 tag</h1>
+            </header>
             <div class="card">
                 <h3>🔍 Safebooru 标签探索</h3>
                 <p class="danbooru-desc">输入标签，搜索相关图片并发现更多标签</p>
-                
+
                 <div class="danbooru-search-box">
                     <input type="text" id="danbooru-search-input" placeholder="请输入 tag" autocomplete="off" />
                     <button id="danbooru-search-btn" class="btn btn-primary">🔍 搜索</button>
                 </div>
-                
+
                 <!-- 空状态快速标签 -->
                 <div id="danbooru-empty-state" class="danbooru-empty-state">
                     <div class="quick-tags-group">
@@ -224,16 +229,16 @@
                         <button class="quick-tag" data-tag="blue_archive">blue_archive</button>
                     </div>
                 </div>
-                
+
                 <!-- 顶部状态和分页 -->
                 <div class="danbooru-top-bar">
                     <div id="danbooru-status" class="status"></div>
                     <div id="danbooru-post-count" class="danbooru-count"></div>
                 </div>
-                
+
                 <!-- 图片网格 -->
                 <div id="danbooru-grid" class="danbooru-grid"></div>
-                
+
                 <!-- 底部翻页导航 -->
                 <div class="danbooru-pagination">
                     <div class="pagination-main">
@@ -256,16 +261,14 @@
                     <button id="danbooru-clear-btn" class="pagination-btn clear-btn">清空</button>
                 </div>
             </div>
-            </div>
         </section>
-    </main>
 
     <!-- 图片详情弹窗 -->
     <div id="image-detail-modal" class="modal">
         <div class="modal-content image-detail-modal">
             <div class="modal-header">
                 <h3>图片详情</h3>
-                <button class="modal-close" onclick="closeImageDetail()">×</button>
+                <button class="modal-close" onclick="closeImageDetail()" aria-label="关闭">×</button>
             </div>
             <div class="image-detail-body">
                 <div class="detail-info-row">
@@ -292,26 +295,26 @@
         <div class="modal-content danbooru-detail-modal">
             <div class="modal-header">
                 <h3>🖼️ 图片详情</h3>
-                <button class="modal-close" onclick="closeDanbooruDetailModal()">×</button>
+                <button class="modal-close" onclick="closeDanbooruDetailModal()" aria-label="关闭">×</button>
             </div>
             <div class="danbooru-detail-body">
                 <img id="detail-image" src="" alt="Detail" referrerpolicy="no-referrer-when-downgrade" />
                 <div id="detail-status" class="status"></div>
-                
+
                 <div class="detail-info-grid">
                     <div><strong>ID:</strong> <span id="detail-id">-</span></div>
                     <div><strong>分辨率:</strong> <span id="detail-resolution">-</span></div>
                     <div><strong>评分:</strong> <span id="detail-score">-</span> ⭐</div>
                     <div><strong>收藏:</strong> <span id="detail-favs">-</span> ❤️</div>
                 </div>
-                
+
                 <div class="divider"></div>
-                
+
                 <!-- 词条分类（点击添加到文本框） -->
                 <div id="detail-tags" class="detail-tags"></div>
-                
+
                 <div class="divider"></div>
-                
+
                 <!-- 已选词条文本框 -->
                 <div class="selected-tags-section">
                     <label class="section-label">已选词条：</label>
@@ -322,9 +325,9 @@
                         <button id="translate-selected-tags-btn" class="btn btn-primary">🌐 转翻译</button>
                     </div>
                 </div>
-                
+
                 <div class="divider"></div>
-                
+
                 <!-- 完整标签信息 -->
                 <div class="full-tags-section">
                     <label class="section-label">完整标签信息：</label>
@@ -343,7 +346,7 @@
         <div class="modal-content profile-modal">
             <div class="modal-header">
                 <h3>个人主页</h3>
-                <button class="modal-close" onclick="closeProfile()">×</button>
+                <button class="modal-close" onclick="closeProfile()" aria-label="关闭">×</button>
             </div>
             <div class="profile-body">
                 <div class="profile-header-section">
@@ -390,18 +393,6 @@
                     <button id="checkin-btn" class="btn btn-primary btn-full btn-lg">签到</button>
                     <div id="checkin-status" class="status"></div>
                 </div>
-                <div class="profile-settings">
-                    <div class="setting-item">
-                        <div class="setting-info">
-                            <div class="setting-title">定时签到</div>
-                            <div class="setting-desc">每天 0:01 自动签到</div>
-                        </div>
-                        <label class="toggle">
-                            <input type="checkbox" id="auto-checkin-toggle" />
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                </div>
                 <div class="profile-footer">
                     <button id="copy-token-btn" class="btn btn-outline btn-full" onclick="copyToken()">📋 复制 Token</button>
                     <button id="logout-btn" class="btn btn-secondary btn-full">退出登录</button>
@@ -415,7 +406,7 @@
         <div class="modal-content user-confirm-modal">
             <div class="modal-header">
                 <h3>确认用户</h3>
-                <button class="modal-close" onclick="closeUserConfirmModal()">×</button>
+                <button class="modal-close" onclick="closeUserConfirmModal()" aria-label="关闭">×</button>
             </div>
             <div class="user-confirm-body">
                 <div class="user-card" id="user-confirm-card">
@@ -435,8 +426,11 @@
 
         <!-- Kards 工具页（隐藏图标） -->
         <section id="kards" class="section">
+            <header class="page-head">
+                <span class="page-kicker"><i class="page-kicker__dot"></i>?? · ARCHIVE</span>
+                <h1 class="page-title">隐藏工具</h1>
+            </header>
             <div class="card">
-                <h3>隐藏工具</h3>
                 <div class="hidden-links">
                     <div class="hidden-link-item">
                         <h4>Kards DIY 工具</h4>
@@ -461,14 +455,17 @@
                     </div>
                 </div>
             </div>
-            </div>
         </section>
 
         <!-- 翻译页面 -->
         <section id="translate" class="section">
+            <header class="page-head">
+                <span class="page-kicker"><i class="page-kicker__dot"></i>04 · LANGUAGE</span>
+                <h1 class="page-title">翻译</h1>
+            </header>
             <div class="card">
                 <h3>标签翻译</h3>
-                
+
                 <div class="translate-container">
                     <div class="translate-row">
                         <div class="translate-box">
@@ -496,9 +493,9 @@
                                 <option value="vi">越南语</option>
                             </select>
                         </div>
-                        
+
                         <button id="translate-swap-btn" class="translate-swap-btn" title="交换语言">⇄</button>
-                        
+
                         <div class="translate-box">
                             <label>目标语言：</label>
                             <select id="translate-to">
@@ -524,51 +521,51 @@
                             </select>
                         </div>
                     </div>
-                    
+
                     <div class="translate-row">
                         <textarea id="translate-input" placeholder="输入要翻译的内容"></textarea>
                     </div>
-                    
+
                     <div class="translate-row translate-buttons">
                         <button id="translate-btn" class="btn btn-primary">翻译</button>
                         <button id="translate-copy-btn" class="btn">复制结果</button>
                         <button id="translate-format-btn" class="btn" title="大写转小写，下划线转空格，中文逗号转英文逗号">易译转化</button>
                         <button id="translate-api-btn" class="btn" title="切换翻译 API">API: 自动</button>
                     </div>
-                    
+
                     <div class="translate-row">
                         <textarea id="translate-output" placeholder="翻译结果将显示在这里" readonly></textarea>
                     </div>
-                    
+
                     <div id="translate-status" class="translate-status"></div>
                 </div>
-            </div>
             </div>
         </section>
 
         <!-- 像素画页面 -->
         <section id="pixel" class="section">
+            <header class="page-head">
+                <span class="page-kicker"><i class="page-kicker__dot"></i>05 · STUDIO</span>
+                <h1 class="page-title">像素画</h1>
+            </header>
             <div class="card">
                 <h3>🎨 Minecraft 像素画生成器</h3>
-                <p class="pixel-desc" style="font-size: 0.9rem; color: #86868b; margin-bottom: 1rem;">上传图片，自动转换为 Minecraft 像素画，并给出所需方块清单</p>
-                
-                <!-- 上传区域 -->
-                <div class="pixel-upload-area" id="pixel-upload-area" style="border: 2px dashed #d2d2d7; border-radius: 12px; padding: 2rem; text-align: center; cursor: pointer; transition: all 0.2s; background: #fafafa;">
-                    <input type="file" id="pixel-file-input" accept="image/*" style="display:none;">
-                    <div class="pixel-upload-icon" style="font-size: 3rem; margin-bottom: 0.5rem;">📷</div>
-                    <p style="font-weight: 500; color: #1d1d1f; margin-bottom: 0.25rem;">点击或拖拽图片到此处上传</p>
-                    <p style="font-size: 0.85rem; color: #86868b;">支持 JPG、PNG、GIF 等格式</p>
+                <p class="pixel-desc">上传图片，自动转换为 Minecraft 像素画，并给出所需方块清单</p>
+
+                <div class="pixel-upload-area" id="pixel-upload-area">
+                    <input type="file" id="pixel-file-input" accept="image/*" hidden>
+                    <div class="pixel-upload-icon">📷</div>
+                    <p class="pixel-upload-title">点击或拖拽图片到此处上传</p>
+                    <p class="pixel-upload-hint">支持 JPG、PNG、GIF 等格式</p>
                 </div>
-                
-                <!-- 原图预览 -->
-                <div id="pixel-original-preview" style="display:none; margin-top: 1rem;">
-                    <h4 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem;">原图</h4>
-                    <img id="pixel-original-img" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 1px solid #e5e5e5;">
+
+                <div id="pixel-original-preview" class="pixel-original-preview" style="display:none;">
+                    <h4>原图</h4>
+                    <img id="pixel-original-img" src="" alt="原图预览">
                 </div>
-                
-                <!-- 设置区域 -->
-                <div class="pixel-settings" style="margin-top: 1rem; padding: 1rem; background: #fafafa; border-radius: 8px;">
-                    <div class="setting-row" style="margin-bottom: 0.75rem;">
+
+                <div class="pixel-settings">
+                    <div class="setting-row">
                         <label class="setting-label">尺寸模式：</label>
                         <select id="pixel-size-mode" class="setting-select">
                             <option value="longside">按长边</option>
@@ -577,145 +574,158 @@
                             <option value="custom">自定义</option>
                         </select>
                     </div>
-                    <div class="setting-row" id="pixel-size-row" style="margin-bottom: 0.75rem;">
+                    <div class="setting-row" id="pixel-size-row">
                         <label class="setting-label">长边像素：</label>
                         <input type="range" id="pixel-size-slider" class="setting-range" min="16" max="256" step="8" value="64">
                         <span id="pixel-size-value" class="setting-value">64</span>
                     </div>
-                    <div class="setting-row" id="pixel-custom-row" style="display:none; margin-bottom: 0.75rem;">
+                    <div class="setting-row pixel-custom-row" id="pixel-custom-row">
                         <label class="setting-label">宽 × 高：</label>
-                        <input type="number" id="pixel-width-input" class="setting-input" min="1" max="512" value="64" style="width: 80px; padding: 0.5rem; border: 1px solid #d2d2d7; border-radius: 6px; font-size: 0.9rem;">
-                        <span style="margin: 0 0.5rem; color: #86868b;">×</span>
-                        <input type="number" id="pixel-height-input" class="setting-input" min="1" max="512" value="64" style="width: 80px; padding: 0.5rem; border: 1px solid #d2d2d7; border-radius: 6px; font-size: 0.9rem;">
+                        <input type="number" id="pixel-width-input" class="setting-input" min="1" max="512" value="64">
+                        <span>×</span>
+                        <input type="number" id="pixel-height-input" class="setting-input" min="1" max="512" value="64">
                     </div>
                     <div class="setting-row">
                         <label class="setting-label">保持比例：</label>
-                        <input type="checkbox" id="pixel-keep-ratio" checked style="width: 18px; height: 18px; cursor: pointer;">
+                        <input type="checkbox" id="pixel-keep-ratio" checked>
                     </div>
-                    <div class="setting-row" style="margin-bottom: 0.75rem;">
+                    <div class="setting-row">
                         <label class="setting-label">色彩区分度：</label>
                         <input type="range" id="pixel-discrimination-slider" class="setting-range" min="1" max="100" step="1" value="100">
                         <span id="pixel-discrimination-value" class="setting-value">100</span>
                     </div>
-                    <div class="setting-row" style="margin-bottom: 0.75rem;">
+                    <div class="setting-row">
                         <label class="setting-label">颜色算法：</label>
-                        <select id="pixel-color-algorithm" style="flex: 1; padding: 0.4rem; border: 1px solid #d2d2d7; border-radius: 6px; background: white; font-size: 0.9rem;">
+                        <select id="pixel-color-algorithm" class="setting-select">
                             <option value="redmean">红均值（推荐，快速）</option>
                             <option value="ciede2000">CIEDE2000（更准确）</option>
                         </select>
                     </div>
-                    <div class="setting-row" style="margin-bottom: 0.75rem;">
+                    <div class="setting-row">
                         <label class="setting-label">抖动算法：</label>
-                        <select id="pixel-dither-algorithm" style="flex: 1; padding: 0.4rem; border: 1px solid #d2d2d7; border-radius: 6px; background: white; font-size: 0.9rem;">
+                        <select id="pixel-dither-algorithm" class="setting-select">
                             <option value="none">无抖动</option>
                             <option value="floyd">Floyd-Steinberg（细腻）</option>
                             <option value="bayer">有序抖动（快速）</option>
                         </select>
                     </div>
-                    <div class="setting-row" style="margin-bottom: 0.75rem;">
+                    <div class="setting-row">
                         <label class="setting-label">保护边缘：</label>
                         <input type="range" id="pixel-edge-slider" class="setting-range" min="0" max="100" step="1" value="0">
                         <span id="pixel-edge-value" class="setting-value">关闭</span>
                     </div>
                 </div>
-                
-                <!-- 生成按钮 -->
+
                 <div class="btn-group">
                     <button id="pixel-generate-btn" class="btn btn-primary" disabled>生成像素画</button>
                 </div>
-                
-                <!-- 状态 -->
+
                 <div id="pixel-status" class="status"></div>
             </div>
-            
-            <!-- 像素画内容区（两栏布局容器） -->
-            <div id="pixel-content-container" style="display: none; gap: 1.5rem;">
-            <!-- 结果区域 -->
-            <div id="pixel-result-card" class="card">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
-                    <h3 style="margin: 0;">🖼️ 像素画预览</h3>
-                    <div style="display: flex; gap: 0.5rem; align-items: center;">
-                        <!-- 预览模式切换 -->
-                        <div style="display: flex; background: #f0f0f0; border-radius: 6px; padding: 2px;">
-                            <button id="pixel-mode-png" class="pixel-mode-btn active" style="padding: 4px 12px; border: none; background: white; border-radius: 4px; cursor: pointer; font-size: 0.85rem; color: #1d1d1f; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">位图</button>
-                            <button id="pixel-mode-svg" class="pixel-mode-btn" style="padding: 4px 12px; border: none; background: transparent; border-radius: 4px; cursor: pointer; font-size: 0.85rem; color: #86868b;">矢量图</button>
+
+            <div id="pixel-content-container" class="pixel-content-container" style="display:none;">
+                <div id="pixel-result-card" class="card pixel-result-card">
+                    <div class="pixel-card-head">
+                        <h3>🖼️ 像素画预览</h3>
+                        <div class="pixel-head-tools">
+                            <div class="pixel-mode-switch">
+                                <button id="pixel-mode-png" class="pixel-mode-btn active">位图</button>
+                                <button id="pixel-mode-svg" class="pixel-mode-btn">矢量图</button>
+                            </div>
+                            <button id="pixel-fullscreen-btn" class="pixel-fullscreen-btn" title="全屏预览">⛶</button>
                         </div>
-                        <!-- 全屏按钮 -->
-                        <button id="pixel-fullscreen-btn" style="padding: 4px 8px; border: 1px solid #d2d2d7; background: white; border-radius: 6px; cursor: pointer; font-size: 0.85rem; color: #1d1d1f;">⛶ 全屏</button>
+                    </div>
+                    <div class="pixel-result-container">
+                        <canvas id="pixel-result-canvas" style="cursor: crosshair;"></canvas>
+                        <div id="pixel-coordinate-display" class="pixel-coordinate-display">
+                            <span class="pixel-coord-label">坐标</span>
+                            <span id="pixel-coord-text" class="pixel-coord-text">-</span>
+                            <span id="pixel-coord-block" class="pixel-coord-block"></span>
+                        </div>
+                        <div id="pixel-result-svg" class="pixel-result-svg"></div>
+                    </div>
+                    <div class="btn-group">
+                        <button id="pixel-download-btn" class="btn btn-secondary">📥 下载PNG</button>
+                        <button id="pixel-download-svg-btn" class="btn btn-secondary" style="display:none;">📥 下载SVG</button>
+                        <button id="pixel-copy-list-btn" class="btn btn-secondary">📋 复制方块清单</button>
                     </div>
                 </div>
-                <div class="pixel-result-container" style="text-align: center; padding: 1rem; background: #fafafa; border-radius: 8px; margin-bottom: 1rem; position: relative;">
-                    <canvas id="pixel-result-canvas" style="max-width: 100%; background: #fafafa; border-radius: 4px; cursor: crosshair;"></canvas>
-                    <div id="pixel-coordinate-display" style="display: none; margin-top: 0.5rem; padding: 0.4rem 0.75rem; background: #fafafa; border-radius: 6px; font-size: 0.85rem; color: #1d1d1f; text-align: center;">
-                        <span style="color: #86868b;">坐标：</span>
-                        <span id="pixel-coord-text" style="font-weight: 600; color: #0071e3;">-</span>
-                        <span id="pixel-coord-block" style="margin-left: 0.5rem;"></span>
+
+                <div id="pixel-blocks-card" class="card pixel-blocks-card">
+                    <h3>🧱 方块清单</h3>
+                    <div class="pixel-stats">
+                        <div class="pixel-stat-item">
+                            <span>尺寸</span>
+                            <div id="pixel-stats-size">-</div>
+                        </div>
+                        <div class="pixel-stat-item">
+                            <span>总方块数</span>
+                            <div id="pixel-stats-total">-</div>
+                        </div>
+                        <div class="pixel-stat-item">
+                            <span>方块种类</span>
+                            <div id="pixel-stats-types">-</div>
+                        </div>
                     </div>
-                    <div id="pixel-result-svg" style="max-width: 100%; max-height: 500px; display: none; background: #fafafa; border-radius: 4px; overflow: auto;"></div>
+
+                    <div id="pixel-selected-block" class="pixel-selected-block">
+                        <div class="pixel-selected-label">📍 当前选中</div>
+                        <div class="pixel-selected-row">
+                            <div id="pixel-selected-color" class="pixel-selected-color"></div>
+                            <span id="pixel-selected-name"></span>
+                            <span id="pixel-selected-count" class="pixel-selected-count"></span>
+                        </div>
+                    </div>
+
+                    <div id="pixel-block-list" class="pixel-block-list"></div>
                 </div>
-                <div class="btn-group">
-                    <button id="pixel-download-btn" class="btn btn-secondary">📥 下载PNG</button>
-                    <button id="pixel-download-svg-btn" class="btn btn-secondary" style="display: none;">📥 下载SVG</button>
-                    <button id="pixel-copy-list-btn" class="btn btn-secondary">📋 复制方块清单</button>
-                </div>
-            </div>
-            
-            <!-- 方块清单 -->
-            <div id="pixel-blocks-card" class="card">
-                <h3>🧱 方块清单</h3>
-                <div class="pixel-stats" style="display: flex; gap: 1.5rem; margin-bottom: 1rem; padding: 0.75rem 1rem; background: #fafafa; border-radius: 8px;">
-                    <div class="pixel-stat-item">
-                        <span style="font-size: 0.85rem; color: #86868b;">尺寸</span>
-                        <div id="pixel-stats-size" style="font-weight: 600; color: #0071e3;">-</div>
-                    </div>
-                    <div class="pixel-stat-item">
-                        <span style="font-size: 0.85rem; color: #86868b;">总方块数</span>
-                        <div id="pixel-stats-total" style="font-weight: 600; color: #0071e3;">-</div>
-                    </div>
-                    <div class="pixel-stat-item">
-                        <span style="font-size: 0.85rem; color: #86868b;">方块种类</span>
-                        <div id="pixel-stats-types" style="font-weight: 600; color: #0071e3;">-</div>
-                    </div>
-                </div>
-                
-                <!-- 当前选中 -->
-                <div id="pixel-selected-block" style="display: none; margin-bottom: 1rem; padding: 0.75rem 1rem; background: #fff0f0; border: 1px solid #ff3b30; border-radius: 8px;">
-                    <div style="font-size: 0.8rem; color: #ff3b30; margin-bottom: 0.5rem; font-weight: 500;">📍 当前选中</div>
-                    <div style="display: flex; align-items: center;">
-                        <div id="pixel-selected-color" style="width: 28px; height: 28px; border-radius: 4px; margin-right: 12px; border: 1px solid #e5e5e5; flex-shrink: 0;"></div>
-                        <span id="pixel-selected-name" style="flex: 1; font-size: 0.95rem; color: #1d1d1f; font-weight: 500;"></span>
-                        <span id="pixel-selected-count" style="font-weight: 600; color: #ff3b30;"></span>
-                    </div>
-                </div>
-                
-                <div id="pixel-block-list" style="max-height: 400px; overflow-y: auto;"></div>
-            </div>
             </div>
         </section>
     </main>
+
+    <!-- 矢量图全屏预览 -->
+    <div id="pixel-svg-modal" class="modal" style="display: none;">
+        <div class="pixel-svg-panel">
+            <div class="pixel-svg-head">
+                <h3>🔍 矢量图预览</h3>
+                <button id="pixel-svg-modal-close" class="modal-close" title="关闭">×</button>
+            </div>
+            <div class="pixel-svg-controls">
+                <span>缩放</span>
+                <input type="range" id="pixel-svg-size-slider" min="25" max="500" value="100">
+                <span id="pixel-svg-size-value" class="pixel-svg-size-value">100%</span>
+            </div>
+            <div class="pixel-svg-stage">
+                <div id="pixel-svg-modal-svg"></div>
+            </div>
+            <div class="pixel-svg-foot">
+                <button id="pixel-svg-download-btn" class="btn btn-primary">📥 下载SVG</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Token 登录悬浮窗 -->
     <div id="login-modal" class="modal show">
         <div class="modal-content modal-login">
             <div class="modal-header">
                 <h3>登录</h3>
-                <button class="modal-close" onclick="if(window.closeLoginModal) closeLoginModal()">×</button>
+                <button class="modal-close" onclick="if(window.closeLoginModal) closeLoginModal()" aria-label="关闭">×</button>
             </div>
             <div class="login-body">
                 <p class="login-tip">打开网页版捏 ta - 个人主页左上角 - 隐私设置 - 获取 NETA TOKEN</p>
-                
+
                 <!-- 快捷登录按钮 -->
                 <button id="quick-login-btn" class="btn btn-secondary btn-full" onclick="if(window.showQuickLogin) showQuickLogin()">
                     👤 快捷登录
                 </button>
-                
+
                 <!-- 快捷登录列表（默认隐藏） -->
                 <div id="quick-login-list" class="quick-login-list" style="display:none"></div>
-                
+
                 <div id="quick-login-divider" class="quick-login-divider" style="display:none">
                     <span>或使用 Token 登录</span>
                 </div>
-                
+
                 <input type="text" id="token-input" placeholder="输入 NETA TOKEN" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
                 <button id="login-btn" class="btn btn-primary btn-full" onclick="if(window.handleLoginClick) handleLoginClick()">登录</button>
                 <div id="login-status" class="status"></div>
@@ -723,6 +733,16 @@
         </div>
     </div>
 
+    <footer class="site-footer">
+        <span class="site-footer__mark" aria-hidden="true"></span>
+        <span>Hail to the Empyrean</span>
+        <span class="site-footer__sep" aria-hidden="true">·</span>
+        <span class="site-footer__dim">所有数据只保存在你自己的浏览器里</span>
+    </footer>
+
     <script src="app.js?v=20260922v182"></script>
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="回到顶部">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 18.4V6.2" /><path d="M6.4 11.6 12 6l5.6 5.6" /></svg>
+    </button>
 </body>
 </html>

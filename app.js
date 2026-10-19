@@ -30,31 +30,18 @@ let likeSpeed = 200; // 默认 200ms
 let tagsFinishedLogged = false; // 标签完成日志是否已打印
 let usersFinishedLogged = false; // 用户完成日志是否已打印
 
-// 导航栏加载状态
-function updateNavbarLoading(page, isLoading) {
-    const navLink = document.querySelector(`.nav-link[href="#${page}"]`);
-    console.log(`[updateNavbarLoading] page=${page}, isLoading=${isLoading}, navLink=${!!navLink}`);
-    if (!navLink) return;
+// 导航栏运行指示：离开页面后，该页按钮上出现细线动效
+let statsBusy = false; // 工具页统计是否正在加载
 
-    if (isLoading) {
-        navLink.classList.add('loading');
-        console.log(`[updateNavbarLoading] 添加 loading 类到 #${page}`);
-    } else {
-        navLink.classList.remove('loading');
-        console.log(`[updateNavbarLoading] 移除 #${page} 的 loading 类`);
-    }
+function setNavBusy(page, busy) {
+    const navLink = document.querySelector(`.nav-link[data-page="${page}"]`);
+    if (!navLink) return;
+    navLink.classList.toggle('loading', !!busy);
 }
 
-// 更新导航栏加载状态(简化版)
-function updateNavbarLoading(page, isLoading) {
-    const navLink = document.querySelector(`.nav-link[href="#${page}"]`);
-    if (!navLink) return;
-
-    if (isLoading) {
-        navLink.classList.add('loading');
-    } else {
-        navLink.classList.remove('loading');
-    }
+function syncNavBusy() {
+    setNavBusy('like', isRunning && !isPaused && currentActivePage !== 'like');
+    setNavBusy('tools', statsBusy && currentActivePage !== 'tools');
 }
 
 // 页面切换
@@ -77,18 +64,8 @@ function switchPage(pageName) {
         hideLikeRecords();
     }
 
-    // 切换到点赞页,移除所有加载状态
-    if (pageName === 'like') {
-        updateNavbarLoading('like', false);
-        updateNavbarLoading('tools', false);
-    }
-    // 切换到工具页
-    else if (pageName === 'tools') {
-        updateNavbarLoading('tools', false);
-        if (isRunning) {
-            updateNavbarLoading('like', true);
-        }
-    }
+    // 刷新页按钮上的运行动效（只在离开该页时显示）
+    syncNavBusy();
 }
 
 // 初始化导航点击事件
@@ -174,7 +151,9 @@ function clearToken() {
 
     // 清空点赞状态
     isRunning = false;
+    syncNavBusy();
     isPaused = false;
+    syncNavBusy();
     likeStats = { total: 0, byTag: {}, startTime: null, lastIncrease: null };
     chartData = { labels: [], total: [], byTag: {} };
     tagPageMap = {};
@@ -930,12 +909,13 @@ function showToast(message, url = null) {
     // 创建或复用容器
     if (!toastContainer) {
         toastContainer = document.createElement('div');
-        toastContainer.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column-reverse;gap:6px;z-index:9999;max-width:calc(100vw - 40px);';
+        toastContainer.className = 'toast-stack';
         document.body.appendChild(toastContainer);
     }
 
     const toast = document.createElement('div');
-    toast.style.cssText = 'background:rgba(0,0,0,0.85);color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.3);animation:toastSlideIn 0.3s ease-out;cursor:' + (url ? 'pointer' : 'default') + ';white-space:nowrap;display:flex;align-items:center;gap:6px;';
+    toast.className = 'toast';
+    toast.style.cursor = url ? 'pointer' : 'default';
 
     toast.textContent = message;
 
@@ -1139,8 +1119,8 @@ async function searchTags(keyword) {
                 <div class="suggestion-name">${item.name}</div>
                 <div class="suggestion-meta">
                     ${item.type === 'activity' ? '🔥 活动' : '📍 空间'}
-                    ${item.popularity ? `· 热度:${item.popularity.toLocaleString()}` : ''}
-                    ${item.posts ? `· 帖子:${item.posts.toLocaleString()}` : ''}
+                    ${item.popularity ? `· 热度:${item.popularity}` : ''}
+                    ${item.posts ? `· 帖子:${item.posts}` : ''}
                 </div>
             `;
             div.addEventListener('click', () => addTag(item));
@@ -1251,7 +1231,7 @@ function renderTags() {
         return `
             <div class="tag-item">
                 <span>${tag.name}</span>
-                <span class="tag-info">${tag.type === 'activity' ? '🔥' : tag.type === 'space' ? '📍' : '🏷️'} ${tag.popularity ? tag.popularity.toLocaleString() : ''}</span>
+                <span class="tag-info">${tag.type === 'activity' ? '🔥' : tag.type === 'space' ? '📍' : '🏷️'} ${tag.popularity ? tag.popularity : ''}</span>
                 <span class="tag-page">第 <input type="number" class="page-input" data-tag="${tag.name}" value="${currentPage}" min="0" ${canEdit ? '' : 'disabled'} /> 页</span>
                 <button onclick="removeTag('${tag.name}')">×</button>
             </div>
@@ -1329,10 +1309,10 @@ function handleWorkerMessage(e) {
 
 function resetUI() {
     isRunning = false;
+    syncNavBusy();
     isPaused = false;
-    // 移除所有加载状态
-    updateNavbarLoading('like', false);
-    updateNavbarLoading('tools', false);
+    // 移除页按钮上的运行动效
+    syncNavBusy();
     const startBtn = document.getElementById('start-like');
     const pauseBtn = document.getElementById('pause-like');
     if (startBtn) {
@@ -1387,6 +1367,8 @@ function setupLikeButtons() {
             if (!isRunning) return;
 
             isPaused = !isPaused;
+
+            syncNavBusy();
             pauseBtn.textContent = isPaused ? '继续' : '暂停';
 
             if (likeWorker) {
@@ -1422,12 +1404,10 @@ function startLiking() {
     }
 
     isRunning = true;
+
     isPaused = false;
-    // 如果当前在工具页,立即显示点赞页加载状态
-    const currentPage = document.querySelector('.section.active')?.id;
-    if (currentPage === 'tools') {
-        updateNavbarLoading('like', true);
-    }
+    // 离开点赞页时在页按钮上显示描心动效
+    syncNavBusy();
     likeStats = {
         total: 0,
         byTag: {},
@@ -1503,7 +1483,9 @@ function startLiking() {
 
 function stopLiking() {
     isRunning = false;
+    syncNavBusy();
     isPaused = false;
+    syncNavBusy();
 
     if (likeWorker) {
         likeWorker.postMessage({ action: 'stop' });
@@ -1611,6 +1593,7 @@ async function startLikeLoop(tags) {
             if (unfinishedUsers.length === 0) {
                 // 所有任务都完成了
                 isRunning = false;
+                syncNavBusy();
                 log('所有任务已完成', 'success');
                 stopLiking();
                 break;
@@ -1643,6 +1626,7 @@ async function startLikeLoop(tags) {
             if (timeoutScope === 'all') {
                 // 整体:标签超时就停止整个进程
                 isRunning = false;
+                syncNavBusy();
                 log(`⚠️ ${timeoutDuration}分钟无增长,已停止`, 'error');
                 stopLiking();
                 break;
@@ -1656,6 +1640,7 @@ async function startLikeLoop(tags) {
                 if (unfinishedUsers.length === 0) {
                     // 用户也完成了,停止整个进程
                     isRunning = false;
+                    syncNavBusy();
                     log('所有任务已完成', 'success');
                     stopLiking();
                     break;
@@ -1672,6 +1657,7 @@ async function startLikeLoop(tags) {
 
     // 真正结束时重置按钮
     isRunning = false;
+    syncNavBusy();
     const startBtn = document.getElementById('start-like');
     const pauseBtn = document.getElementById('pause-like');
     if (startBtn) {
@@ -1787,6 +1773,7 @@ async function startUserLikeLoop(users) {
 
         if (unfinishedTags.length === 0 && unfinishedUsers.length === 0) {
             isRunning = false;
+            syncNavBusy();
             log('所有任务已完成', 'success');
             stopLiking();
             break;
@@ -1800,6 +1787,7 @@ async function startUserLikeLoop(users) {
             if (timeoutScope === 'all') {
                 // 整体:用户超时就停止整个进程
                 isRunning = false;
+                syncNavBusy();
                 log(`⚠️ ${timeoutDuration}分钟无增长,已停止`, 'error');
                 stopLiking();
                 break;
@@ -1813,6 +1801,7 @@ async function startUserLikeLoop(users) {
                 if (unfinishedTags.length === 0) {
                     // 标签也完成了,停止整个进程
                     isRunning = false;
+                    syncNavBusy();
                     log('所有任务已完成', 'success');
                     stopLiking();
                     break;
@@ -1828,6 +1817,7 @@ async function startUserLikeLoop(users) {
             if (unfinishedTagsCheck.length === 0) {
                 // 所有任务都完成了
                 isRunning = false;
+                syncNavBusy();
                 log('所有任务已完成', 'success');
                 stopLiking();
                 break;
@@ -1857,6 +1847,7 @@ async function startUserLikeLoop(users) {
 
     // 真正结束时重置按钮
     isRunning = false;
+    syncNavBusy();
     const startBtn = document.getElementById('start-like');
     const pauseBtn = document.getElementById('pause-like');
     if (startBtn) {
@@ -2083,10 +2074,10 @@ async function loadRanking() {
                     <div class="ranking-name" onclick="addTag({name:'${item.tag_name}',type:'${item.type}',popularity:${item.popularity || 0}})">${i + 1}. ${item.tag_name}</div>
                     <div class="ranking-meta">
                         ${item.type === 'activity' ? '🔥 活动' : '📍 空间'}
-                        ${item.popularity ? `· 热度:${item.popularity.toLocaleString()}` : ''}
+                        ${item.popularity ? `· 热度:${item.popularity}` : ''}
                     </div>
                 </div>
-                <div class="ranking-hot">${item.popularity ? '🔥 ' + item.popularity.toLocaleString() : '-'}</div>
+                <div class="ranking-hot">${item.popularity ? '🔥 ' + item.popularity : '-'}</div>
                 <button class="ranking-add" onclick="addTag({name:'${item.tag_name}',type:'${item.type}',popularity:${item.popularity || 0}})">+</button>
             </div>
         `).join('');
@@ -2296,7 +2287,6 @@ async function loadHotTags() {
 
 function setupCheckin() {
     const checkinBtn = document.getElementById('checkin-btn');
-    const autoCheckinToggle = document.getElementById('auto-checkin-toggle');
     const refreshProfileBtn = document.getElementById('refresh-profile-btn');
 
     if (checkinBtn) {
@@ -2366,101 +2356,6 @@ function setupCheckin() {
         });
     }
 
-    // 定时签到开关
-    if (autoCheckinToggle) {
-        // 加载保存的状态
-        const saved = localStorage.getItem('auto_checkin');
-        if (saved === 'true') {
-            autoCheckinToggle.checked = true;
-        }
-
-        autoCheckinToggle.addEventListener('change', async () => {
-            const enabled = autoCheckinToggle.checked;
-            localStorage.setItem('auto_checkin', enabled);
-
-            if (enabled) {
-                // 开启定时签到 - 需要配置 GitHub Actions
-                const token = getToken();
-                if (!token) {
-                    alert('请先登录');
-                    autoCheckinToggle.checked = false;
-                    return;
-                }
-
-                // 提示用户去配置
-                const confirmed = confirm(
-                    '开启定时签到需要配置 GitHub Actions。\n\n' +
-                    '是否跳转到配置页面?'
-                );
-
-                if (confirmed) {
-                    // 创建/更新 workflow 文件
-                    await setupGitHubActions(token);
-                } else {
-                    autoCheckinToggle.checked = false;
-                    localStorage.setItem('auto_checkin', 'false');
-                }
-            } else {
-                // 关闭定时签到
-                showStatus('checkin-status', '已关闭定时签到', 'success');
-            }
-        });
-    }
-}
-
-async function setupGitHubActions(token) {
-    const repo = 'clouds-agent/clouds-agent.github.io';
-
-    // 检查 workflow 是否存在
-    try {
-        // 这里需要调用 GitHub API 来创建/更新 workflow
-        // 由于需要额外的 GitHub Token,我们改为指导用户手动配置
-
-        const workflowContent = `name: 每日签到
-
-on:
-  schedule:
-    # 每天 0:01 中国时区 (UTC 16:01)
-    - cron: '1 16 * * *'
-  workflow_dispatch:
-
-jobs:
-  checkin:
-    runs-on: ubuntu-latest
-    steps:
-      - name: 签到
-        run: |
-          curl -X POST "https://api.talesofai.cn/v1/checkin/manual" \\
-            -H "x-token: \${{ secrets.NETA_TOKEN }}" \\
-            -H "x-platform: nieta-app/web"
-`;
-
-        // 显示配置说明
-        alert(
-            '请按以下步骤配置定时签到:\n\n' +
-            '1. 打开仓库:https://github.com/' + repo + '/settings/secrets/actions\n' +
-            '2. 点击 "New repository secret"\n' +
-            '3. 添加 Secret:\n' +
-            '   Name: NETA_TOKEN\n' +
-            '   Value: 你的 Token(已自动复制)\n\n' +
-            '4. 打开:https://github.com/' + repo + '/actions/new-workflow\n' +
-            '5. 选择 "set up a workflow yourself"\n' +
-            '6. 粘贴以下内容:\n\n' + workflowContent +
-            '\n7. 点击 "Commit changes"\n\n' +
-            '配置完成后,每天 0:01 会自动签到!'
-        );
-
-        // 复制 Token 到剪贴板
-        try {
-            await navigator.clipboard.writeText(token);
-        } catch (e) {
-            console.log('无法自动复制 Token,请手动复制');
-        }
-
-    } catch (error) {
-        console.error('配置失败:', error);
-        alert('配置失败:' + error.message);
-    }
 }
 
 // ============ 数据统计 ============
@@ -2820,7 +2715,7 @@ function renderStatsSummary(stats, type) {
             <div class="stat-value">${stats.allTotal}</div>
             <div class="stat-label">历史总量</div>
         </div>
-        <div class="stat-card ${classPrefix}" style="min-width: 200px;">
+        <div class="stat-card stat-card--wide ${classPrefix}">
             <div class="stat-value" style="font-size: 14px; line-height: 1.4;">${latestTime}</div>
             <div class="stat-label">${typeLabel}最新</div>
         </div>
@@ -2854,11 +2749,13 @@ async function updateStatsUI() {
 
     console.log(`[updateStatsUI] type=${currentStatsType}, range=${range}, days=${days}`);
 
-    // 设置导航栏加载状态(只有切换到其他页面时才显示)
-    const currentPage = document.querySelector('.section.active')?.id;
-    if (currentPage !== 'tools') {
-        updateNavbarLoading('tools', true);
-    }
+    // 运行中：离开工具页时按钮上显示扳手动效
+    statsBusy = true;
+    syncNavBusy();
+
+    // 展开图表面板（空闲时折叠）
+    const chartWrapper = document.getElementById('stats-chart-wrapper');
+    if (chartWrapper) chartWrapper.classList.remove('is-collapsed');
 
     // 显示加载提示
     const chartContainer = document.getElementById('stats-chart');
@@ -2877,21 +2774,54 @@ async function updateStatsUI() {
         loadBtn.textContent = '加载中...';
     }
 
-    const stats = await loadStatsData(currentStatsType, days);
+    try {
+        const stats = await loadStatsData(currentStatsType, days);
 
-    if (stats) {
-        console.log(`[updateStatsUI] 加载完成,total=${stats.total}, byDate 键数量=${Object.keys(stats.byDate).length}`);
-        renderStatsSummary(stats, currentStatsType);
-        renderStatsChart(stats, currentStatsType);
+        if (stats) {
+            console.log(`[updateStatsUI] 加载完成,total=${stats.total}, byDate 键数量=${Object.keys(stats.byDate).length}`);
+            renderStatsSummary(stats, currentStatsType);
+            renderStatsChart(stats, currentStatsType);
+        } else if (chartWrapper) {
+            chartWrapper.classList.add('is-collapsed');
+        }
+    } catch (err) {
+        console.error('[updateStatsUI] 加载失败', err);
+        if (chartWrapper) chartWrapper.classList.add('is-collapsed');
+    } finally {
+        statsBusy = false;
+        syncNavBusy();
+
+        if (loadBtn) {
+            loadBtn.disabled = false;
+            loadBtn.textContent = '加载数据';
+        }
     }
+}
 
-    if (loadBtn) {
-        loadBtn.disabled = false;
-        loadBtn.textContent = '加载数据';
-    }
+// 一键回到顶部：滚过第一屏才出现
+function setupBackToTop() {
+    const btn = document.getElementById('back-to-top');
+    if (!btn) return;
 
-    // 移除导航栏加载状态
-    updateNavbarLoading('tools', false);
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let ticking = false;
+
+    const update = () => {
+        btn.classList.toggle('is-visible', window.scrollY > 320);
+        ticking = false;
+    };
+
+    window.addEventListener('scroll', () => {
+        if (ticking) return;
+        ticking = true;
+        window.requestAnimationFrame(update);
+    }, { passive: true });
+
+    update();
+
+    btn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+    });
 }
 
 function setupStats() {
@@ -2910,8 +2840,11 @@ function setupStats() {
             }
             const summaryEl = document.getElementById('stats-summary');
             const chartEl = document.getElementById('stats-chart');
+            const wrapperEl = document.getElementById('stats-chart-wrapper');
             if (summaryEl) summaryEl.innerHTML = '';
             if (chartEl) chartEl.innerHTML = '';
+            // 没有数据时把面板折叠起来
+            if (wrapperEl) wrapperEl.classList.add('is-collapsed');
         });
     });
 
@@ -3146,6 +3079,8 @@ function init() {
     setupGallery();
     setupDanbooruExplorer();
     setupTranslate();
+    setupBackToTop();
+    syncNavBusy();
     loadHotTags();
 
     // 历史标签
@@ -5005,7 +4940,7 @@ function generatePixelArt() {
 
             // 更新统计信息
             document.getElementById('pixel-stats-size').textContent = `${targetSize.width} × ${targetSize.height}`;
-            document.getElementById('pixel-stats-total').textContent = totalBlocks.toLocaleString();
+            document.getElementById('pixel-stats-total').textContent = totalBlocks;
             document.getElementById('pixel-stats-types').textContent = Object.keys(blockCounts).length;
 
             // 渲染方块列表
@@ -5057,10 +4992,10 @@ function renderBlockList(blockCounts) {
         const [r, g, b] = data.color;
         const isHighlighted = highlightedBlock === name;
         return `
-            <div class="pixel-block-item" data-block-name="${name}" style="display: flex; align-items: center; padding: 8px 12px; background: ${isHighlighted ? '#fff0f0' : '#fafafa'}; border-radius: 6px; margin-bottom: 6px; cursor: pointer; transition: all 0.2s; border: 1px solid ${isHighlighted ? '#ff3b30' : 'transparent'};">
-                <div style="width: 24px; height: 24px; border-radius: 4px; margin-right: 12px; border: 1px solid #e5e5e5; flex-shrink: 0; background: rgb(${r}, ${g}, ${b});"></div>
-                <span style="flex: 1; font-size: 0.9rem; color: #1d1d1f;">${name}</span>
-                <span style="font-weight: 600; color: #0071e3;">${data.count}</span>
+            <div class="pixel-block-item${isHighlighted ? ' highlighted' : ''}" data-block-name="${name}">
+                <div class="swatch" style="background: rgb(${r}, ${g}, ${b});"></div>
+                <span class="name">${name}</span>
+                <span class="count">${data.count}</span>
             </div>
         `;
     }).join('');
@@ -5177,12 +5112,6 @@ function switchPixelMode(mode) {
         svgEl.style.display = 'none';
         pngBtn.classList.add('active');
         svgBtn.classList.remove('active');
-        pngBtn.style.background = 'white';
-        pngBtn.style.color = '#1d1d1f';
-        pngBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
-        svgBtn.style.background = 'transparent';
-        svgBtn.style.color = '#86868b';
-        svgBtn.style.boxShadow = 'none';
         // 切换下载按钮
         if (downloadBtn) downloadBtn.style.display = '';
         if (downloadSvgBtn) downloadSvgBtn.style.display = 'none';
@@ -5192,12 +5121,6 @@ function switchPixelMode(mode) {
         svgEl.style.display = '';
         pngBtn.classList.remove('active');
         svgBtn.classList.add('active');
-        pngBtn.style.background = 'transparent';
-        pngBtn.style.color = '#86868b';
-        pngBtn.style.boxShadow = 'none';
-        svgBtn.style.background = 'white';
-        svgBtn.style.color = '#1d1d1f';
-        svgBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
         // 更新SVG内容
         updateSvgPreview();
         // 切换下载按钮
@@ -5207,7 +5130,7 @@ function switchPixelMode(mode) {
 }
 
 // 全屏弹窗相关
-const baseModalPixelSize = 20; // 100%缩放时的方块大小
+let baseModalPixelSize = 20; // 100%缩放时的方块大小（打开弹窗时按预览区尺寸自适应）
 let modalPixelSize = 20; // 弹窗中的方块大小
 
 // 打开SVG全屏弹窗
@@ -5221,6 +5144,14 @@ function openSvgModal() {
     if (!modal) return;
 
     modal.style.display = 'flex';
+
+    // 100% 缩放 = 刚好铺满预览舞台，避免大图默认被裁切
+    const stage = modal.querySelector('.pixel-svg-stage');
+    if (stage && pixelResultData && pixelResultData.width && pixelResultData.height) {
+        const fitWidth = (stage.clientWidth - 28) / pixelResultData.width;
+        const fitHeight = (stage.clientHeight - 28) / pixelResultData.height;
+        baseModalPixelSize = Math.max(2, Math.min(20, Math.floor(Math.min(fitWidth, fitHeight))));
+    }
 
     // 初始化滑块值
     const slider = document.getElementById('pixel-svg-size-slider');
@@ -5391,19 +5322,16 @@ function initPixelArtPage() {
     // 拖拽上传
     uploadArea.addEventListener('dragover', (e) => {
         e.preventDefault();
-        uploadArea.style.borderColor = '#0071e3';
-        uploadArea.style.background = '#f0f7ff';
+        uploadArea.classList.add('is-dragover');
     });
 
     uploadArea.addEventListener('dragleave', () => {
-        uploadArea.style.borderColor = '#d2d2d7';
-        uploadArea.style.background = '#fafafa';
+        uploadArea.classList.remove('is-dragover');
     });
 
     uploadArea.addEventListener('drop', (e) => {
         e.preventDefault();
-        uploadArea.style.borderColor = '#d2d2d7';
-        uploadArea.style.background = '#fafafa';
+        uploadArea.classList.remove('is-dragover');
 
         const files = e.dataTransfer.files;
         if (files.length > 0 && files[0].type.startsWith('image/')) {
