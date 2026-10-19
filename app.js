@@ -480,11 +480,51 @@ function closeProfile() {
     }
 }
 
+// 从 token 的 JWT 载荷里读过期时间(expires_at 为秒级时间戳)
+function getTokenExpiryDate() {
+    try {
+        const token = getToken();
+        if (!token) return null;
+        const parts = token.split('.');
+        if (parts.length < 2) return null;
+        let b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        while (b64.length % 4 !== 0) b64 += '=';
+        const payload = JSON.parse(decodeURIComponent(escape(atob(b64))));
+        const exp = payload.expires_at || payload.exp;
+        if (!exp) return null;
+        const date = new Date(exp * 1000);
+        return isNaN(date.getTime()) ? null : date;
+    } catch (e) {
+        return null;
+    }
+}
+
+// 在个人主页 ID 右侧显示「当前 token 将在 yyyy.mm.dd 过期」
+function updateTokenExpiryUI() {
+    const el = document.getElementById('profile-token-expire');
+    if (!el) return;
+    const date = getTokenExpiryDate();
+    if (!date) {
+        el.hidden = true;
+        el.textContent = '';
+        el.classList.remove('is-expiring');
+        return;
+    }
+    const ymd = date.getFullYear() + '.' +
+        String(date.getMonth() + 1).padStart(2, '0') + '.' +
+        String(date.getDate()).padStart(2, '0');
+    el.textContent = '当前 token 将在 ' + ymd + ' 过期';
+    el.hidden = false;
+    el.classList.toggle('is-expiring', (date.getTime() - Date.now()) < 30 * 24 * 3600 * 1000);
+}
+
 function updateProfileUI() {
     if (!userProfile) {
         console.log('没有用户信息,不更新 UI');
         return;
     }
+
+    updateTokenExpiryUI();
 
     console.log('更新用户界面:', userProfile);
 
@@ -2137,46 +2177,50 @@ async function searchUUID(keyword) {
 
     try {
         const all = [];
+        const headers = { 'x-token': token, 'x-platform': 'nieta-app/web' };
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(keyword);
 
-        // 搜索角色(20 个)
-        try {
-            const charUrl = `${API_BASE}/v2/travel/parent-search?keywords=${encodeURIComponent(keyword)}&page_index=0&page_size=20&parent_type=oc&sort_scheme=exact`;
-            console.log('角色搜索 URL:', charUrl);
-            const charRes = await fetch(charUrl, {
-                headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
-            });
-            console.log('角色 API 状态:', charRes.status);
-            if (charRes.ok) {
-                const charData = await charRes.json();
-                console.log('角色搜索结果:', charData.list?.length || 0);
-                const chars = (charData.list || []).map(c => ({ ...c, searchType: '角色' }));
-                all.push(...chars);
+        // 1) 输入整串 UUID：直接取详情（parent-search 只认名称，传 UUID 永远 0 条）
+        if (isUuid) {
+            try {
+                const detailRes = await fetch(`${API_BASE}/v2/travel/parent/${encodeURIComponent(keyword)}`, { headers });
+                if (detailRes.ok) {
+                    const detail = await detailRes.json();
+                    if (detail && detail.uuid) {
+                        all.push({ ...detail, searchType: detail.type === 'elementum' ? '元素' : '角色' });
+                    }
+                }
+            } catch (e) {
+                console.error('UUID 详情查询失败:', e);
             }
-        } catch (e) {
-            console.error('角色搜索失败:', e);
         }
 
-        // 搜索元素(20 个)
-        try {
-            const elemUrl = `${API_BASE}/v2/travel/parent-search?keywords=${encodeURIComponent(keyword)}&page_index=0&page_size=20&parent_type=elementum&sort_scheme=exact`;
-            console.log('元素搜索 URL:', elemUrl);
-            const elemRes = await fetch(elemUrl, {
-                headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
-            });
-            console.log('元素 API 状态:', elemRes.status);
-            if (elemRes.ok) {
-                const elemData = await elemRes.json();
-                console.log('元素搜索结果:', elemData.list?.length || 0);
-                const elems = (elemData.list || []).map(e => ({ ...e, searchType: '元素' }));
-                all.push(...elems);
+        // 2) 按名称模糊搜索。
+        //    注意：sort_scheme 只能是 best（exact 为全名精确，省略或其它值服务端直接返回 total=0）
+        if (all.length === 0) {
+            for (const [parentType, label] of [['oc', '角色'], ['elementum', '元素']]) {
+                try {
+                    const url = `${API_BASE}/v2/travel/parent-search?keywords=${encodeURIComponent(keyword)}&page_index=0&page_size=20&parent_type=${parentType}&sort_scheme=best`;
+                    const res = await fetch(url, { headers });
+                    if (!res.ok) continue;
+                    const data = await res.json();
+                    const list = data.list || [];
+                    console.log(label + '搜索结果:', list.length);
+                    all.push(...list.map(item => ({ ...item, searchType: label })));
+                } catch (e) {
+                    console.error(label + '搜索失败:', e);
+                }
             }
-        } catch (e) {
-            console.error('元素搜索失败:', e);
         }
 
-        // 按热度排序(如果有 popularity 字段)
-        all.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
-        const top20 = all.slice(0, 20);
+        // 去重（同一个 UUID 只留一条）
+        const seen = new Set();
+        const unique = all.filter(item => {
+            if (!item || !item.uuid || seen.has(item.uuid)) return false;
+            seen.add(item.uuid);
+            return true;
+        });
+        const top20 = unique.slice(0, 20);
 
         console.log('UUID 搜索最终结果:', top20.length, '个');
 
@@ -2185,23 +2229,38 @@ async function searchUUID(keyword) {
             return;
         }
 
+        const esc = (value) => String(value == null ? '' : value).replace(/[&<>"']/g, (ch) => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[ch]));
+
         top20.forEach(item => {
             const div = document.createElement('div');
             div.className = 'suggestion-item';
             div.innerHTML = `
-                <div class="suggestion-name">${item.name}</div>
-                <div class="suggestion-meta">${item.searchType} · ${item.uuid}</div>
+                <div class="suggestion-name">${esc(item.name || '（未命名）')}</div>
+                <div class="suggestion-meta">${item.searchType} · ${esc(item.uuid)}</div>
             `;
             div.addEventListener('click', () => {
                 const resultEl = document.getElementById('uuid-result');
                 if (resultEl) {
+                    const avatarRaw = item.config && item.config.avatar_img;
+                    const avatarSrc = avatarRaw
+                        ? (avatarRaw.indexOf('http') === 0 || avatarRaw.indexOf('data:') === 0
+                            ? avatarRaw
+                            : 'https://oss.talesofai.cn/picture/' + avatarRaw)
+                        : '';
                     resultEl.innerHTML = `
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
-                            <div><strong>名称:</strong> ${item.name}</div>
-                            <button class="btn-copy-uuid" data-uuid="${item.uuid}">复制</button>
+                        <div class="uuid-result-card">
+                            ${avatarSrc ? `<img class="uuid-result-avatar" src="${esc(avatarSrc)}" alt="" onerror="this.style.display='none'" />` : ''}
+                            <div class="uuid-result-main">
+                                <div class="uuid-result-head">
+                                    <span class="uuid-result-name">${esc(item.name || '（未命名）')}</span>
+                                    <span class="uuid-result-type">${item.searchType}</span>
+                                    <button class="btn-copy-uuid" data-uuid="${esc(item.uuid)}">复制</button>
+                                </div>
+                                <code class="uuid-result-code">${esc(item.uuid)}</code>
+                            </div>
                         </div>
-                        <div><strong>类型:</strong> ${item.searchType}</div>
-                        <div><strong>UUID:</strong> <code>${item.uuid}</code></div>
                     `;
 
                     // 绑定复制按钮

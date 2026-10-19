@@ -171,9 +171,9 @@
                 </div>
             </div>
             <div class="card">
-                <h3>UUID 查询</h3>
+                <h3>UUID / 名称查询</h3>
                 <div class="search-box">
-                    <input type="text" id="uuid-search" placeholder="搜索角色或元素（输入关键词自动联想）" autocomplete="off" />
+                    <input type="text" id="uuid-search" placeholder="粘贴 UUID，或输入角色 / 元素名称" autocomplete="off" />
                     <div id="uuid-suggestions" class="suggestions"></div>
                 </div>
                 <div id="uuid-result" class="result"></div>
@@ -354,7 +354,10 @@
                         <div class="profile-avatar-large">
                             <img id="profile-avatar-img" src="" alt="头像" />
                         </div>
-                        <div class="profile-name-large" id="profile-name">-</div>
+                        <div class="profile-name-block">
+                            <span class="profile-name-large" id="profile-name">-</span>
+                            <span class="profile-token-expire" id="profile-token-expire" hidden></span>
+                        </div>
                     </div>
                 </div>
                 <div class="profile-stats-large">

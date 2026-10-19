@@ -2560,6 +2560,8 @@ input[type="checkbox"] {
     margin-top: 0.6rem;
     max-height: 190px;
     overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
 }
 
 .quick-login-item {
@@ -2577,7 +2579,7 @@ input[type="checkbox"] {
 .quick-login-item:hover {
     background: #fff;
     border-color: rgba(91, 140, 255, 0.3);
-    transform: translateX(2px);
+    box-shadow: 0 6px 14px -12px rgba(17, 26, 46, 0.55);
 }
 
 .quick-login-avatar {
@@ -2667,6 +2669,14 @@ input[type="checkbox"] {
     background: #fff;
 }
 
+.profile-name-block {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.2rem 0.6rem;
+    min-width: 0;
+}
+
 .profile-name-large {
     margin: 0;
     font-size: 1.1rem;
@@ -2674,6 +2684,30 @@ input[type="checkbox"] {
     letter-spacing: -0.01em;
     color: var(--ink);
     word-break: break-word;
+}
+
+.profile-token-expire {
+    flex: 0 0 auto;
+    padding: 0.14rem 0.52rem;
+    border-radius: 999px;
+    border: 1px solid rgba(17, 26, 46, 0.07);
+    background: rgba(17, 26, 46, 0.042);
+    color: var(--faint);
+    font-size: 0.68rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    line-height: 1.55;
+    white-space: nowrap;
+}
+
+.profile-token-expire[hidden] {
+    display: none;
+}
+
+.profile-token-expire.is-expiring {
+    color: #9a5a12;
+    border-color: rgba(214, 138, 40, 0.32);
+    background: rgba(255, 176, 84, 0.16);
 }
 
 .profile-stats-large {
@@ -2727,7 +2761,7 @@ input[type="checkbox"] {
 
 .stat-large-with-refresh {
     position: relative;
-    gap: 0.3rem;
+    gap: 0.1rem;
 }
 
 .stat-large-with-refresh .btn-refresh-inline {
@@ -2756,17 +2790,7 @@ input[type="checkbox"] {
     transform: translateY(-50%) rotate(150deg);
 }
 
-.stat-large-with-refresh #profile-same-style {
-    font-size: 0.82rem;
-    font-weight: 650;
-    color: var(--accent-ink);
-    cursor: pointer;
-    transition: color 0.2s;
-}
-
-.stat-large-with-refresh #profile-same-style:hover {
-    color: #2f6bd0;
-}
+/* 捏同款数值与其它统计项保持同一套字体/颜色/字号（1.12rem / 700 / 墨色） */
 
 .profile-actions {
     flex-direction: column;
@@ -4133,21 +4157,96 @@ input[type="checkbox"] {
     background: rgba(91, 140, 255, 0.08);
 }
 
+/* UUID 查询结果卡 */
+.uuid-result-card {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    margin-top: 0.75rem;
+    padding: 0.7rem 0.85rem;
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    background: var(--surface-strong);
+    box-shadow: 0 14px 30px -26px rgba(17, 26, 46, 0.7);
+}
+
+.uuid-result-avatar {
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--r-sm);
+    object-fit: cover;
+    background: rgba(91, 157, 255, 0.1);
+}
+
+.uuid-result-main {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 0.28rem;
+    min-width: 0;
+}
+
+.uuid-result-head {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+}
+
+.uuid-result-name {
+    overflow: hidden;
+    color: var(--ink);
+    font-size: 0.94rem;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.uuid-result-type {
+    flex: 0 0 auto;
+    padding: 0.08rem 0.45rem;
+    border-radius: var(--r-pill);
+    background: rgba(91, 157, 255, 0.13);
+    color: var(--accent-ink);
+    font-size: 0.68rem;
+    font-weight: 650;
+    letter-spacing: 0.04em;
+}
+
+.uuid-result-head .btn-copy-uuid {
+    flex: 0 0 auto;
+    margin-left: auto;
+}
+
+.uuid-result-code {
+    align-self: flex-start;
+    max-width: 100%;
+    padding: 0.08rem 0.4rem;
+    border-radius: var(--r-xs);
+    background: rgba(17, 26, 46, 0.05);
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    word-break: break-all;
+}
+
 /* ---------- 29. 回到顶部 ---------- */
+/* 贴在主内容卡右边缘外侧（940px 内容列 + 约 12px 间隙），窄屏才退回视口边距 */
 .back-to-top {
     position: fixed;
-    right: clamp(0.9rem, 2.4vw, 1.6rem);
+    right: max(clamp(0.7rem, 2vw, 1.2rem), calc((100vw - 940px) / 2 - 1.35rem));
     bottom: clamp(1.1rem, 3vw, 1.9rem);
     z-index: 880;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
+    width: 38px;
+    height: 38px;
     padding: 0;
     border: 1px solid rgba(255, 255, 255, 0.8);
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.72);
+    background: rgba(255, 255, 255, 0.62);
     -webkit-backdrop-filter: blur(16px) saturate(160%);
     backdrop-filter: blur(16px) saturate(160%);
     box-shadow: 0 14px 30px -18px rgba(17, 26, 46, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.9);
