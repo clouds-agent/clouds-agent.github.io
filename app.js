@@ -3384,7 +3384,9 @@ async function openCreationDetail(uuid) {
         if (nameEl && data.name) nameEl.textContent = data.name;
         if (typeEl) typeEl.textContent = isCharacter ? '角色' : (data.vtoken_type ? '元素' : (CREATION_TYPE_LABEL[meta.type] || '-'));
 
-        const raw = (data.positive_prompt || '').trim();
+        let raw = (data.positive_prompt == null ? '' : String(data.positive_prompt)).trim();
+        // 接口偶尔把空词条写成字符串 "null" / "undefined"，当成没有词条处理
+        if (/^(null|undefined|none)$/i.test(raw)) raw = '';
 
         if (!raw) {
             const fallbackTag = data.name || meta.name || '（无词条）';
