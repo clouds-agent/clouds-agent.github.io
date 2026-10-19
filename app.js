@@ -1168,6 +1168,7 @@ async function searchTags(keyword) {
         });
 
         suggestionsEl.classList.add('show');
+        fitSuggestions(suggestionsEl);
     } catch (error) {
         console.error('搜索失败:', error);
     }
@@ -2126,6 +2127,24 @@ async function loadRanking() {
     }
 }
 
+// 建议列表定位：空间不够时向上展开，并把高度限制在视口内，避免被底部截断
+function fitSuggestions(el) {
+    if (!el || !el.parentElement) return;
+    el.classList.remove('is-up');
+    el.style.maxHeight = '';
+    const box = el.parentElement.getBoundingClientRect();
+    const margin = 16;
+    const preferred = 320;
+    const spaceBelow = window.innerHeight - box.bottom - margin;
+    const spaceAbove = box.top - margin;
+    if (spaceBelow < preferred && spaceAbove > spaceBelow) {
+        el.classList.add('is-up');
+        el.style.maxHeight = Math.max(140, Math.min(preferred, spaceAbove)) + 'px';
+    } else {
+        el.style.maxHeight = Math.max(140, Math.min(preferred, spaceBelow)) + 'px';
+    }
+}
+
 // ============ UUID 查询 ============
 
 let uuidDebounce = null;
@@ -2178,38 +2197,21 @@ async function searchUUID(keyword) {
     try {
         const all = [];
         const headers = { 'x-token': token, 'x-platform': 'nieta-app/web' };
-        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(keyword);
 
-        // 1) 输入整串 UUID：直接取详情（parent-search 只认名称，传 UUID 永远 0 条）
-        if (isUuid) {
+        // 按名称模糊搜索：角色 + 元素各查一轮。
+        // 注意 parent-search 的 keywords 只匹配名称（传 UUID 永远 0 条），
+        // sort_scheme 只能是 best（exact 为全名精确，省略或其它值服务端直接返回 total=0）
+        for (const [parentType, label] of [['oc', '角色'], ['elementum', '元素']]) {
             try {
-                const detailRes = await fetch(`${API_BASE}/v2/travel/parent/${encodeURIComponent(keyword)}`, { headers });
-                if (detailRes.ok) {
-                    const detail = await detailRes.json();
-                    if (detail && detail.uuid) {
-                        all.push({ ...detail, searchType: detail.type === 'elementum' ? '元素' : '角色' });
-                    }
-                }
+                const url = `${API_BASE}/v2/travel/parent-search?keywords=${encodeURIComponent(keyword)}&page_index=0&page_size=20&parent_type=${parentType}&sort_scheme=best`;
+                const res = await fetch(url, { headers });
+                if (!res.ok) continue;
+                const data = await res.json();
+                const list = data.list || [];
+                console.log(label + '搜索结果:', list.length);
+                all.push(...list.map(item => ({ ...item, searchType: label })));
             } catch (e) {
-                console.error('UUID 详情查询失败:', e);
-            }
-        }
-
-        // 2) 按名称模糊搜索。
-        //    注意：sort_scheme 只能是 best（exact 为全名精确，省略或其它值服务端直接返回 total=0）
-        if (all.length === 0) {
-            for (const [parentType, label] of [['oc', '角色'], ['elementum', '元素']]) {
-                try {
-                    const url = `${API_BASE}/v2/travel/parent-search?keywords=${encodeURIComponent(keyword)}&page_index=0&page_size=20&parent_type=${parentType}&sort_scheme=best`;
-                    const res = await fetch(url, { headers });
-                    if (!res.ok) continue;
-                    const data = await res.json();
-                    const list = data.list || [];
-                    console.log(label + '搜索结果:', list.length);
-                    all.push(...list.map(item => ({ ...item, searchType: label })));
-                } catch (e) {
-                    console.error(label + '搜索失败:', e);
-                }
+                console.error(label + '搜索失败:', e);
             }
         }
 
@@ -2283,6 +2285,7 @@ async function searchUUID(keyword) {
         });
 
         suggestionsEl.classList.add('show');
+        fitSuggestions(suggestionsEl);
     } catch (error) {
         console.error('搜索失败:', error);
     }

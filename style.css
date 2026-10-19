@@ -673,6 +673,12 @@ body:has(#kards.active) #kards-btn {
     backdrop-filter: blur(18px) saturate(150%);
 }
 
+/* 建议列表浮在后续卡片之上（卡片自带 backdrop-filter 会形成层叠上下文，
+   不抬高层级时下拉会被下一张卡片盖住） */
+.card:has(.suggestions.show) {
+    z-index: 40;
+}
+
 .card::before {
     content: "";
     position: absolute;
@@ -1215,6 +1221,12 @@ input[type="checkbox"] {
 .suggestions.show {
     display: block;
     animation: popIn 0.18s var(--ease) both;
+}
+
+/* 下方空间不足时由 JS 切到向上展开 */
+.suggestions.is-up {
+    top: auto;
+    bottom: calc(100% + 0.4rem);
 }
 
 .suggestion-item {
