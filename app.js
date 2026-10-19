@@ -3056,8 +3056,10 @@ async function loadGallery(isFirstLoad = false) {
                 <div class="gallery-item-info">
                     <div class="gallery-item-url">${displayUrl}</div>
                     <div class="gallery-item-time">${item.ctime || ''}</div>
-                    <span class="gallery-item-status ${item.status === 'SUCCESS' ? 'success' : 'failure'}">${item.status === 'SUCCESS' ? '成功' : '失败'}</span>
-                    <button class="gallery-item-search-btn" onclick="showImageDetail('${item.uuid}', event)" title="查看详情">详情</button>
+                    <div class="item-meta-row">
+                        <span class="gallery-item-status ${item.status === 'SUCCESS' ? 'success' : 'failure'}">${item.status === 'SUCCESS' ? '成功' : '失败'}</span>
+                        <button class="item-detail-btn" onclick="showImageDetail('${item.uuid}', event)" title="查看详情">详情</button>
+                    </div>
                 </div>
             `;
 
@@ -3105,7 +3107,7 @@ async function loadGallery(isFirstLoad = false) {
             // 点击复制 URL(无论成功失败都可以复制),但搜索按钮除外
             itemEl.addEventListener('click', async (e) => {
                 // 如果点击的是搜索按钮,不复制 URL
-                if (e.target.closest('.gallery-item-search-btn')) {
+                if (e.target.closest('.item-detail-btn')) {
                     return;
                 }
 
@@ -3140,6 +3142,295 @@ async function loadGallery(isFirstLoad = false) {
     }
 }
 
+// ============ 我的造物 ============
+
+let creationType = 'oc';
+let creationPageIndex = 0;
+let creationLoading = false;
+let creationHasLoaded = false;
+const creationItems = new Map();
+let currentCreationTag = '';
+
+const CREATION_TYPE_LABEL = { oc: '角色', elementum: '元素' };
+const CREATION_TYPE_ICON = { oc: '🧑‍🎨', elementum: '🧩' };
+
+function setupCreations() {
+    const loadBtn = document.getElementById('load-creations');
+    const loadMoreBtn = document.getElementById('load-more-creations');
+    const gridEl = document.getElementById('creations-grid');
+    if (!loadBtn || !gridEl) return;
+
+    const tabs = Array.from(document.querySelectorAll('[data-creation-type]'));
+
+    loadBtn.addEventListener('click', () => {
+        creationPageIndex = 0;
+        creationItems.clear();
+        gridEl.innerHTML = '';
+        if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+        loadCreations(true);
+    });
+
+    if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', () => loadCreations(false));
+    }
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const type = tab.getAttribute('data-creation-type');
+            if (!type || type === creationType) return;
+            creationType = type;
+            tabs.forEach(t => {
+                const on = t === tab;
+                t.classList.toggle('active', on);
+                t.setAttribute('aria-selected', on ? 'true' : 'false');
+            });
+            creationPageIndex = 0;
+            creationItems.clear();
+            gridEl.innerHTML = '';
+            if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+            if (creationHasLoaded || getToken()) loadCreations(true);
+        });
+    });
+}
+
+async function loadCreations(isFirstLoad = false) {
+    if (creationLoading) return;
+
+    const token = getToken();
+    if (!token) {
+        alert('请先登录');
+        return;
+    }
+
+    let userUuid = userProfile && userProfile.uuid;
+    if (!userUuid) {
+        const profile = await loadUserProfile();
+        userUuid = profile && profile.uuid;
+    }
+    if (!userUuid) {
+        showToast('获取用户信息失败，请重新登录');
+        return;
+    }
+
+    creationLoading = true;
+    creationHasLoaded = true;
+
+    const loadingEl = document.getElementById('creations-loading');
+    const loadMoreBtn = document.getElementById('load-more-creations');
+    const gridEl = document.getElementById('creations-grid');
+    if (loadingEl) loadingEl.style.display = 'block';
+    if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+
+    const pageSize = 24;
+    const type = creationType;
+
+    try {
+        const res = await fetch(`${API_BASE}/v2/travel/parent?user_uuid=${encodeURIComponent(userUuid)}&parent_type=${type}&page_index=${creationPageIndex}&page_size=${pageSize}`, {
+            headers: {
+                'x-token': token,
+                'x-platform': 'nieta-app/web'
+            }
+        });
+
+        if (!res.ok) {
+            throw new Error(`加载失败（${res.status}）`);
+        }
+
+        const data = await res.json();
+        const list = data.list || [];
+
+        if (isFirstLoad) gridEl.innerHTML = '';
+
+        list.forEach(item => gridEl.appendChild(buildCreationItem(item, type)));
+
+        if (isFirstLoad && list.length === 0) {
+            const empty = document.createElement('p');
+            empty.className = 'creation-empty';
+            empty.textContent = `还没有${CREATION_TYPE_LABEL[type] || '造物'}，去捏一个吧`;
+            gridEl.appendChild(empty);
+        }
+
+        creationPageIndex++;
+
+        if (loadMoreBtn && list.length === pageSize) {
+            loadMoreBtn.style.display = 'block';
+        }
+    } catch (error) {
+        console.error('加载造物失败:', error);
+        showToast('加载造物失败:' + error.message);
+    } finally {
+        creationLoading = false;
+        if (loadingEl) loadingEl.style.display = 'none';
+    }
+}
+
+function escapeAttr(str) {
+    return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function buildCreationItem(item, type) {
+    const uuid = item.uuid;
+    const name = item.name || item.short_name || '未命名';
+    const cover = (item.config && (item.config.avatar_img || item.config.header_img)) || '';
+    creationItems.set(uuid, { name, type, cover });
+
+    const el = document.createElement('div');
+    el.className = 'gallery-item creation-item';
+    el.dataset.uuid = uuid;
+
+    const fallback = document.createElement('div');
+    fallback.className = 'gallery-item-media creation-item-placeholder';
+    fallback.textContent = CREATION_TYPE_ICON[type] || '✨';
+    fallback.style.display = cover ? 'none' : 'flex';
+
+    let img = null;
+    if (cover) {
+        img = document.createElement('img');
+        img.className = 'gallery-item-media';
+        img.loading = 'lazy';
+        img.alt = name;
+        img.src = cover;
+        img.addEventListener('error', () => {
+            img.style.display = 'none';
+            fallback.style.display = 'flex';
+        });
+    }
+
+    const info = document.createElement('div');
+    info.className = 'gallery-item-info';
+    const row = document.createElement('div');
+    row.className = 'item-meta-row';
+
+    const nameEl = document.createElement('span');
+    nameEl.className = 'creation-name';
+    nameEl.title = name;
+    nameEl.textContent = name;
+
+    const btn = document.createElement('button');
+    btn.className = 'item-detail-btn';
+    btn.type = 'button';
+    btn.title = '查看原 tag';
+    btn.textContent = '详情';
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openCreationDetail(uuid);
+    });
+
+    row.appendChild(nameEl);
+    row.appendChild(btn);
+    info.appendChild(row);
+
+    if (img) el.appendChild(img);
+    el.appendChild(fallback);
+    el.appendChild(info);
+
+    el.addEventListener('click', () => openCreationDetail(uuid));
+
+    return el;
+}
+
+function stripCharacterWeights(text) {
+    return String(text).split(/,\s*/).map(part => {
+        const term = part.trim();
+        if (!term) return '';
+        const matched = term.match(/^\((.+):([0-9]*\.?[0-9]+)\)$/);
+        if (!matched) return term;
+        const inner = matched[1].trim();
+        const weight = parseFloat(matched[2]);
+        if (!isFinite(weight)) return term;
+        // 系统给每条外观词额外乘了 1.1，除掉它即可还原用户自己写的权重
+        const own = Math.round((weight / 1.1) * 1000) / 1000;
+        if (Math.abs(own - 1) < 0.005) return inner;
+        return `(${inner}:${own})`;
+    }).filter(Boolean).join(', ');
+}
+
+async function openCreationDetail(uuid) {
+    const modal = document.getElementById('creation-detail-modal');
+    const nameEl = document.getElementById('creation-detail-name');
+    const typeEl = document.getElementById('creation-detail-type');
+    const tagEl = document.getElementById('creation-detail-tag');
+    const tipEl = document.getElementById('creation-detail-tip');
+    if (!modal || !tagEl) return;
+
+    const meta = creationItems.get(uuid) || { name: '', type: creationType };
+
+    currentCreationTag = '';
+    if (nameEl) nameEl.textContent = meta.name || '-';
+    if (typeEl) typeEl.textContent = CREATION_TYPE_LABEL[meta.type] || '-';
+    if (tipEl) tipEl.textContent = '';
+    tagEl.textContent = '加载中...';
+    modal.classList.add('show');
+
+    try {
+        const token = getToken();
+        if (!token) {
+            tagEl.textContent = '请先登录';
+            return;
+        }
+
+        const res = await fetch(`${API_BASE}/v2/oc/tcp-expand?tcp_uuid=${encodeURIComponent(uuid)}&weight=1`, {
+            headers: {
+                'x-token': token,
+                'x-platform': 'nieta-app/web'
+            }
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const data = await res.json();
+        const isCharacter = (data.vtoken_type || '') === 'character';
+
+        if (nameEl && data.name) nameEl.textContent = data.name;
+        if (typeEl) typeEl.textContent = isCharacter ? '角色' : (data.vtoken_type ? '元素' : (CREATION_TYPE_LABEL[meta.type] || '-'));
+
+        const raw = (data.positive_prompt || '').trim();
+
+        if (!raw) {
+            const fallbackTag = data.name || meta.name || '（无词条）';
+            tagEl.textContent = fallbackTag;
+            currentCreationTag = fallbackTag;
+            if (tipEl) tipEl.textContent = '这个造物没有保存外观词条，只能给出名称。';
+            return;
+        }
+
+        const tag = isCharacter ? stripCharacterWeights(raw) : raw;
+        tagEl.textContent = tag;
+        currentCreationTag = tag;
+
+        if (tipEl) {
+            tipEl.textContent = isCharacter
+                ? '已去掉系统给每条外观词加的 1.1 权重；自己加过的权重会按除以 1.1 还原成原本的数值。'
+                : '元素 tag 直接来自元素自身的词条，系统没有额外加权，这里原样展示。';
+        }
+    } catch (error) {
+        console.error('获取造物详情失败:', error);
+        tagEl.textContent = `获取失败:${error.message}`;
+    }
+}
+
+function closeCreationDetail() {
+    const modal = document.getElementById('creation-detail-modal');
+    if (modal) modal.classList.remove('show');
+}
+
+function copyCreationTag() {
+    if (!currentCreationTag) {
+        showToast('暂无可复制的 tag');
+        return;
+    }
+    navigator.clipboard.writeText(currentCreationTag).then(() => {
+        showToast('已复制原 tag');
+    }).catch(() => {
+        showToast('复制失败');
+    });
+}
+
+document.addEventListener('click', (e) => {
+    const modal = document.getElementById('creation-detail-modal');
+    if (modal && e.target === modal) closeCreationDetail();
+});
+
 // ============ 初始化 ============
 
 function init() {
@@ -3156,6 +3447,7 @@ function init() {
     setupCheckin();
     setupStats();
     setupGallery();
+    setupCreations();
     setupDanbooruExplorer();
     setupTranslate();
     setupBackToTop();

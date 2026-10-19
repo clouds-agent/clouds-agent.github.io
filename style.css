@@ -2196,33 +2196,82 @@ input[type="checkbox"] {
     color: #ab2a24;
 }
 
-.gallery-item-search-btn {
-    position: absolute;
-    top: 0.45rem;
-    right: 0.45rem;
-    padding: 0.22rem 0.55rem;
-    border: 0;
-    border-radius: var(--r-pill);
-    background: rgba(17, 26, 46, 0.52);
-    color: #fff;
-    font-size: 0.66rem;
-    letter-spacing: 0.02em;
-    cursor: pointer;
-    opacity: 0;
-    transform: translateY(-2px);
-    -webkit-backdrop-filter: blur(6px);
-    backdrop-filter: blur(6px);
-    transition: opacity 0.22s, transform 0.22s var(--ease), background 0.2s;
+/* 卡片底部一行：状态 / 名称 + 详情按钮（我的图库与我的造物共用） */
+.item-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.24rem;
+    min-width: 0;
 }
 
-.gallery-item:hover .gallery-item-search-btn,
-.gallery-item:focus-within .gallery-item-search-btn {
-    opacity: 1;
+.item-meta-row .gallery-item-status {
+    align-self: center;
+    margin-top: 0;
+}
+
+.item-detail-btn {
+    flex: 0 0 auto;
+    margin-left: auto;
+    padding: 0.14rem 0.52rem;
+    border: 1px solid rgba(91, 140, 255, 0.3);
+    border-radius: var(--r-pill);
+    background: rgba(91, 157, 255, 0.1);
+    color: #3b6fd4;
+    font-size: 0.65rem;
+    font-weight: 650;
+    line-height: 1.5;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.2s var(--ease);
+}
+
+.item-detail-btn:hover {
+    background: rgba(91, 157, 255, 0.2);
+    border-color: rgba(91, 140, 255, 0.5);
+    color: #2557b8;
+    transform: translateY(-1px);
+}
+
+.item-detail-btn:active {
     transform: none;
 }
 
-.gallery-item-search-btn:hover {
-    background: rgba(17, 26, 46, 0.78);
+/* 我的造物 */
+.creation-name {
+    min-width: 0;
+    font-size: 0.78rem;
+    font-weight: 640;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.creation-item-placeholder {
+    align-items: center;
+    justify-content: center;
+    font-size: 1.7rem;
+    background: linear-gradient(150deg, #eef3fb, #e6eef9);
+}
+
+.creation-empty {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding: 1.2rem;
+    border-radius: var(--r-md);
+    background: rgba(250, 252, 255, 0.7);
+    border: 1px dashed rgba(17, 26, 46, 0.12);
+    text-align: center;
+    font-size: 0.82rem;
+    color: var(--faint);
+}
+
+.creation-detail-tip {
+    margin: 0.6rem 0 0;
+    font-size: 0.72rem;
+    line-height: 1.6;
+    color: var(--faint);
 }
 
 .gallery-loading {

@@ -231,6 +231,20 @@
             </div>
 
             <div class="card">
+                <h3>✨ 我的造物</h3>
+                <div class="gallery-controls">
+                    <div class="stats-tabs" id="creation-tabs" role="tablist" aria-label="造物类型">
+                        <button class="stats-tab active" data-creation-type="oc" role="tab" aria-selected="true">角色</button>
+                        <button class="stats-tab" data-creation-type="elementum" role="tab" aria-selected="false">元素</button>
+                    </div>
+                    <button id="load-creations" class="btn btn-primary">加载造物</button>
+                </div>
+                <div id="creations-grid" class="gallery-grid"></div>
+                <div id="creations-loading" class="gallery-loading" style="display:none">加载中...</div>
+                <button id="load-more-creations" class="btn btn-secondary" style="display:none">加载更多</button>
+            </div>
+
+            <div class="card">
                 <h3>🖼️ 我的图库</h3>
                 <div class="gallery-controls">
                     <div class="gallery-filter">
@@ -337,6 +351,34 @@
                     </button>
                 </div>
                 <div class="detail-prompts-box" id="detail-prompts"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 我的造物详情弹窗 -->
+    <div id="creation-detail-modal" class="modal">
+        <div class="modal-content image-detail-modal">
+            <div class="modal-header">
+                <h3>造物详情</h3>
+                <button class="modal-close" onclick="closeCreationDetail()" aria-label="关闭">×</button>
+            </div>
+            <div class="image-detail-body">
+                <div class="detail-info-row">
+                    <span class="detail-info-label">名称：</span>
+                    <span id="creation-detail-name" class="detail-info-value">-</span>
+                </div>
+                <div class="detail-info-row">
+                    <span class="detail-info-label">类型：</span>
+                    <span id="creation-detail-type" class="detail-info-value">-</span>
+                </div>
+                <div class="detail-prompts-row">
+                    <span class="detail-prompts-label">原 tag</span>
+                    <button class="btn-copy-prompts" onclick="copyCreationTag()" title="复制原 tag" aria-label="复制原 tag">
+                        <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                    </button>
+                </div>
+                <div class="detail-prompts-box" id="creation-detail-tag">加载中...</div>
+                <p class="creation-detail-tip" id="creation-detail-tip"></p>
             </div>
         </div>
     </div>
