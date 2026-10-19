@@ -455,9 +455,9 @@ code, kbd, samp, pre {
     transform: translateX(-50%);
 }
 
-/* 隐藏入口：kards —— 始终不可见，只占导航最右端一小块热区 */
-#kards-btn,
-.nav-link#kards-btn {
+/* 隐藏入口 —— 始终不可见，只占导航最右端一小块热区 */
+#rightmost,
+.nav-link#rightmost {
     position: absolute;
     right: 0;
     top: 50%;
@@ -475,15 +475,15 @@ code, kbd, samp, pre {
     cursor: pointer;
 }
 
-#kards-btn::after {
+#rightmost::after {
     content: none;
 }
 
-#kards-btn:hover,
-#kards-btn:focus,
-#kards-btn:focus-visible,
-#kards-btn.loaded,
-body:has(#kards.active) #kards-btn {
+#rightmost:hover,
+#rightmost:focus,
+#rightmost:focus-visible,
+#rightmost.loaded,
+body:has(#kards.active) #rightmost {
     opacity: 0;
     background: transparent;
     box-shadow: none;
@@ -2324,13 +2324,6 @@ input[type="checkbox"] {
     color: var(--faint);
 }
 
-.creation-detail-tip {
-    margin: 0.6rem 0 0;
-    font-size: 0.72rem;
-    line-height: 1.6;
-    color: var(--faint);
-}
-
 .gallery-loading {
     margin-top: 1rem;
     padding: 1.2rem;
@@ -3009,6 +3002,14 @@ input[type="checkbox"] {
     color: var(--ink-2);
     white-space: pre-wrap;
     word-break: break-word;
+}
+
+/* 原始信息：整段 JSON，可滚动 */
+.detail-prompts-box.is-raw {
+    max-height: 320px;
+    font-size: 0.68rem;
+    line-height: 1.5;
+    word-break: break-all;
 }
 
 /* ---------- 24. D 站详情 ---------- */
@@ -3886,8 +3887,8 @@ input[type="checkbox"] {
         font-size: 0.8rem;
     }
 
-    #kards-btn,
-    .nav-link#kards-btn {
+    #rightmost,
+    .nav-link#rightmost {
         margin-right: 1rem;
     }
 

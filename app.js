@@ -693,7 +693,7 @@ function setupNavigation() {
     });
 
     // Kards 按钮双击
-    const kardsBtn = document.getElementById('kards-btn');
+    const kardsBtn = document.getElementById('rightmost');
     if (kardsBtn) {
         let kardsClickTimeout = null;
         let kardsLastClickTime = 0;
@@ -3252,6 +3252,8 @@ let creationLoading = false;
 let creationHasLoaded = false;
 const creationItems = new Map();
 let currentCreationTag = '';
+let currentCreationRaw = '';
+let creationRawMode = false;
 
 const CREATION_TYPE_LABEL = { oc: '角色', elementum: '元素' };
 const CREATION_TYPE_ICON = { oc: '🧑‍🎨', elementum: '🧩' };
@@ -3436,10 +3438,11 @@ function stripCharacterWeights(text) {
         const term = part.trim();
         if (!term) return '';
         const matched = term.match(/^\((.+):([0-9]*\.?[0-9]+)\)$/);
-        if (!matched) return term;
+        // 不带权重的词是创建时按性别补上的 1girl / solo，不属于外观词条
+        if (!matched) return '';
         const inner = matched[1].trim();
         const weight = parseFloat(matched[2]);
-        if (!isFinite(weight)) return term;
+        if (!isFinite(weight)) return '';
         // 系统给每条外观词额外乘了 1.1，除掉它即可还原用户自己写的权重
         const own = Math.round((weight / 1.1) * 1000) / 1000;
         if (Math.abs(own - 1) < 0.005) return inner;
@@ -3447,20 +3450,36 @@ function stripCharacterWeights(text) {
     }).filter(Boolean).join(', ');
 }
 
+function renderCreationPrompts() {
+    const labelEl = document.getElementById('creation-detail-label');
+    const tagEl = document.getElementById('creation-detail-tag');
+    if (labelEl) labelEl.textContent = creationRawMode ? '原始信息' : '原 tag';
+    if (!tagEl) return;
+    tagEl.classList.toggle('is-raw', creationRawMode);
+    tagEl.textContent = creationRawMode ? currentCreationRaw : currentCreationTag;
+}
+
+function toggleCreationRaw() {
+    if (!currentCreationRaw) return;
+    creationRawMode = !creationRawMode;
+    renderCreationPrompts();
+}
+
 async function openCreationDetail(uuid) {
     const modal = document.getElementById('creation-detail-modal');
     const nameEl = document.getElementById('creation-detail-name');
     const typeEl = document.getElementById('creation-detail-type');
     const tagEl = document.getElementById('creation-detail-tag');
-    const tipEl = document.getElementById('creation-detail-tip');
     if (!modal || !tagEl) return;
 
     const meta = creationItems.get(uuid) || { name: '', type: creationType };
 
     currentCreationTag = '';
+    currentCreationRaw = '';
+    creationRawMode = false;
+    renderCreationPrompts();
     if (nameEl) nameEl.textContent = meta.name || '-';
     if (typeEl) typeEl.textContent = CREATION_TYPE_LABEL[meta.type] || '-';
-    if (tipEl) tipEl.textContent = '';
     tagEl.textContent = '加载中...';
     modal.classList.add('show');
 
@@ -3481,6 +3500,7 @@ async function openCreationDetail(uuid) {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         const data = await res.json();
+        currentCreationRaw = JSON.stringify(data, null, 2);
         const isCharacter = (data.vtoken_type || '') === 'character';
 
         if (nameEl && data.name) nameEl.textContent = data.name;
@@ -3490,25 +3510,13 @@ async function openCreationDetail(uuid) {
         // 接口偶尔把空词条写成字符串 "null" / "undefined"，当成没有词条处理
         if (/^(null|undefined|none)$/i.test(raw)) raw = '';
 
-        if (!raw) {
-            const fallbackTag = data.name || meta.name || '（无词条）';
-            tagEl.textContent = fallbackTag;
-            currentCreationTag = fallbackTag;
-            if (tipEl) tipEl.textContent = '这个造物没有保存外观词条，只能给出名称。';
-            return;
-        }
-
-        const tag = isCharacter ? stripCharacterWeights(raw) : raw;
-        tagEl.textContent = tag;
-        currentCreationTag = tag;
-
-        if (tipEl) {
-            tipEl.textContent = isCharacter
-                ? '已去掉系统给每条外观词加的 1.1 权重；自己加过的权重会按除以 1.1 还原成原本的数值。'
-                : '元素 tag 直接来自元素自身的词条，系统没有额外加权，这里原样展示。';
-        }
+        currentCreationTag = raw ? (isCharacter ? stripCharacterWeights(raw) : raw) : (data.name || meta.name || '');
+        renderCreationPrompts();
+        if (!currentCreationTag) tagEl.textContent = '（无外观词条）';
     } catch (error) {
         console.error('获取造物详情失败:', error);
+        currentCreationRaw = '';
+        currentCreationTag = '';
         tagEl.textContent = `获取失败:${error.message}`;
     }
 }
@@ -3519,12 +3527,13 @@ function closeCreationDetail() {
 }
 
 function copyCreationTag() {
-    if (!currentCreationTag) {
-        showToast('暂无可复制的 tag');
+    const text = creationRawMode ? currentCreationRaw : currentCreationTag;
+    if (!text) {
+        showToast(creationRawMode ? '暂无可复制的原始信息' : '暂无可复制的 tag');
         return;
     }
-    navigator.clipboard.writeText(currentCreationTag).then(() => {
-        showToast('已复制原 tag');
+    navigator.clipboard.writeText(text).then(() => {
+        showToast(creationRawMode ? '已复制原始信息' : '已复制原 tag');
     }).catch(() => {
         showToast('复制失败');
     });

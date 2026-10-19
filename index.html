@@ -98,7 +98,7 @@
         <button class="nav-link" data-page="danbooru">D 站 tag</button>
         <button class="nav-link" data-page="translate">翻译</button>
         <button class="nav-link" data-page="pixel">像素画</button>
-        <button class="nav-link" id="kards-btn" aria-label="隐藏工具（彩蛋）"></button>
+        <button class="nav-link" id="rightmost" aria-hidden="true" tabindex="-1"></button>
     </nav>
 
     <main class="container">
@@ -375,13 +375,12 @@
                     <span id="creation-detail-type" class="detail-info-value">-</span>
                 </div>
                 <div class="detail-prompts-row">
-                    <span class="detail-prompts-label">原 tag</span>
+                    <span class="detail-prompts-label" id="creation-detail-label" onclick="toggleCreationRaw()">原 tag</span>
                     <button class="btn-copy-prompts" onclick="copyCreationTag()" title="复制原 tag" aria-label="复制原 tag">
                         <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
                     </button>
                 </div>
                 <div class="detail-prompts-box" id="creation-detail-tag">加载中...</div>
-                <p class="creation-detail-tip" id="creation-detail-tip"></p>
             </div>
         </div>
     </div>
