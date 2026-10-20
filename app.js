@@ -3477,8 +3477,8 @@ function stripCharacterWeights(text) {
         const inner = matched[1].trim();
         const weight = parseFloat(matched[2]);
         if (!isFinite(weight)) return '';
-        // 系统给每条外观词额外乘了 1.1，除掉它即可还原用户自己写的权重
-        const own = Math.round((weight / 1.1) * 1000) / 1000;
+        // 系统给每条外观词额外乘了 1.1，除掉它即可还原用户自己写的权重；2.0 是封顶值，原值只会更大
+        const own = weight >= 2 ? 2 : Math.round((weight / 1.1) * 1000) / 1000;
         if (Math.abs(own - 1) < 0.005) return inner;
         return `(${inner}:${own})`;
     }).filter(Boolean).join(', ');
