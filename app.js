@@ -3056,21 +3056,23 @@ function setupGallery() {
     }
 }
 
-const PICTURE_EXTS = ['png', 'webp', 'jpg', 'jpeg'];
+const PICTURE_EXTS = ['png', 'webp', 'gif', 'jpg', 'jpeg'];
+// 审核没通过的作品通常只剩一份 webp 或 png，按这三类试就够
+const PICTURE_PROBE_EXTS = ['webp', 'png', 'gif'];
 
 function pictureUrlFor(uuid, ext) {
     return `https://oss.talesofai.cn/picture/${uuid}.${ext}`;
 }
 
 function pictureUrlExt(url) {
-    const matched = String(url || '').match(/\.(png|webp|jpe?g)(?:\?|$)/i);
+    const matched = String(url || '').match(/\.(png|webp|gif|jpe?g)(?:\?|$)/i);
     return matched ? matched[1].toLowerCase() : '';
 }
 
 // 每张图解析出真后缀后记一份，翻页或重绘时不再重复探测
 const pictureExtCache = new Map();
 
-function buildPictureCandidates(uuid, directUrl, isSuccess) {
+function buildPictureCandidates(uuid, directUrl, status) {
     const list = [];
     const seen = new Set();
     const add = (url, ext) => {
@@ -3080,11 +3082,13 @@ function buildPictureCandidates(uuid, directUrl, isSuccess) {
         seen.add(key);
         list.push(url);
     };
+    const isSuccess = status === 'SUCCESS';
     const cached = pictureExtCache.get(uuid);
     if (cached) add(pictureUrlFor(uuid, cached), cached);
     if (directUrl) add(directUrl, pictureUrlExt(directUrl));
-    // 没通过审核的作品多数只剩一份 webp 或 png，不再把 jpg/jpeg 全试一遍
-    const exts = isSuccess ? PICTURE_EXTS : ['webp', 'png'];
+    // 生成失败(FAILURE)的作品在 OSS 上没有任何文件，不再空试四个后缀
+    if (!isSuccess && status === 'FAILURE' && !directUrl) return list;
+    const exts = isSuccess ? PICTURE_EXTS : PICTURE_PROBE_EXTS;
     exts.forEach(ext => add(pictureUrlFor(uuid, ext), ext));
     return list;
 }
@@ -3095,7 +3099,7 @@ function buildGalleryItem(item, modality, preferDirectUrl = false) {
 
     const directUrl = typeof item.url === 'string' ? item.url : '';
     const isSuccess = item.status === 'SUCCESS';
-    const candidates = modality === 'PICTURE' ? buildPictureCandidates(item.uuid, directUrl, isSuccess) : [];
+    const candidates = modality === 'PICTURE' ? buildPictureCandidates(item.uuid, directUrl, item.status) : [];
 
     let mediaHtml = '';
     let displayUrl = '';
@@ -3108,7 +3112,9 @@ function buildGalleryItem(item, modality, preferDirectUrl = false) {
             : `<div class="gallery-item-media" style="display:flex;align-items:center;justify-content:center;background:#000;color:#fff;font-size:2rem;">🎬</div>`;
     } else {
         displayUrl = candidates[0] || '';
-        mediaHtml = `<img src="${displayUrl}" alt="" class="gallery-item-media" loading="lazy"/><div class="gallery-item-media" style="display:none;align-items:center;justify-content:center;color:#86868b;">❌</div>`;
+        mediaHtml = candidates.length
+            ? `<img src="${displayUrl}" alt="" class="gallery-item-media" loading="lazy"/><div class="gallery-item-media" style="display:none;align-items:center;justify-content:center;color:#86868b;">❌</div>`
+            : `<div class="gallery-item-media" style="display:flex;align-items:center;justify-content:center;color:#86868b;">❌</div>`;
     }
 
     itemEl.innerHTML = `
@@ -3123,8 +3129,8 @@ function buildGalleryItem(item, modality, preferDirectUrl = false) {
         </div>
     `;
 
-    // 图片后缀不固定：接口直链优先,失败再按 png→webp→jpg→jpeg 依次退
-    if (modality === 'PICTURE') {
+    // 图片后缀不固定：接口直链优先，失败再按 png→webp→gif→jpg→jpeg 依次退
+    if (modality === 'PICTURE' && candidates.length) {
         const img = itemEl.querySelector('img');
         const urlEl = itemEl.querySelector('.gallery-item-url');
         const fallbackEl = itemEl.querySelector('.gallery-item-media + div');
@@ -3164,6 +3170,10 @@ function buildGalleryItem(item, modality, preferDirectUrl = false) {
         try {
             const urlEl = itemEl.querySelector('.gallery-item-url');
             const urlToCopy = urlEl?.textContent || displayUrl;
+            if (!urlToCopy) {
+                showToast('这张图在服务器上已没有文件');
+                return;
+            }
             await navigator.clipboard.writeText(urlToCopy);
             showToast('已复制 URL,点击打开→', urlToCopy);
         } catch (e) {
