@@ -3056,15 +3056,46 @@ function setupGallery() {
     }
 }
 
+const PICTURE_EXTS = ['png', 'webp', 'jpg', 'jpeg'];
+
+function pictureUrlFor(uuid, ext) {
+    return `https://oss.talesofai.cn/picture/${uuid}.${ext}`;
+}
+
+function pictureUrlExt(url) {
+    const matched = String(url || '').match(/\.(png|webp|jpe?g)(?:\?|$)/i);
+    return matched ? matched[1].toLowerCase() : '';
+}
+
+// 每张图解析出真后缀后记一份，翻页或重绘时不再重复探测
+const pictureExtCache = new Map();
+
+function buildPictureCandidates(uuid, directUrl, isSuccess) {
+    const list = [];
+    const seen = new Set();
+    const add = (url, ext) => {
+        if (!url) return;
+        const key = ext || pictureUrlExt(url) || url;
+        if (seen.has(key)) return;
+        seen.add(key);
+        list.push(url);
+    };
+    const cached = pictureExtCache.get(uuid);
+    if (cached) add(pictureUrlFor(uuid, cached), cached);
+    if (directUrl) add(directUrl, pictureUrlExt(directUrl));
+    // 没通过审核的作品多数只剩一份 webp 或 png，不再把 jpg/jpeg 全试一遍
+    const exts = isSuccess ? PICTURE_EXTS : ['webp', 'png'];
+    exts.forEach(ext => add(pictureUrlFor(uuid, ext), ext));
+    return list;
+}
+
 function buildGalleryItem(item, modality, preferDirectUrl = false) {
     const itemEl = document.createElement('div');
     itemEl.className = 'gallery-item';
 
     const directUrl = typeof item.url === 'string' ? item.url : '';
-    const pngUrl = `https://oss.talesofai.cn/picture/${item.uuid}.png`;
-    const jpgUrl = `https://oss.talesofai.cn/picture/${item.uuid}.jpg`;
-    const webpUrl = `https://oss.talesofai.cn/picture/${item.uuid}.webp`;
     const isSuccess = item.status === 'SUCCESS';
+    const candidates = modality === 'PICTURE' ? buildPictureCandidates(item.uuid, directUrl, isSuccess) : [];
 
     let mediaHtml = '';
     let displayUrl = '';
@@ -3075,12 +3106,9 @@ function buildGalleryItem(item, modality, preferDirectUrl = false) {
         mediaHtml = isSuccess
             ? `<video src="${videoUrl}" class="gallery-item-media" muted loop onmouseover="this.play()" onmouseout="this.pause()" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"></video><div class="gallery-item-media" style="display:none;align-items:center;justify-content:center;background:#000;color:#fff;font-size:2rem;">🎬</div>`
             : `<div class="gallery-item-media" style="display:flex;align-items:center;justify-content:center;background:#000;color:#fff;font-size:2rem;">🎬</div>`;
-    } else if (isSuccess) {
-        displayUrl = (preferDirectUrl && directUrl) ? directUrl : pngUrl;
-        mediaHtml = `<img src="${displayUrl}" alt="${item.uuid}" class="gallery-item-media" loading="lazy"/><div class="gallery-item-media" style="display:none;align-items:center;justify-content:center;color:#86868b;">❌</div>`;
     } else {
-        displayUrl = (preferDirectUrl && directUrl) ? directUrl : webpUrl;
-        mediaHtml = `<div class="gallery-item-media" style="display:flex;align-items:center;justify-content:center;color:#86868b;">❌</div>`;
+        displayUrl = candidates[0] || '';
+        mediaHtml = `<img src="${displayUrl}" alt="" class="gallery-item-media" loading="lazy"/><div class="gallery-item-media" style="display:none;align-items:center;justify-content:center;color:#86868b;">❌</div>`;
     }
 
     itemEl.innerHTML = `
@@ -3095,29 +3123,26 @@ function buildGalleryItem(item, modality, preferDirectUrl = false) {
         </div>
     `;
 
-    // 图片地址:优先用接口给的直链,失败再按 png→jpg→webp 依次退
-    if (isSuccess && modality === 'PICTURE') {
+    // 图片后缀不固定：接口直链优先,失败再按 png→webp→jpg→jpeg 依次退
+    if (modality === 'PICTURE') {
         const img = itemEl.querySelector('img');
         const urlEl = itemEl.querySelector('.gallery-item-url');
-        const candidates = [];
-        const pushUrl = (url) => {
-            if (url && candidates.indexOf(url) === -1) candidates.push(url);
-        };
-        pushUrl(directUrl);
-        pushUrl(pngUrl);
-        pushUrl(jpgUrl);
-        pushUrl(webpUrl);
+        const fallbackEl = itemEl.querySelector('.gallery-item-media + div');
 
-        let idx = Math.max(0, candidates.indexOf(displayUrl));
+        let idx = 0;
 
         const syncUrl = () => {
             if (!urlEl) return;
-            urlEl.textContent = candidates[idx];
-            urlEl.title = candidates[idx];
+            urlEl.textContent = candidates[idx] || '';
+            urlEl.title = candidates[idx] || '';
         };
         syncUrl();
 
         if (img) {
+            img.addEventListener('load', function() {
+                const ext = pictureUrlExt(candidates[idx]);
+                if (ext) pictureExtCache.set(item.uuid, ext);
+            });
             img.addEventListener('error', function() {
                 if (idx < candidates.length - 1) {
                     idx++;
@@ -3125,12 +3150,11 @@ function buildGalleryItem(item, modality, preferDirectUrl = false) {
                     syncUrl();
                 } else {
                     this.style.display = 'none';
-                    if (this.nextElementSibling) this.nextElementSibling.style.display = 'flex';
+                    if (fallbackEl) fallbackEl.style.display = 'flex';
                 }
             });
         }
     }
-
     // 点击复制 URL(无论成功失败都可以复制),但详情按钮除外
     itemEl.addEventListener('click', async (e) => {
         if (e.target.closest('.item-detail-btn')) {
