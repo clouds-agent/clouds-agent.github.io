@@ -348,7 +348,7 @@
                     <span id="detail-seed" class="detail-info-value">-</span>
                 </div>
                 <div class="detail-prompts-row">
-                    <span class="detail-prompts-label">词条</span>
+                    <span class="detail-prompts-label is-toggle" id="image-detail-label" onclick="toggleImageRaw()" title="点一下切换原始信息">词条</span>
                     <button id="copy-prompts-btn" class="btn-copy-prompts" onclick="copyPrompts()" title="复制词条">
                         <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
                     </button>
@@ -375,7 +375,7 @@
                     <span id="creation-detail-type" class="detail-info-value">-</span>
                 </div>
                 <div class="detail-prompts-row">
-                    <span class="detail-prompts-label" id="creation-detail-label" onclick="toggleCreationRaw()">原 tag</span>
+                    <span class="detail-prompts-label is-toggle" id="creation-detail-label" onclick="toggleCreationRaw()" title="点一下切换原始信息">原 tag</span>
                     <button class="btn-copy-prompts" onclick="copyCreationTag()" title="复制原 tag" aria-label="复制原 tag">
                         <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
                     </button>

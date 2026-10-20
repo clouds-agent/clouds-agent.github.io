@@ -2988,6 +2988,22 @@ input[type="checkbox"] {
     color: var(--faint);
 }
 
+/* 可点切换「词条 / 原始信息」的标签 */
+.detail-prompts-label.is-toggle {
+    cursor: pointer;
+    text-decoration: underline dotted rgba(120, 140, 180, 0.55);
+    text-underline-offset: 3px;
+    border-radius: 999px;
+    padding: 0.1rem 0.45rem;
+    margin-left: -0.45rem;
+    transition: color 0.2s ease, background 0.2s ease;
+}
+
+.detail-prompts-label.is-toggle:hover {
+    color: var(--accent-strong, #3c7fe4);
+    background: rgba(91, 157, 255, 0.12);
+}
+
 .detail-prompts-box {
     margin-top: 0.45rem;
     max-height: 220px;

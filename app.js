@@ -3676,6 +3676,57 @@ if (document.readyState === 'loading') {
 // ============ 图片详情弹窗 ============
 
 let currentPromptsText = '';
+let currentImageRaw = '';
+let imageRawMode = false;
+const MODEL_SERIES_LABEL = {
+    '1_sd15': '模型一 SD1.5',
+    '2_netaxl': '模型二 NetaXL',
+    '3_noobxl': '模型三 NoobXL',
+    '5_lumina': '模型五 Lumina',
+    '7_qwen_edit': 'Qwen Edit',
+    '8_image_edit': '旧捏捏 8_image_edit',
+    '9_image_edit_bravo': '捏捏 9_image_edit_bravo'
+};
+
+// 图片详情里模型字段经常缺失（接口没返回），退回用工作流 sub_type 推断
+function resolveModelText(input) {
+    const cms = (input && input.context_model_series) || '';
+    if (cms && cms !== '0_null') {
+        return MODEL_SERIES_LABEL[cms] || cms;
+    }
+    const rawPrompt = (input && input.rawPrompt) || [];
+    const keys = Object.keys(MODEL_SERIES_LABEL).sort((a, b) => b.length - a.length);
+    for (const item of rawPrompt) {
+        const sub = String(item.sub_type || '');
+        // sub_type 形如 "comfy_workflow,3_noobxl/图生图/特征迁移"，模型代号后面还挂着工作流路径
+        const seg = sub.split(',').find(s => /^[\d]_/.test(s.trim())) || '';
+        const hit = keys.find(k => seg.trim().startsWith(k));
+        if (hit) {
+            return MODEL_SERIES_LABEL[hit] + '（据工作流推断）';
+        }
+    }
+    if (cms === '0_null') return '未知（接口返回 0_null）';
+    return '未知（接口没有返回模型字段）';
+}
+
+function renderImagePrompts() {
+    const labelEl = document.getElementById('image-detail-label');
+    const boxEl = document.getElementById('detail-prompts');
+    if (labelEl) labelEl.textContent = imageRawMode ? '原始信息' : '词条';
+    if (!boxEl) return;
+    boxEl.classList.toggle('is-raw', imageRawMode);
+    if (imageRawMode) {
+        boxEl.textContent = currentImageRaw || '暂无原始信息';
+    } else {
+        boxEl.textContent = currentPromptsText || '无词条';
+    }
+}
+
+function toggleImageRaw() {
+    if (!currentImageRaw) return;
+    imageRawMode = !imageRawMode;
+    renderImagePrompts();
+}
 
 async function showImageDetail(uuid, event) {
     // 阻止事件冒泡,避免触发 URL 复制
@@ -3698,6 +3749,11 @@ async function showImageDetail(uuid, event) {
     seedEl.textContent = '-';
     promptsEl.textContent = '';
     currentPromptsText = '';
+    currentImageRaw = '';
+    imageRawMode = false;
+    const labelEl = document.getElementById('image-detail-label');
+    if (labelEl) labelEl.textContent = '词条';
+    promptsEl.classList.remove('is-raw');
     modal.classList.add('show');
 
     try {
@@ -3723,20 +3779,10 @@ async function showImageDetail(uuid, event) {
 
         const detail = data[0];
         const input = detail.input || {};
+        currentImageRaw = JSON.stringify(detail, null, 2);
 
-        // 显示模型(从 context_model_series 推断)
-        const modelSeries = input.context_model_series || '';
-        let modelText = '未知';
-        if (modelSeries === '9_image_edit_bravo') {
-            modelText = '捏捏 9_image_edit_bravo';
-        } else if (modelSeries === '8_image_edit') {
-            modelText = '旧捏捏 8_image_edit';
-        } else if (modelSeries === '3_noobxl') {
-            modelText = '模型三 3_noobxl';
-        } else if (modelSeries) {
-            modelText = modelSeries;
-        }
-        modelEl.textContent = modelText;
+        // 显示模型(优先 context_model_series，缺失时用工作流 sub_type 推断)
+        modelEl.textContent = resolveModelText(input);
 
         // 显示种子
         seedEl.textContent = input.seed !== undefined ? input.seed : '未知';
@@ -3778,13 +3824,8 @@ async function showImageDetail(uuid, event) {
             })
             .filter(v => v);
 
-        if (formattedPrompts.length === 0) {
-            promptsEl.textContent = '无词条';
-            currentPromptsText = '无词条';
-        } else {
-            currentPromptsText = formattedPrompts.join(',');
-            promptsEl.textContent = currentPromptsText;
-        }
+        currentPromptsText = formattedPrompts.length === 0 ? '' : formattedPrompts.join(',');
+        renderImagePrompts();
 
     } catch (e) {
         console.error('获取图片详情失败:', e);
@@ -3793,13 +3834,14 @@ async function showImageDetail(uuid, event) {
 }
 
 function copyPrompts() {
-    if (!currentPromptsText) {
-        showToast('暂无可复制的词条');
+    const text = imageRawMode ? currentImageRaw : currentPromptsText;
+    if (!text) {
+        showToast(imageRawMode ? '暂无原始信息' : '暂无可复制的词条');
         return;
     }
 
-    navigator.clipboard.writeText(currentPromptsText).then(() => {
-        showToast('已复制词条');
+    navigator.clipboard.writeText(text).then(() => {
+        showToast(imageRawMode ? '已复制原始信息' : '已复制词条');
     }).catch(() => {
         showToast('复制失败');
     });
