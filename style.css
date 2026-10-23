@@ -1502,6 +1502,235 @@ input[type="checkbox"] {
     opacity: 0.9;
 }
 
+/* ---------- 9.5 关注用户 ---------- */
+.follow-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.42rem;
+    margin-top: 0.72rem;
+    padding: 0.34rem 0.72rem 0.34rem 0.58rem;
+    border-radius: var(--r-pill);
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.62);
+    color: var(--muted);
+    font: inherit;
+    font-size: 0.78rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease, box-shadow 0.24s ease;
+}
+
+.follow-toggle:hover {
+    color: var(--accent-ink);
+    border-color: rgba(91, 140, 255, 0.32);
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow: 0 8px 20px -14px rgba(91, 140, 255, 0.75);
+}
+
+.follow-toggle__icon {
+    width: 13px;
+    height: 13px;
+    flex: 0 0 auto;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.follow-toggle.is-open {
+    color: var(--accent-ink);
+    border-color: rgba(91, 140, 255, 0.32);
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.follow-toggle.is-open .follow-toggle__icon {
+    transform: rotate(135deg);
+}
+
+.follow-toggle__count {
+    padding: 0.06rem 0.34rem;
+    border-radius: var(--r-pill);
+    background: rgba(91, 140, 255, 0.13);
+    color: var(--accent-ink);
+    font-size: 0.7rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.follow-panel {
+    margin-top: 0.62rem;
+    border-radius: var(--r-md);
+    border: 1px solid var(--line);
+    background: var(--surface-soft);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    overflow: hidden;
+    animation: popIn 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.follow-panel[hidden] {
+    display: none;
+}
+
+.follow-list {
+    max-height: 300px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.follow-item {
+    display: flex;
+    align-items: center;
+    gap: 0.68rem;
+    width: 100%;
+    padding: 0.56rem 0.82rem;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.16s ease;
+}
+
+.follow-item:last-child {
+    border-bottom: 0;
+}
+
+.follow-item:hover {
+    background: rgba(91, 140, 255, 0.07);
+}
+
+.follow-item.is-added {
+    cursor: default;
+}
+
+.follow-item.is-added:hover {
+    background: transparent;
+}
+
+.follow-item.is-added .follow-info {
+    opacity: 0.55;
+}
+
+.follow-avatar {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--surface-sunk);
+}
+
+.follow-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.follow-name {
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.follow-meta {
+    font-size: 0.72rem;
+    color: var(--faint);
+    font-variant-numeric: tabular-nums;
+}
+
+.follow-add {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.24rem;
+    flex: 0 0 auto;
+    padding: 0.22rem 0.56rem;
+    border-radius: var(--r-pill);
+    border: 1px solid rgba(91, 140, 255, 0.28);
+    background: rgba(91, 140, 255, 0.08);
+    color: var(--accent-ink);
+    font-size: 0.72rem;
+    line-height: 1.25;
+    transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.follow-add__plus,
+.follow-add__check {
+    width: 11px;
+    height: 11px;
+    flex: 0 0 auto;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.follow-add__check {
+    display: none;
+}
+
+.follow-item.is-added .follow-add {
+    border-color: var(--line);
+    background: transparent;
+    color: var(--faint);
+}
+
+.follow-item.is-added .follow-add__plus {
+    display: none;
+}
+
+.follow-item.is-added .follow-add__check {
+    display: block;
+}
+
+.follow-foot {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.82rem;
+    border-top: 1px solid var(--line);
+}
+
+.follow-foot:not(:has(button:not([hidden]))) {
+    padding-top: 0.34rem;
+    padding-bottom: 0.34rem;
+}
+
+.follow-status {
+    margin-left: auto;
+    font-size: 0.72rem;
+    color: var(--faint);
+    font-variant-numeric: tabular-nums;
+}
+
+.follow-empty {
+    padding: 1rem 0.82rem;
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--faint);
+}
+
+@media (max-width: 520px) {
+    .follow-list {
+        max-height: 260px;
+    }
+
+    .follow-item {
+        padding: 0.54rem 0.7rem;
+    }
+
+    .follow-foot {
+        padding: 0.46rem 0.7rem;
+    }
+}
+
 /* ---------- 10. 用户队列 ---------- */
 .user-list {
     display: flex;

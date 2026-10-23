@@ -122,6 +122,18 @@
                     <input type="text" id="user-search" placeholder="输入用户昵称（支持模糊搜索）" autocomplete="off" />
                     <div id="user-suggestions" class="suggestions"></div>
                 </div>
+                <button type="button" id="follow-toggle" class="follow-toggle" aria-expanded="false" aria-controls="follow-panel">
+                    <svg class="follow-toggle__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5.6v12.8" /><path d="M5.6 12h12.8" /></svg>
+                    <span class="follow-toggle__text">关注用户</span>
+                    <span id="follow-count" class="follow-toggle__count" hidden></span>
+                </button>
+                <div id="follow-panel" class="follow-panel" hidden>
+                    <div id="follow-list" class="follow-list"></div>
+                    <div class="follow-foot">
+                        <button type="button" id="follow-more" class="btn btn-secondary btn-sm" hidden>加载更多</button>
+                        <span id="follow-status" class="follow-status"></span>
+                    </div>
+                </div>
                 <div id="selected-users" class="user-list"></div>
 
                 <div class="like-speed-settings">

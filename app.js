@@ -364,18 +364,23 @@ function initUserConfirm() {
 
 // ============ 用户任务队列 ============
 
-async function addUserToQueue(user) {
-    // 检查是否已存在
+async function addUserToQueue(user, exact) {
     if (selectedUsers.some(u => u.uuid === user.uuid)) {
         log(`用户 ${user.nick_name} 已在队列中`, 'error');
-        return;
+        return false;
     }
 
-    // 获取详细用户信息(准确的粉丝数)
-    const detail = await getUserDetail(user.uuid);
-    const followers = detail ? (detail.total_fans || 0) : (user.subscriber_count || 0);
-    // story_count 是 null,要用 total_collections
-    const storyCount = detail ? (detail.total_collections || 0) : (user.story_count || 0);
+    let followers = 0;
+    let storyCount = 0;
+
+    if (exact) {
+        followers = exact.followers || 0;
+        storyCount = exact.storyCount || 0;
+    } else {
+        const detail = await getUserDetail(user.uuid);
+        followers = detail ? (detail.total_fans || 0) : (user.subscriber_count || 0);
+        storyCount = detail ? (detail.total_collections || 0) : (user.story_count || 0);
+    }
 
     selectedUsers.push({
         uuid: user.uuid,
@@ -390,6 +395,7 @@ async function addUserToQueue(user) {
 
     renderUserQueue();
     log(`已添加用户:${user.nick_name}(${storyCount} 作品,${followers} 粉丝)`, 'success');
+    return true;
 }
 
 function removeUserFromQueue(uuid) {
@@ -406,6 +412,7 @@ function renderUserQueue() {
 
     if (selectedUsers.length === 0) {
         container.innerHTML = '<div class="empty-tip">暂无用户,搜索后点击添加</div>';
+        syncFollowRows();
         return;
     }
 
@@ -427,6 +434,202 @@ function renderUserQueue() {
             removeUserFromQueue(uuid);
         });
     });
+
+    syncFollowRows();
+}
+
+// ============ 关注用户快捷添加 ============
+
+const FOLLOW_PAGE_SIZE = 50;
+
+let followUsers = [];
+let followPage = 0;
+let followTotal = 0;
+let followLoaded = false;
+let followLoading = false;
+
+function followEscape(text) {
+    return String(text == null ? '' : text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+async function fetchFollowList(page) {
+    const token = getToken();
+    if (!token) return null;
+
+    try {
+        const res = await fetch(`${API_BASE}/v1/user/subscribe-list?page_index=${page}&page_size=${FOLLOW_PAGE_SIZE}`, {
+            headers: {
+                'x-token': token,
+                'x-platform': 'nieta-app/web'
+            }
+        });
+
+        if (!res.ok) {
+            console.error('获取关注列表失败:', res.status);
+            return null;
+        }
+
+        return await res.json();
+    } catch (error) {
+        console.error('获取关注列表异常:', error);
+        return null;
+    }
+}
+
+function renderFollowList() {
+    const list = document.getElementById('follow-list');
+    const status = document.getElementById('follow-status');
+    const moreBtn = document.getElementById('follow-more');
+    if (!list) return;
+
+    if (followUsers.length === 0) {
+        list.innerHTML = '<div class="follow-empty">还没有关注任何用户</div>';
+    } else {
+        list.innerHTML = followUsers.map(user => {
+            const name = user.name || '未知';
+            const fans = user.total_fans == null ? 0 : user.total_fans;
+            const works = user.total_collections == null ? 0 : user.total_collections;
+            return `
+                <button type="button" class="follow-item" data-uuid="${followEscape(user.uuid)}" data-name="${followEscape(name)}">
+                    <img class="follow-avatar" src="${followEscape(user.avatar_url || '')}" alt="" loading="lazy" />
+                    <span class="follow-info">
+                        <span class="follow-name">${followEscape(name)}</span>
+                        <span class="follow-meta">${fans} 粉丝 · ${works} 作品</span>
+                    </span>
+                    <span class="follow-add">
+                        <svg class="follow-add__plus" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5.8v12.4" /><path d="M5.8 12h12.4" /></svg>
+                        <svg class="follow-add__check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5.6 12.6 9.9 17 18.4 7.4" /></svg>
+                        <span class="follow-add__text">添加</span>
+                    </span>
+                </button>
+            `;
+        }).join('');
+    }
+
+    if (status) {
+        status.textContent = followTotal > 0
+            ? (followUsers.length >= followTotal ? `共 ${followTotal} 人` : `已显示 ${followUsers.length} / ${followTotal}`)
+            : '';
+    }
+
+    if (moreBtn) {
+        moreBtn.hidden = !(followLoaded && followUsers.length < followTotal && !followLoading);
+    }
+
+    syncFollowRows();
+}
+
+function syncFollowRows() {
+    const list = document.getElementById('follow-list');
+    if (!list) return;
+
+    list.querySelectorAll('.follow-item').forEach(item => {
+        const uuid = item.dataset.uuid;
+        const added = selectedUsers.some(u => u.uuid === uuid);
+        item.classList.toggle('is-added', added);
+        const text = item.querySelector('.follow-add__text');
+        if (text) text.textContent = added ? '已添加' : '添加';
+    });
+}
+
+async function loadFollowUsers(reset) {
+    if (followLoading) return;
+    const status = document.getElementById('follow-status');
+    const list = document.getElementById('follow-list');
+
+    if (reset) {
+        followUsers = [];
+        followPage = 0;
+        followTotal = 0;
+        followLoaded = false;
+        if (list) list.innerHTML = '<div class="follow-empty">加载中…</div>';
+    }
+
+    followLoading = true;
+    if (status) status.textContent = '加载中…';
+
+    const data = await fetchFollowList(followPage);
+
+    followLoading = false;
+
+    if (!data) {
+        if (status) status.textContent = '获取失败，请检查登录状态';
+        if (list && followUsers.length === 0) list.innerHTML = '';
+        renderFollowList();
+        return;
+    }
+
+    const pageList = data.list || [];
+    followTotal = data.total || pageList.length;
+    followUsers = followUsers.concat(pageList);
+    followPage += 1;
+    followLoaded = true;
+
+    renderFollowList();
+}
+
+async function toggleFollowPanel() {
+    const panel = document.getElementById('follow-panel');
+    const toggle = document.getElementById('follow-toggle');
+    const count = document.getElementById('follow-count');
+    if (!panel || !toggle) return;
+
+    const willOpen = panel.hidden;
+    panel.hidden = !willOpen;
+    toggle.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    toggle.classList.toggle('is-open', willOpen);
+
+    if (count) count.hidden = !(followTotal > 0);
+    if (willOpen && !followLoaded && !followLoading) {
+        await loadFollowUsers(true);
+        if (count) {
+            count.textContent = followTotal;
+            count.hidden = false;
+        }
+    }
+}
+
+function setupFollowPanel() {
+    const toggle = document.getElementById('follow-toggle');
+    const list = document.getElementById('follow-list');
+    const moreBtn = document.getElementById('follow-more');
+    if (!toggle) return;
+
+    toggle.addEventListener('click', () => {
+        toggleFollowPanel();
+    });
+
+    if (moreBtn) {
+        moreBtn.addEventListener('click', () => {
+            loadFollowUsers(false);
+        });
+    }
+
+    if (list) {
+        list.addEventListener('click', async (event) => {
+            const item = event.target.closest('.follow-item');
+            if (!item || item.classList.contains('is-added')) return;
+
+            const uuid = item.dataset.uuid;
+            const user = followUsers.find(u => u.uuid === uuid);
+            if (!user) return;
+
+            const ok = await addUserToQueue({
+                uuid: user.uuid,
+                nick_name: user.name,
+                avatar_url: user.avatar_url
+            }, {
+                followers: user.total_fans || 0,
+                storyCount: user.total_collections || 0
+            });
+
+            if (ok) syncFollowRows();
+        });
+    }
 }
 
 // ============ 获取用户作品 ============
@@ -3611,6 +3814,7 @@ function init() {
     // 新增:用户点赞相关
     initUserSearch();
     initUserConfirm();
+    setupFollowPanel();
     renderUserQueue();
 
     // 渲染已保存的标签
