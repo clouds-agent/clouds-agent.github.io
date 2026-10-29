@@ -87,6 +87,9 @@ let galleryTotal = 0;
 let galleryLoading = false;
 let galleryModality = 'PICTURE';
 let galleryKeyword = '';
+let galleryHasMore = false;
+// 图库卡片对应的接口原始对象，导出时要用 uuid / url / status / modality
+const galleryItemData = new Map();
 
 // ============ 工具函数 ============
 
@@ -3172,6 +3175,8 @@ function setupGallery() {
         galleryPageIndex = 0;
         if (gridEl) gridEl.innerHTML = '';
         if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+        galleryHasMore = false;
+        syncExportMarks('gallery');
     }
 
     function syncClearBtn() {
@@ -3296,9 +3301,65 @@ function buildPictureCandidates(uuid, directUrl, status) {
     return list;
 }
 
+// 视频地址缓存：uuid -> { clean, watermark }（clean 是去掉水印的原片）
+const videoUrlCache = new Map();
+
+async function fetchVideoUrls(uuids, token) {
+    const need = Array.from(new Set(uuids)).filter(u => u && !videoUrlCache.has(u));
+    const chunkSize = 20;
+    for (let i = 0; i < need.length; i += chunkSize) {
+        const chunk = need.slice(i, i + chunkSize);
+        try {
+            const res = await fetch(API_BASE + '/v1/artifact/artifact-detail?uuids=' + chunk.join(',') + '&is_brief_only=false', {
+                headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
+            });
+            if (!res.ok) continue;
+            const data = await res.json();
+            (Array.isArray(data) ? data : []).forEach(d => {
+                const vurl = (d && d.detail && d.detail.video_url) || '';
+                videoUrlCache.set(d.uuid, {
+                    watermark: vurl,
+                    clean: vurl ? vurl.replace(/_watermark(\.[a-z0-9]+)$/i, '$1') : ''
+                });
+            });
+        } catch (error) {
+            console.warn('读取视频地址失败:', error);
+        }
+    }
+    return videoUrlCache;
+}
+
+async function hydrateVideoSources(gridEl) {
+    const token = getToken();
+    if (!token || !gridEl) return;
+    const pending = Array.from(gridEl.querySelectorAll('.gallery-item[data-video="pending"]'));
+    if (!pending.length) return;
+    await fetchVideoUrls(pending.map(el => el.dataset.uuid), token);
+    pending.forEach(el => {
+        const info = videoUrlCache.get(el.dataset.uuid);
+        const url = (info && (info.clean || info.watermark)) || '';
+        const video = el.querySelector('video');
+        const placeholder = video ? video.nextElementSibling : null;
+        el.dataset.video = url ? 'ready' : 'none';
+        if (url && video) {
+            video.src = url;
+            const urlEl = el.querySelector('.gallery-item-url');
+            if (urlEl) {
+                urlEl.textContent = url;
+                urlEl.title = url;
+            }
+        } else if (video) {
+            video.style.display = 'none';
+            if (placeholder) placeholder.style.display = 'flex';
+        }
+    });
+}
+
 function buildGalleryItem(item, modality, preferDirectUrl = false) {
     const itemEl = document.createElement('div');
     itemEl.className = 'gallery-item';
+    itemEl.dataset.uuid = item.uuid;
+    galleryItemData.set(item.uuid, { item, modality });
 
     const directUrl = typeof item.url === 'string' ? item.url : '';
     const isSuccess = item.status === 'SUCCESS';
@@ -3308,10 +3369,22 @@ function buildGalleryItem(item, modality, preferDirectUrl = false) {
     let displayUrl = '';
 
     if (modality === 'VIDEO') {
-        const videoUrl = `https://oss.talesofai.cn/picture/${item.uuid}.mp4`;
-        displayUrl = videoUrl;
+        // 视频真地址只有 artifact-detail 的 detail.video_url 里有，先用缩略图当封面、src 异步补上
+        displayUrl = directUrl || '';
+        itemEl.dataset.video = isSuccess ? 'pending' : 'none';
+        if (isSuccess) {
+            // 悬停才播放，避免一进图库就下载 50 个视频
+            itemEl.addEventListener('mouseenter', () => {
+                const video = itemEl.querySelector('video');
+                if (video && video.paused && video.src) video.play().catch(() => {});
+            });
+            itemEl.addEventListener('mouseleave', () => {
+                const video = itemEl.querySelector('video');
+                if (video && !video.paused) video.pause();
+            });
+        }
         mediaHtml = isSuccess
-            ? `<video src="${videoUrl}" class="gallery-item-media" muted loop onmouseover="this.play()" onmouseout="this.pause()" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"></video><div class="gallery-item-media" style="display:none;align-items:center;justify-content:center;background:#000;color:#fff;font-size:2rem;">🎬</div>`
+            ? `<video class="gallery-item-media" poster="${directUrl}" preload="none" muted loop playsinline onerror="this.style.display='none';if(this.nextElementSibling)this.nextElementSibling.style.display='flex'"></video><div class="gallery-item-media" style="display:none;align-items:center;justify-content:center;background:#000;color:#fff;font-size:2rem;">🎬</div>`
             : `<div class="gallery-item-media" style="display:flex;align-items:center;justify-content:center;background:#000;color:#fff;font-size:2rem;">🎬</div>`;
     } else {
         displayUrl = candidates[0] || '';
@@ -3366,6 +3439,12 @@ function buildGalleryItem(item, modality, preferDirectUrl = false) {
     }
     // 点击复制 URL(无论成功失败都可以复制),但详情按钮除外
     itemEl.addEventListener('click', async (e) => {
+        // 导出模式：点卡片 = 选中/取消选中，不复制链接也不进详情
+        if (exportState.gallery.active) {
+            e.preventDefault();
+            toggleExportCard('gallery', item.uuid, itemEl);
+            return;
+        }
         if (e.target.closest('.item-detail-btn')) {
             return;
         }
@@ -3441,6 +3520,7 @@ async function loadGallery(isFirstLoad = false) {
         const data = await res.json();
         galleryTotal = data.total || 0;
         const list = data.list || [];
+        galleryHasMore = list.length === pageSize;
 
         if (isFirstLoad && gridEl) {
             gridEl.innerHTML = '';
@@ -3449,6 +3529,8 @@ async function loadGallery(isFirstLoad = false) {
         list.forEach(item => {
             if (gridEl) gridEl.appendChild(buildGalleryItem(item, modality, searching));
         });
+        syncExportMarks('gallery');
+        if (modality === 'VIDEO' && gridEl) hydrateVideoSources(gridEl);
 
         galleryPageIndex++;
 
@@ -3487,7 +3569,10 @@ let creationType = 'oc';
 let creationPageIndex = 0;
 let creationLoading = false;
 let creationHasLoaded = false;
+let creationHasMore = false;
 const creationItems = new Map();
+// 导出用的造物元数据：切 tab 会清空 creationItems，导出选区不能跟着丢
+const creationExportMeta = new Map();
 let currentCreationTag = '';
 let currentCreationRaw = '';
 let creationRawMode = false;
@@ -3508,6 +3593,7 @@ function setupCreations() {
         creationItems.clear();
         gridEl.innerHTML = '';
         if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+        creationHasMore = false;
         loadCreations(true);
     });
 
@@ -3529,6 +3615,7 @@ function setupCreations() {
             creationItems.clear();
             gridEl.innerHTML = '';
             if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+            creationHasMore = false;
             if (creationHasLoaded || getToken()) loadCreations(true);
         });
     });
@@ -3579,10 +3666,12 @@ async function loadCreations(isFirstLoad = false) {
 
         const data = await res.json();
         const list = data.list || [];
+        creationHasMore = list.length === pageSize;
 
         if (isFirstLoad) gridEl.innerHTML = '';
 
         list.forEach(item => gridEl.appendChild(buildCreationItem(item, type)));
+        syncExportMarks('creations');
 
         if (isFirstLoad && list.length === 0) {
             const empty = document.createElement('p');
@@ -3613,7 +3702,8 @@ function buildCreationItem(item, type) {
     const uuid = item.uuid;
     const name = item.name || item.short_name || '未命名';
     const cover = (item.config && (item.config.avatar_img || item.config.header_img)) || '';
-    creationItems.set(uuid, { name, type, cover });
+    creationItems.set(uuid, { name, type, cover, listItem: item });
+    creationExportMeta.set(uuid, { uuid, name, type, cover, listItem: item });
 
     const el = document.createElement('div');
     el.className = 'gallery-item creation-item';
@@ -3665,7 +3755,14 @@ function buildCreationItem(item, type) {
     el.appendChild(fallback);
     el.appendChild(info);
 
-    el.addEventListener('click', () => openCreationDetail(uuid));
+    el.addEventListener('click', () => {
+        // 导出模式：点卡片 = 选中/取消选中
+        if (exportState.creations.active) {
+            toggleExportCard('creations', uuid, el);
+            return;
+        }
+        openCreationDetail(uuid);
+    });
 
     return el;
 }
@@ -3781,6 +3878,877 @@ document.addEventListener('click', (e) => {
     if (modal && e.target === modal) closeCreationDetail();
 });
 
+// ============ 批量导出 ============
+
+// 纯前端打包：STORE 模式 ZIP（图片本身已压缩，再压没意义，还省掉 pako 依赖）
+const EXPORT_KIND_LABEL = { creations: '造物', gallery: '作品' };
+
+const exportState = {
+    creations: { active: false, selected: new Set(), busy: false, loadingAll: false, cancel: false },
+    gallery: { active: false, selected: new Set(), busy: false, loadingAll: false, cancel: false }
+};
+
+const ZIP_CRC_TABLE = (() => {
+    const table = new Uint32Array(256);
+    for (let i = 0; i < 256; i++) {
+        let c = i;
+        for (let k = 0; k < 8; k++) c = c & 1 ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+        table[i] = c >>> 0;
+    }
+    return table;
+})();
+
+function zipCrc32(bytes) {
+    let c = 0xFFFFFFFF;
+    for (let i = 0; i < bytes.length; i++) c = ZIP_CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+}
+
+function zipDosDateTime(date) {
+    const year = Math.max(1980, date.getFullYear());
+    return {
+        time: ((date.getHours() & 0x1F) << 11) | ((date.getMinutes() & 0x3F) << 5) | ((date.getSeconds() >> 1) & 0x1F),
+        date: (((year - 1980) & 0x7F) << 9) | (((date.getMonth() + 1) & 0x0F) << 5) | (date.getDate() & 0x1F)
+    };
+}
+
+class ZipWriter {
+    constructor(sink) {
+        this.sink = sink;
+        this.offset = 0;
+        this.entries = [];
+        this.encoder = new TextEncoder();
+    }
+
+    async write(chunk) {
+        if (chunk && chunk.length) {
+            await this.sink.write(chunk);
+            this.offset += chunk.length;
+        }
+    }
+
+    async addBytes(name, bytes, date = new Date()) {
+        const nameBytes = this.encoder.encode(name);
+        const data = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+        if (data.length > 0xFFFFFFF0) throw new Error('单个文件超过 4GB，无法打包');
+        const crc = zipCrc32(data);
+        const dos = zipDosDateTime(date);
+        const header = new Uint8Array(30 + nameBytes.length);
+        const view = new DataView(header.buffer);
+        view.setUint32(0, 0x04034b50, true);
+        view.setUint16(4, 20, true);
+        view.setUint16(6, 0x0800, true); // UTF-8 文件名
+        view.setUint16(8, 0, true);      // 0 = 只存储
+        view.setUint16(10, dos.time, true);
+        view.setUint16(12, dos.date, true);
+        view.setUint32(14, crc, true);
+        view.setUint32(18, data.length, true);
+        view.setUint32(22, data.length, true);
+        view.setUint16(26, nameBytes.length, true);
+        view.setUint16(28, 0, true);
+        header.set(nameBytes, 30);
+        const offset = this.offset;
+        await this.write(header);
+        await this.write(data);
+        this.entries.push({ nameBytes, crc, size: data.length, offset, time: dos.time, date: dos.date });
+    }
+
+    async addText(name, text, date = new Date()) {
+        await this.addBytes(name, this.encoder.encode(String(text)), date);
+    }
+
+    async finish() {
+        const start = this.offset;
+        for (const entry of this.entries) {
+            const record = new Uint8Array(46 + entry.nameBytes.length);
+            const view = new DataView(record.buffer);
+            view.setUint32(0, 0x02014b50, true);
+            view.setUint16(4, 20, true);
+            view.setUint16(6, 20, true);
+            view.setUint16(8, 0x0800, true);
+            view.setUint16(10, 0, true);
+            view.setUint16(12, entry.time, true);
+            view.setUint16(14, entry.date, true);
+            view.setUint32(16, entry.crc, true);
+            view.setUint32(20, entry.size, true);
+            view.setUint32(24, entry.size, true);
+            view.setUint16(28, entry.nameBytes.length, true);
+            view.setUint32(42, entry.offset, true);
+            record.set(entry.nameBytes, 46);
+            await this.write(record);
+        }
+        const cdSize = this.offset - start;
+        const eocd = new Uint8Array(22);
+        const view = new DataView(eocd.buffer);
+        view.setUint32(0, 0x06054b50, true);
+        view.setUint16(8, this.entries.length, true);
+        view.setUint16(10, this.entries.length, true);
+        view.setUint32(12, cdSize, true);
+        view.setUint32(16, start, true);
+        await this.write(eocd);
+    }
+}
+
+function createMemorySink() {
+    const chunks = [];
+    return {
+        kind: 'memory',
+        write: async (chunk) => { chunks.push(chunk); },
+        finish: async () => new Blob(chunks, { type: 'application/zip' }),
+        abort: async () => { chunks.length = 0; }
+    };
+}
+
+// 优先直接写盘（大包不占内存），不支持时退回内存打包
+async function createStreamSink(filename) {
+    if (!window.__exportNoPicker && typeof window.showSaveFilePicker === 'function') {
+        try {
+            const handle = await window.showSaveFilePicker({
+                suggestedName: filename,
+                types: [{ description: 'ZIP 压缩包', accept: { 'application/zip': ['.zip'] } }]
+            });
+            const writable = await handle.createWritable();
+            return {
+                kind: 'file',
+                write: async (chunk) => { await writable.write(chunk); },
+                finish: async () => { await writable.close(); return null; },
+                abort: async () => { try { await writable.abort(); } catch (err) { /* 已经关了 */ } }
+            };
+        } catch (error) {
+            if (error && error.name === 'AbortError') throw error;
+            console.warn('保存对话框不可用，改用内存打包:', error);
+        }
+    }
+    return createMemorySink();
+}
+
+function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+
+function exportTimestamp() {
+    const d = new Date();
+    const pad2 = (n) => String(n).padStart(2, '0');
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+}
+
+const MIME_EXT = {
+    'image/png': 'png',
+    'image/jpeg': 'jpg',
+    'image/jpg': 'jpg',
+    'image/webp': 'webp',
+    'image/gif': 'gif',
+    'image/avif': 'avif',
+    'video/mp4': 'mp4'
+};
+
+function extFromMime(type, fallback = 'bin') {
+    const key = String(type || '').split(';')[0].trim().toLowerCase();
+    return MIME_EXT[key] || fallback;
+}
+
+async function fetchBytes(url) {
+    if (!url) return null;
+    try {
+        const res = await fetch(url, { mode: 'cors', cache: 'force-cache' });
+        if (!res.ok) return null;
+        const buffer = await res.arrayBuffer();
+        if (!buffer || !buffer.byteLength) return null;
+        return { bytes: new Uint8Array(buffer), contentType: res.headers.get('content-type') || '' };
+    } catch (error) {
+        return null;
+    }
+}
+
+function sanitizeZipName(name, fallback = '未命名') {
+    let out = String(name == null ? '' : name)
+        .replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_')
+        .replace(/\s+/g, ' ')
+        .trim();
+    out = out.replace(/^\.+/, '').slice(0, 60).trim();
+    return out || fallback;
+}
+
+function uniqueZipName(base, used) {
+    let name = base;
+    let i = 2;
+    while (used.has(name)) {
+        name = base + '-' + i;
+        i++;
+    }
+    used.add(name);
+    return name;
+}
+
+function exportDom(kind) {
+    return {
+        grid: document.getElementById(kind === 'creations' ? 'creations-grid' : 'gallery-grid'),
+        bar: document.getElementById(kind + '-export-bar'),
+        toggleBtn: document.getElementById(kind + '-export'),
+        count: document.getElementById(kind + '-export-count'),
+        status: document.getElementById(kind + '-export-status'),
+        progress: document.getElementById(kind + '-export-progress'),
+        fill: document.getElementById(kind + '-export-fill'),
+        runBtn: document.getElementById(kind + '-export-run'),
+        cancelBtn: document.getElementById(kind + '-export-cancel'),
+        selectAllBtn: document.getElementById(kind + '-select-all'),
+        selectNoneBtn: document.getElementById(kind + '-select-none')
+    };
+}
+
+function setExportStatus(kind, text) {
+    const dom = exportDom(kind);
+    if (dom.status) dom.status.textContent = text || '';
+}
+
+function setExportProgress(kind, done, total) {
+    const dom = exportDom(kind);
+    if (!dom.progress) return;
+    if (!total) {
+        dom.progress.hidden = true;
+        if (dom.fill) dom.fill.style.width = '0%';
+        return;
+    }
+    dom.progress.hidden = false;
+    if (dom.fill) dom.fill.style.width = Math.round((done / total) * 100) + '%';
+}
+
+function syncExportBar(kind) {
+    const st = exportState[kind];
+    const dom = exportDom(kind);
+    const count = st.selected.size;
+    if (dom.count) dom.count.textContent = '已选 ' + count + ' 个';
+    if (dom.runBtn) {
+        dom.runBtn.disabled = st.busy || count === 0;
+        dom.runBtn.textContent = st.busy ? '导出中…' : (count > 1 ? '导出所选 ' + count + ' 个' : '导出所选');
+    }
+    if (dom.cancelBtn) dom.cancelBtn.textContent = st.busy ? '取消导出' : '退出';
+    if (dom.selectAllBtn) dom.selectAllBtn.disabled = st.busy || st.loadingAll;
+    if (dom.selectNoneBtn) dom.selectNoneBtn.disabled = st.busy || st.loadingAll;
+    if (dom.toggleBtn) dom.toggleBtn.disabled = st.busy;
+    if (dom.toggleBtn) dom.toggleBtn.classList.toggle('is-active', st.active);
+}
+
+function clearExportMarks(kind) {
+    const dom = exportDom(kind);
+    if (!dom.grid) return;
+    dom.grid.querySelectorAll('.gallery-item.is-selected').forEach(el => el.classList.remove('is-selected'));
+}
+
+// 列表重绘后把选区的勾重新贴回卡片（选区以 uuid 为准，不依赖 DOM）
+function syncExportMarks(kind) {
+    const st = exportState[kind];
+    const dom = exportDom(kind);
+    if (!st || !dom.grid) return;
+    dom.grid.querySelectorAll('.gallery-item').forEach(el => {
+        el.classList.toggle('is-selected', !!(el.dataset.uuid && st.selected.has(el.dataset.uuid)));
+    });
+}
+
+function resetExportSelection(kind) {
+    const st = exportState[kind];
+    if (!st) return;
+    st.selected.clear();
+    clearExportMarks(kind);
+    setExportProgress(kind, 0, 0);
+    setExportStatus(kind, '');
+    syncExportBar(kind);
+}
+
+function enterExportMode(kind) {
+    const st = exportState[kind];
+    const dom = exportDom(kind);
+    st.active = true;
+    st.cancel = false;
+    st.selected.clear();
+    if (dom.grid) dom.grid.classList.add('is-exporting');
+    if (dom.bar) dom.bar.hidden = false;
+    clearExportMarks(kind);
+    setExportProgress(kind, 0, 0);
+    setExportStatus(kind, '');
+    syncExportBar(kind);
+}
+
+function exitExportMode(kind) {
+    const st = exportState[kind];
+    const dom = exportDom(kind);
+    st.active = false;
+    st.cancel = false;
+    st.selected.clear();
+    if (dom.grid) dom.grid.classList.remove('is-exporting');
+    if (dom.bar) dom.bar.hidden = true;
+    clearExportMarks(kind);
+    setExportProgress(kind, 0, 0);
+    setExportStatus(kind, '');
+    syncExportBar(kind);
+}
+
+function toggleExportCard(kind, uuid, el) {
+    const st = exportState[kind];
+    if (!st.active || st.busy) return;
+    if (st.selected.has(uuid)) {
+        st.selected.delete(uuid);
+        if (el) el.classList.remove('is-selected');
+    } else {
+        st.selected.add(uuid);
+        if (el) el.classList.add('is-selected');
+    }
+    syncExportBar(kind);
+}
+
+// 全选不逐个渲染卡片（图库上千张，全部插进 DOM 会把内存和网络打爆），
+// 只翻页把 uuid / url / 状态这些导出要用的字段收进内存
+async function fetchAllCreationsForExport(token, types) {
+    let userUuid = userProfile && userProfile.uuid;
+    if (!userUuid) {
+        const profile = await loadUserProfile();
+        userUuid = profile && profile.uuid;
+    }
+    if (!userUuid) throw new Error('获取用户信息失败，请重新登录');
+
+    const pageSize = 100;
+    const out = [];
+    for (const type of types) {
+        let page = 0;
+        let guard = 0;
+        while (guard < 200) {
+            if (exportState.creations.cancel) return out;
+            const res = await fetch(API_BASE + '/v2/travel/parent?user_uuid=' + encodeURIComponent(userUuid) + '&parent_type=' + type + '&page_index=' + page + '&page_size=' + pageSize, {
+                headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
+            });
+            if (!res.ok) throw new Error('加载失败（' + res.status + '）');
+            const data = await res.json();
+            const list = data.list || [];
+            list.forEach(item => out.push({ item, type }));
+            setExportStatus('creations', '正在读取列表 ' + out.length + ' 个…');
+            if (list.length < pageSize) break;
+            page++;
+            guard++;
+        }
+    }
+    return out;
+}
+
+async function fetchAllGalleryForExport(token) {
+    const modality = galleryModality;
+    const keyword = galleryKeyword.trim();
+    const searching = !!keyword && modality === 'PICTURE';
+    let userUuid = '';
+    if (searching) {
+        userUuid = (userProfile && userProfile.uuid) || '';
+        if (!userUuid) {
+            const profile = await loadUserProfile();
+            userUuid = (profile && profile.uuid) || '';
+        }
+        if (!userUuid) throw new Error('获取用户信息失败，请重新登录');
+    }
+
+    const pageSize = 50;
+    const out = [];
+    let page = 0;
+    let guard = 0;
+    while (guard < 600) {
+        if (exportState.gallery.cancel) break;
+        const url = searching
+            ? API_BASE + '/v1/picture/search?keywords=' + encodeURIComponent(keyword) + '&user_uuid=' + encodeURIComponent(userUuid) + '&page_index=' + page + '&page_size=' + pageSize
+            : API_BASE + '/v1/artifact/list?page_index=' + page + '&page_size=' + pageSize + '&modality=' + modality;
+        const res = await fetch(url, {
+            headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
+        });
+        if (!res.ok) throw new Error('加载失败（' + res.status + '）');
+        const data = await res.json();
+        const list = data.list || [];
+        list.forEach(item => out.push(item));
+        setExportStatus('gallery', '正在读取列表 ' + out.length + ' 个…');
+        if (list.length < pageSize) break;
+        page++;
+        guard++;
+    }
+    return { list: out, modality };
+}
+
+async function exportSelectAll(kind) {
+    const st = exportState[kind];
+    const dom = exportDom(kind);
+    if (!st.active || st.busy || st.loadingAll) return;
+
+    const token = getToken();
+    if (!token) {
+        showToast('请先登录');
+        return;
+    }
+
+    st.loadingAll = true;
+    st.cancel = false;
+    syncExportBar(kind);
+    setExportStatus(kind, '正在遍历全部，请稍等…');
+
+    try {
+        if (kind === 'creations') {
+            // 角色 + 元素都算造物，一次全选到底
+            const list = await fetchAllCreationsForExport(token, ['oc', 'elementum']);
+            list.forEach(({ item, type }) => {
+                const meta = {
+                    uuid: item.uuid,
+                    name: item.name || item.short_name || '未命名',
+                    type,
+                    cover: (item.config && (item.config.avatar_img || item.config.header_img)) || '',
+                    listItem: item
+                };
+                creationItems.set(item.uuid, meta);
+                creationExportMeta.set(item.uuid, meta);
+                st.selected.add(item.uuid);
+            });
+        } else {
+            const { list, modality } = await fetchAllGalleryForExport(token);
+            list.forEach(item => {
+                if (!item || !item.uuid) return;
+                galleryItemData.set(item.uuid, { item, modality });
+                st.selected.add(item.uuid);
+            });
+        }
+
+        // 已经渲染出来的卡片同步打上勾
+        if (dom.grid) {
+            dom.grid.querySelectorAll('.gallery-item').forEach(el => {
+                if (el.dataset.uuid && st.selected.has(el.dataset.uuid)) el.classList.add('is-selected');
+            });
+        }
+        setExportStatus(kind, '已全选 ' + st.selected.size + ' 个');
+    } catch (error) {
+        console.error('全选失败:', error);
+        setExportStatus(kind, '遍历失败：' + (error && error.message ? error.message : error));
+    } finally {
+        st.loadingAll = false;
+        syncExportBar(kind);
+    }
+}
+
+function exportSelectNone(kind) {
+    resetExportSelection(kind);
+}
+
+// 词条格式化（图片详情弹窗和导出共用一套规则）
+function formatRawPromptText(rawPrompt, joiner = ', ') {
+    const list = Array.isArray(rawPrompt) ? rawPrompt : [];
+    return list.map(p => {
+        const weight = p.weight;
+        if (p.type === 'oc_vtoken_adaptor') {
+            const text = '@' + (p.name || '');
+            if (weight !== undefined && weight !== 1) return text + ':' + parseFloat(weight.toFixed(1));
+            return text;
+        }
+        if (p.type === 'elementum') {
+            const text = '/' + (p.name || '');
+            if (weight !== undefined && weight !== 1) return text + ':' + parseFloat(weight.toFixed(1));
+            return text;
+        }
+        if (p.type === 'freetext') {
+            const text = p.value || '';
+            if (!text) return null;
+            if (weight !== undefined && weight !== 1) return '(' + text + ':' + parseFloat(weight.toFixed(1)) + ')';
+            return text;
+        }
+        return null;
+    }).filter(Boolean).join(joiner);
+}
+
+const BIO_FIELD_LABEL = [
+    ['age', '年龄'],
+    ['name', '名称'],
+    ['persona', '人设'],
+    ['interests', '兴趣'],
+    ['occupation', '职业'],
+    ['description', '描述']
+];
+
+function buildBioText(bio) {
+    if (!bio) return '';
+    if (typeof bio === 'string') return bio.trim();
+    const lines = [];
+    BIO_FIELD_LABEL.forEach(([key, label]) => {
+        const value = bio[key];
+        if (value == null) return;
+        const text = String(value).trim();
+        if (!text) return;
+        lines.push(label + '：' + text);
+    });
+    return lines.join('\n');
+}
+
+const ELEMENTUM_PARAM_FIELDS = [
+    ['model_series', '模型'],
+    ['ckpt', '底模'],
+    ['vae', 'VAE'],
+    ['steps', '步数'],
+    ['sampler_name', '采样器'],
+    ['scheduler', '调度器'],
+    ['cfg', 'CFG'],
+    ['hr_scale', '高清修复倍率'],
+    ['hires_steps', '高清修复步数'],
+    ['hires_strength', '重绘幅度'],
+    ['workflow_name', '工作流'],
+    ['preset_key', '预设']
+];
+
+function buildElementumParamText(detail) {
+    const lines = [];
+    ELEMENTUM_PARAM_FIELDS.forEach(([key, label]) => {
+        const value = detail[key];
+        if (value == null || value === '') return;
+        lines.push(label + '：' + value);
+    });
+    return lines.join('\n');
+}
+
+function normalizeRawPrompt(value) {
+    let raw = value == null ? '' : String(value).trim();
+    // 接口偶尔把空词条写成字符串 "null" / "undefined"
+    if (/^(null|undefined|none)$/i.test(raw)) raw = '';
+    return raw;
+}
+
+function buildCreationInfoText(meta, detail, listItem) {
+    const d = detail || {};
+    const isCharacter = (d.vtoken_type || '') === 'character';
+    const raw = normalizeRawPrompt(d.positive_prompt);
+    const clean = raw && isCharacter ? stripCharacterWeights(raw) : raw;
+    const lines = [];
+
+    lines.push('名称：' + (d.name || meta.name || ''));
+    lines.push('类型：' + (isCharacter ? '角色' : '元素'));
+    lines.push('UUID：' + meta.uuid);
+    if (listItem) {
+        if (listItem.ctime) lines.push('创建时间：' + listItem.ctime);
+        if (listItem.mtime) lines.push('更新时间：' + listItem.mtime);
+        if (listItem.status) lines.push('状态：' + listItem.status);
+        if (listItem.accessibility) lines.push('可见性：' + listItem.accessibility);
+    }
+
+    lines.push('');
+    lines.push('原始 tag：');
+    lines.push(raw || '（无）');
+
+    if (isCharacter && clean && clean !== raw) {
+        lines.push('');
+        lines.push('去掉系统权重后的 tag：');
+        lines.push(clean);
+    }
+
+    if (!isCharacter) {
+        const params = buildElementumParamText(d);
+        if (params) {
+            lines.push('');
+            lines.push('生成参数：');
+            lines.push(params);
+        }
+    }
+
+    const bioText = buildBioText(d.bio);
+    if (bioText) {
+        lines.push('');
+        lines.push('简介：');
+        lines.push(bioText);
+    }
+
+    if (d.ref_image_url) {
+        lines.push('');
+        lines.push('参考图：' + d.ref_image_url);
+    }
+
+    return lines.join('\n') + '\n';
+}
+
+function exportFileName(kind) {
+    return (kind === 'creations' ? '捏ta造物-' : '捏ta图库-') + exportTimestamp() + '.zip';
+}
+
+async function runExport(kind) {
+    const st = exportState[kind];
+    if (!st.active || st.busy) return;
+    if (st.selected.size === 0) {
+        showToast('先选几个再导出吧');
+        return;
+    }
+
+    const token = getToken();
+    if (!token) {
+        alert('请先登录');
+        return;
+    }
+
+    if (st.selected.size > 15) {
+        const ok = confirm('将导出 ' + st.selected.size + ' 个' + EXPORT_KIND_LABEL[kind] + '，压缩包可能比较大（几百 MB 甚至几个 GB），继续吗？');
+        if (!ok) return;
+    }
+
+    const filename = exportFileName(kind);
+    let sink;
+    try {
+        sink = await createStreamSink(filename);
+    } catch (error) {
+        // 用户在保存对话框里点了取消
+        return;
+    }
+
+    st.busy = true;
+    st.cancel = false;
+    syncExportBar(kind);
+    setExportProgress(kind, 0, st.selected.size);
+
+    let result = null;
+    try {
+        result = kind === 'creations' ? await exportCreationsZip(st, sink, token) : await exportGalleryZip(st, sink, token);
+    } catch (error) {
+        console.error('导出失败:', error);
+        try { await sink.abort(); } catch (err) { /* ignore */ }
+        setExportStatus(kind, '导出失败：' + (error && error.message ? error.message : error));
+        showToast('导出失败：' + (error && error.message ? error.message : error));
+    } finally {
+        st.busy = false;
+        syncExportBar(kind);
+    }
+
+    if (!result) return;
+
+    if (result.cancelled) {
+        setExportStatus(kind, '已取消导出');
+        setExportProgress(kind, 0, 0);
+        showToast('已取消导出');
+        return;
+    }
+
+    setExportProgress(kind, st.selected.size, st.selected.size);
+    const failNote = result.failed ? '，' + result.failed + ' 个没能打包' : '';
+    setExportStatus(kind, '已导出 ' + result.done + ' 个' + failNote);
+    showToast('已导出 ' + result.done + ' 个' + EXPORT_KIND_LABEL[kind] + failNote);
+}
+
+async function exportCreationsZip(st, sink, token) {
+    const zip = new ZipWriter(sink);
+    const uuids = Array.from(st.selected);
+    const total = uuids.length;
+    const usedFolders = new Set();
+    let done = 0;
+    let failed = 0;
+    const failedNames = [];
+
+    for (let i = 0; i < uuids.length; i++) {
+        if (st.cancel) break;
+        const uuid = uuids[i];
+        const meta = Object.assign({ uuid }, creationExportMeta.get(uuid) || creationItems.get(uuid) || { name: '未命名', type: creationType, cover: '' });
+        setExportStatus('creations', '正在打包 ' + (i + 1) + '/' + total + '：' + (meta.name || uuid.slice(0, 8)));
+        setExportProgress('creations', i, total);
+
+        let detail = null;
+        try {
+            const res = await fetch(API_BASE + '/v2/oc/tcp-expand?tcp_uuid=' + encodeURIComponent(uuid) + '&weight=1', {
+                headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
+            });
+            if (res.ok) detail = await res.json();
+        } catch (error) {
+            console.warn('获取造物详情失败:', uuid, error);
+        }
+
+        const displayName = (detail && detail.name) || meta.name || '未命名';
+        const folder = uniqueZipName(sanitizeZipName(displayName), usedFolders);
+
+        try {
+            const coverCandidates = [];
+            if (meta.cover) coverCandidates.push(meta.cover);
+            if (detail && detail.image_url) coverCandidates.push(detail.image_url);
+            for (const url of coverCandidates) {
+                const got = await fetchBytes(url);
+                if (!got) continue;
+                const ext = extFromMime(got.contentType, pictureUrlExt(url) || 'png');
+                await zip.addBytes(folder + '/封面.' + ext, got.bytes);
+                break;
+            }
+
+            await zip.addText(folder + '/信息.txt', buildCreationInfoText(meta, detail, meta.listItem));
+            if (detail) {
+                await zip.addText(folder + '/原始信息.json', JSON.stringify(detail, null, 2));
+            }
+            done++;
+        } catch (error) {
+            console.error('打包造物失败:', uuid, error);
+            failed++;
+            failedNames.push(displayName);
+        }
+    }
+
+    if (st.cancel) {
+        try { await sink.abort(); } catch (error) { /* ignore */ }
+        return { cancelled: true, done, failed };
+    }
+
+    if (failedNames.length) {
+        await zip.addText('打包失败的造物.txt', failedNames.join('\n') + '\n');
+    }
+
+    await zip.finish();
+    const blob = await sink.finish();
+    if (blob) downloadBlob(blob, exportFileName('creations'));
+    return { cancelled: false, done, failed };
+}
+
+function promptLineText(text) {
+    return String(text == null ? '' : text).replace(/[\t\r\n]+/g, ' ').trim();
+}
+
+async function exportGalleryZip(st, sink, token) {
+    const zip = new ZipWriter(sink);
+    const uuids = Array.from(st.selected);
+    const total = uuids.length;
+    const metas = uuids.map(uuid => {
+        const entry = galleryItemData.get(uuid);
+        return {
+            uuid,
+            item: (entry && entry.item) || {},
+            modality: (entry && entry.modality) || galleryModality
+        };
+    });
+
+    const modalities = new Set(metas.map(m => m.modality));
+    const modality = modalities.size === 1 ? Array.from(modalities)[0] : 'MIXED';
+    const rootFolder = modality === 'PICTURE' ? '图片' : (modality === 'VIDEO' ? '视频' : '素材');
+    const modalityLabel = modality === 'PICTURE' ? '图片' : (modality === 'VIDEO' ? '视频' : '图片 + 视频');
+
+    // 先把词条批量取回来（图库列表接口不带 prompt）
+    const promptMap = new Map();
+    const pictureUuids = metas.filter(m => m.modality === 'PICTURE').map(m => m.uuid);
+    const chunkSize = 20;
+    for (let i = 0; i < pictureUuids.length; i += chunkSize) {
+        if (st.cancel) break;
+        const chunk = pictureUuids.slice(i, i + chunkSize);
+        setExportStatus('gallery', '正在读取词条 ' + (i + 1) + '-' + (i + chunk.length) + '/' + pictureUuids.length + '…');
+        try {
+            const res = await fetch(API_BASE + '/v1/artifact/artifact-detail?uuids=' + chunk.join(',') + '&is_brief_only=false', {
+                headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                (Array.isArray(data) ? data : []).forEach(detail => {
+                    promptMap.set(detail.uuid, formatRawPromptText((detail.input || {}).rawPrompt, ', '));
+                });
+            }
+        } catch (error) {
+            console.warn('批量读取词条失败:', error);
+        }
+    }
+
+    const videoUuids = metas.filter(m => m.modality === 'VIDEO').map(m => m.uuid);
+    if (videoUuids.length) {
+        setExportStatus('gallery', '正在读取 ' + videoUuids.length + ' 个视频的下载地址…');
+        await fetchVideoUrls(videoUuids, token);
+    }
+
+    if (st.cancel) {
+        try { await sink.abort(); } catch (error) { /* ignore */ }
+        return { cancelled: true, done: 0, failed: 0 };
+    }
+
+    const padWidth = Math.max(3, String(total).length);
+    const rows = [];
+    let done = 0;
+    let failed = 0;
+
+    for (let i = 0; i < metas.length; i++) {
+        if (st.cancel) break;
+        const meta = metas[i];
+        const number = String(i + 1).padStart(padWidth, '0');
+        setExportStatus('gallery', '正在下载 ' + (i + 1) + '/' + total);
+        setExportProgress('gallery', i, total);
+
+        const item = meta.item;
+        let candidates;
+        if (meta.modality === 'VIDEO') {
+            const info = videoUrlCache.get(meta.uuid) || {};
+            candidates = [info.clean, info.watermark].filter(Boolean);
+        } else {
+            candidates = buildPictureCandidates(meta.uuid, typeof item.url === 'string' ? item.url : '', item.status);
+        }
+
+        let saved = null;
+        for (const url of candidates) {
+            const got = await fetchBytes(url);
+            if (!got) continue;
+            const ext = extFromMime(got.contentType, pictureUrlExt(url) || (meta.modality === 'VIDEO' ? 'mp4' : 'png'));
+            const name = number + '.' + ext;
+            await zip.addBytes(rootFolder + '/' + name, got.bytes);
+            saved = name;
+            break;
+        }
+
+        if (saved) {
+            done++;
+            rows.push([number, saved, meta.uuid, promptLineText(promptMap.get(meta.uuid) || '（没有保存提示词）')]);
+        } else {
+            failed++;
+            rows.push([number, '（下载失败）', meta.uuid, promptLineText(promptMap.get(meta.uuid) || '（没有保存提示词）')]);
+        }
+    }
+
+    if (st.cancel) {
+        try { await sink.abort(); } catch (error) { /* ignore */ }
+        return { cancelled: true, done, failed };
+    }
+
+    const lines = [];
+    lines.push('捏ta 图库导出');
+    lines.push('导出时间：' + new Date().toLocaleString('zh-CN'));
+    lines.push('类型：' + modalityLabel);
+    lines.push('数量：' + done + ' 个' + (failed ? '（另有 ' + failed + ' 个下载失败）' : ''));
+    lines.push((modality === 'PICTURE' ? '图片' : '文件') + '按选中顺序重新编号，编号与下面表格一一对应。');
+    lines.push('');
+    lines.push('编号\t文件名\tUUID\t提示词');
+    rows.forEach(row => lines.push(row.join('\t')));
+
+    await zip.addText('提示词.txt', lines.join('\n') + '\n');
+
+    await zip.finish();
+    const blob = await sink.finish();
+    if (blob) downloadBlob(blob, exportFileName('gallery'));
+    return { cancelled: false, done, failed };
+}
+
+function setupExport() {
+    ['creations', 'gallery'].forEach(kind => {
+        const dom = exportDom(kind);
+        if (dom.toggleBtn) {
+            dom.toggleBtn.addEventListener('click', () => {
+                if (exportState[kind].active) {
+                    exitExportMode(kind);
+                } else {
+                    enterExportMode(kind);
+                }
+            });
+        }
+        if (dom.runBtn) dom.runBtn.addEventListener('click', () => runExport(kind));
+        if (dom.cancelBtn) {
+            dom.cancelBtn.addEventListener('click', () => {
+                const st = exportState[kind];
+                if (st.busy) {
+                    st.cancel = true;
+                    setExportStatus(kind, '正在取消…');
+                    return;
+                }
+                exitExportMode(kind);
+            });
+        }
+        if (dom.selectAllBtn) dom.selectAllBtn.addEventListener('click', () => exportSelectAll(kind));
+        if (dom.selectNoneBtn) dom.selectNoneBtn.addEventListener('click', () => exportSelectNone(kind));
+        syncExportBar(kind);
+    });
+}
+
 // ============ 初始化 ============
 
 function init() {
@@ -3798,6 +4766,7 @@ function init() {
     setupStats();
     setupGallery();
     setupCreations();
+    setupExport();
     setupDanbooruExplorer();
     setupTranslate();
     setupBackToTop();
@@ -3991,44 +4960,8 @@ async function showImageDetail(uuid, event) {
         // 显示种子
         seedEl.textContent = input.seed !== undefined ? input.seed : '未知';
 
-        // 显示词条(用中文逗号隔开,带权重)
-        const rawPrompt = input.rawPrompt || [];
-        const formattedPrompts = rawPrompt
-            .map(p => {
-                const weight = p.weight;
-                let text = '';
-
-                // 根据类型格式化
-                if (p.type === 'oc_vtoken_adaptor') {
-                    // 角色引用:@角色名:权重(不加括号)
-                    text = `@${p.name || ''}`;
-                } else if (p.type === 'elementum') {
-                    // 元素引用:/元素名:权重(不加括号)
-                    text = `/${p.name || ''}`;
-                } else if (p.type === 'freetext') {
-                    // 自由文本
-                    text = p.value || '';
-                    // 权重不为 1 时显示权重(加括号)
-                    if (weight !== undefined && weight !== 1 && weight !== 1.0) {
-                        const weightStr = parseFloat(weight.toFixed(1));
-                        return `(${text}:${weightStr})`;
-                    }
-                    return text;
-                } else {
-                    // 其他类型跳过
-                    return null;
-                }
-
-                // 角色和元素:权重不为 1 时显示权重(不加括号)
-                if (weight !== undefined && weight !== 1 && weight !== 1.0) {
-                    const weightStr = parseFloat(weight.toFixed(1));
-                    return `${text}:${weightStr}`;
-                }
-                return text;
-            })
-            .filter(v => v);
-
-        currentPromptsText = formattedPrompts.length === 0 ? '' : formattedPrompts.join(',');
+        // 显示词条(带权重,格式与批量导出的提示词.txt 一致)
+        currentPromptsText = formatRawPromptText(input.rawPrompt, ',');
         renderImagePrompts();
 
     } catch (e) {

@@ -249,7 +249,22 @@
                         <button class="stats-tab active" data-creation-type="oc" role="tab" aria-selected="true">角色</button>
                         <button class="stats-tab" data-creation-type="elementum" role="tab" aria-selected="false">元素</button>
                     </div>
-                    <button id="load-creations" class="btn btn-primary">加载造物</button>
+                    <div class="gallery-actions">
+                        <button id="creations-export" class="btn btn-secondary btn-export" type="button">导出数据</button>
+                        <button id="load-creations" class="btn btn-primary">加载造物</button>
+                    </div>
+                </div>
+                <div id="creations-export-bar" class="export-bar" hidden>
+                    <span class="export-bar__hint">点卡片选中所要导出的造物</span>
+                    <button class="export-link" id="creations-select-all" type="button">全选</button>
+                    <button class="export-link" id="creations-select-none" type="button">清空</button>
+                    <span class="export-bar__count" id="creations-export-count">已选 0 个</span>
+                    <div class="export-progress" id="creations-export-progress" hidden><div class="export-progress__fill" id="creations-export-fill"></div></div>
+                    <span class="export-bar__status" id="creations-export-status"></span>
+                    <div class="export-bar__actions">
+                        <button class="btn btn-primary btn-sm" id="creations-export-run" type="button" disabled>导出所选</button>
+                        <button class="btn btn-secondary btn-sm" id="creations-export-cancel" type="button">退出</button>
+                    </div>
                 </div>
                 <div id="creations-grid" class="gallery-grid"></div>
                 <div id="creations-loading" class="gallery-loading" style="display:none">加载中...</div>
@@ -263,7 +278,22 @@
                         <button class="stats-tab active" data-gallery-modality="PICTURE" role="tab" aria-selected="true">图片</button>
                         <button class="stats-tab" data-gallery-modality="VIDEO" role="tab" aria-selected="false">视频</button>
                     </div>
-                    <button id="load-gallery" class="btn btn-primary">加载图库</button>
+                    <div class="gallery-actions">
+                        <button id="gallery-export" class="btn btn-secondary btn-export" type="button">导出数据</button>
+                        <button id="load-gallery" class="btn btn-primary">加载图库</button>
+                    </div>
+                </div>
+                <div id="gallery-export-bar" class="export-bar" hidden>
+                    <span class="export-bar__hint">点图片选中，可全选</span>
+                    <button class="export-link" id="gallery-select-all" type="button">全选</button>
+                    <button class="export-link" id="gallery-select-none" type="button">清空</button>
+                    <span class="export-bar__count" id="gallery-export-count">已选 0 个</span>
+                    <div class="export-progress" id="gallery-export-progress" hidden><div class="export-progress__fill" id="gallery-export-fill"></div></div>
+                    <span class="export-bar__status" id="gallery-export-status"></span>
+                    <div class="export-bar__actions">
+                        <button class="btn btn-primary btn-sm" id="gallery-export-run" type="button" disabled>导出所选</button>
+                        <button class="btn btn-secondary btn-sm" id="gallery-export-cancel" type="button">退出</button>
+                    </div>
                 </div>
                 <div class="gallery-search">
                     <input type="text" id="gallery-search" placeholder="搜索提示词里含这个词的作品，回车或点「搜索」" autocomplete="off" />
