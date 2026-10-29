@@ -2414,13 +2414,15 @@ input[type="checkbox"] {
 }
 
 .export-bar__status {
-    flex: 1 1 130px;
+    flex: 1 1 100%;
+    order: 9;
     min-width: 0;
+    margin-top: 0.05rem;
     font-size: 0.72rem;
+    font-variant-numeric: tabular-nums;
     color: var(--faint);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .export-bar__status:empty {

@@ -4067,6 +4067,44 @@ async function fetchBytes(url) {
     }
 }
 
+// 有界并发：同时最多跑 limit 个任务，结果按原顺序放进数组
+async function mapConcurrent(items, limit, worker) {
+    const total = items.length;
+    const results = new Array(total);
+    if (!total) return results;
+    let next = 0;
+    const runners = [];
+    const lanes = Math.max(1, Math.min(limit, total));
+    for (let lane = 0; lane < lanes; lane++) {
+        runners.push((async () => {
+            while (true) {
+                const index = next++;
+                if (index >= total) return;
+                results[index] = await worker(items[index], index);
+            }
+        })());
+    }
+    await Promise.all(runners);
+    return results;
+}
+
+// 注意：文件后面 5930 行还有一个同名 formatDuration(ms) 用于点赞记录，会覆盖本函数，故改名
+function formatEta(seconds) {
+    if (!isFinite(seconds)) return '未知';
+    const sec = Math.max(1, Math.round(seconds));
+    if (sec < 60) return sec + ' 秒';
+    const min = Math.floor(sec / 60);
+    const rest = sec % 60;
+    return rest ? min + ' 分 ' + rest + ' 秒' : min + ' 分钟';
+}
+
+function formatSize(bytes) {
+    const mb = bytes / 1048576;
+    if (mb < 1) return Math.max(1, Math.round(bytes / 1024)) + ' KB';
+    if (mb < 1024) return mb.toFixed(1) + ' MB';
+    return (mb / 1024).toFixed(2) + ' GB';
+}
+
 function sanitizeZipName(name, fallback = '未命名') {
     let out = String(name == null ? '' : name)
         .replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_')
@@ -4603,6 +4641,56 @@ function promptLineText(text) {
     return String(text == null ? '' : text).replace(/[\t\r\n]+/g, ' ').trim();
 }
 
+// 词条（提示词）批量取回，6 条并发，比逐批串行快 5 倍以上
+async function fetchGalleryPromptsForExport(uuids, token, report) {
+    const promptMap = new Map();
+    const chunkSize = 20;
+    const chunks = [];
+    for (let i = 0; i < uuids.length; i += chunkSize) chunks.push(uuids.slice(i, i + chunkSize));
+    await mapConcurrent(chunks, 6, async (chunk) => {
+        try {
+            const res = await fetch(API_BASE + '/v1/artifact/artifact-detail?uuids=' + chunk.join(',') + '&is_brief_only=false', {
+                headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                (Array.isArray(data) ? data : []).forEach(detail => {
+                    promptMap.set(detail.uuid, formatRawPromptText((detail.input || {}).rawPrompt, ', '));
+                });
+            }
+        } catch (error) {
+            console.warn('批量读取词条失败:', error);
+        }
+        if (report) report.done++;
+    });
+    return promptMap;
+}
+
+// 取一张图/一个视频的真实字节（按候选地址依次尝试），返回 { bytes, ext }
+async function downloadGalleryItem(meta) {
+    const item = meta.item || {};
+    let candidates;
+    if (meta.modality === 'VIDEO') {
+        const info = videoUrlCache.get(meta.uuid) || {};
+        candidates = [info.clean, info.watermark].filter(Boolean);
+    } else {
+        candidates = buildPictureCandidates(meta.uuid, typeof item.url === 'string' ? item.url : '', item.status);
+    }
+    // 并发抓取偶尔会碰到一次网络抖动，失败后再试一轮（真的没文件的图重试也很快）
+    for (let attempt = 0; attempt < 2; attempt++) {
+        if (attempt) await new Promise(resolve => setTimeout(resolve, 350));
+        for (const url of candidates) {
+            const got = await fetchBytes(url);
+            if (!got) continue;
+            return {
+                bytes: got.bytes,
+                ext: extFromMime(got.contentType, pictureUrlExt(url) || (meta.modality === 'VIDEO' ? 'mp4' : 'png'))
+            };
+        }
+    }
+    return null;
+}
+
 async function exportGalleryZip(st, sink, token) {
     const zip = new ZipWriter(sink);
     const uuids = Array.from(st.selected);
@@ -4621,28 +4709,12 @@ async function exportGalleryZip(st, sink, token) {
     const rootFolder = modality === 'PICTURE' ? '图片' : (modality === 'VIDEO' ? '视频' : '素材');
     const modalityLabel = modality === 'PICTURE' ? '图片' : (modality === 'VIDEO' ? '视频' : '图片 + 视频');
 
-    // 先把词条批量取回来（图库列表接口不带 prompt）
-    const promptMap = new Map();
+    // 词条与图片并行取：词条批次多、每次十几毫秒的往返，串行下来要白等一两分钟
     const pictureUuids = metas.filter(m => m.modality === 'PICTURE').map(m => m.uuid);
-    const chunkSize = 20;
-    for (let i = 0; i < pictureUuids.length; i += chunkSize) {
-        if (st.cancel) break;
-        const chunk = pictureUuids.slice(i, i + chunkSize);
-        setExportStatus('gallery', '正在读取词条 ' + (i + 1) + '-' + (i + chunk.length) + '/' + pictureUuids.length + '…');
-        try {
-            const res = await fetch(API_BASE + '/v1/artifact/artifact-detail?uuids=' + chunk.join(',') + '&is_brief_only=false', {
-                headers: { 'x-token': token, 'x-platform': 'nieta-app/web' }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                (Array.isArray(data) ? data : []).forEach(detail => {
-                    promptMap.set(detail.uuid, formatRawPromptText((detail.input || {}).rawPrompt, ', '));
-                });
-            }
-        } catch (error) {
-            console.warn('批量读取词条失败:', error);
-        }
-    }
+    const promptReport = { done: 0, total: Math.ceil(pictureUuids.length / 20) };
+    const promptTask = pictureUuids.length
+        ? fetchGalleryPromptsForExport(pictureUuids, token, promptReport)
+        : Promise.resolve(new Map());
 
     const videoUuids = metas.filter(m => m.modality === 'VIDEO').map(m => m.uuid);
     if (videoUuids.length) {
@@ -4659,40 +4731,61 @@ async function exportGalleryZip(st, sink, token) {
     const rows = [];
     let done = 0;
     let failed = 0;
+    const startedAt = Date.now();
+    let fetchedBytes = 0;
+
+    // 边下边写：同时抓 6 个（视频单个就近 100MB，串行更稳），落盘顺序仍与选区一致
+    const maxInflight = modality === 'VIDEO' ? 1 : 6;
+    const pending = new Map();
+    let nextIndex = 0;
+    const fillWindow = () => {
+        while (nextIndex < metas.length && pending.size < maxInflight * 2) {
+            const index = nextIndex++;
+            pending.set(index, downloadGalleryItem(metas[index]));
+        }
+    };
+    fillWindow();
 
     for (let i = 0; i < metas.length; i++) {
         if (st.cancel) break;
         const meta = metas[i];
+        const job = pending.get(i);
+        pending.delete(i);
         const number = String(i + 1).padStart(padWidth, '0');
-        setExportStatus('gallery', '正在下载 ' + (i + 1) + '/' + total);
-        setExportProgress('gallery', i, total);
-
-        const item = meta.item;
-        let candidates;
-        if (meta.modality === 'VIDEO') {
-            const info = videoUrlCache.get(meta.uuid) || {};
-            candidates = [info.clean, info.watermark].filter(Boolean);
-        } else {
-            candidates = buildPictureCandidates(meta.uuid, typeof item.url === 'string' ? item.url : '', item.status);
-        }
+        const created = String(meta.item.ctime || meta.item.mtime || '').trim();
 
         let saved = null;
-        for (const url of candidates) {
-            const got = await fetchBytes(url);
-            if (!got) continue;
-            const ext = extFromMime(got.contentType, pictureUrlExt(url) || (meta.modality === 'VIDEO' ? 'mp4' : 'png'));
-            const name = number + '.' + ext;
-            await zip.addBytes(rootFolder + '/' + name, got.bytes);
-            saved = name;
-            break;
+        try {
+            const got = await job;
+            if (got) {
+                fetchedBytes += got.bytes.length;
+                const name = number + '.' + got.ext;
+                await zip.addBytes(rootFolder + '/' + name, got.bytes);
+                saved = name;
+            }
+        } catch (error) {
+            console.warn('下载失败:', meta.uuid, error);
         }
+        fillWindow();
 
         if (saved) {
             done++;
-            rows.push([number, saved, meta.uuid, promptLineText(promptMap.get(meta.uuid) || '（没有保存提示词）')]);
+            rows.push([number, saved, meta.uuid, created]);
         } else {
             failed++;
-            rows.push([number, '（下载失败）', meta.uuid, promptLineText(promptMap.get(meta.uuid) || '（没有保存提示词）')]);
+            rows.push([number, '（下载失败）', meta.uuid, created]);
+        }
+
+        if ((i + 1) % 3 === 0 || i === metas.length - 1) {
+            const elapsed = Math.max(0.001, (Date.now() - startedAt) / 1000);
+            const rate = (i + 1) / elapsed;
+            let text = '正在下载 ' + (i + 1) + '/' + total + ' · ' + rate.toFixed(1) + ' 个/秒 · 已取 ' + formatSize(fetchedBytes);
+            if (i + 1 < total) text += ' · 剩余 ' + formatEta((total - i - 1) / rate);
+            if (promptReport.total && promptReport.done < promptReport.total) {
+                text += ' · 词条 ' + promptReport.done + '/' + promptReport.total;
+            }
+            setExportStatus('gallery', text);
+            setExportProgress('gallery', i + 1, total);
         }
     }
 
@@ -4701,6 +4794,8 @@ async function exportGalleryZip(st, sink, token) {
         return { cancelled: true, done, failed };
     }
 
+    const promptMap = await promptTask;
+
     const lines = [];
     lines.push('捏ta 图库导出');
     lines.push('导出时间：' + new Date().toLocaleString('zh-CN'));
@@ -4708,8 +4803,11 @@ async function exportGalleryZip(st, sink, token) {
     lines.push('数量：' + done + ' 个' + (failed ? '（另有 ' + failed + ' 个下载失败）' : ''));
     lines.push((modality === 'PICTURE' ? '图片' : '文件') + '按选中顺序重新编号，编号与下面表格一一对应。');
     lines.push('');
-    lines.push('编号\t文件名\tUUID\t提示词');
-    rows.forEach(row => lines.push(row.join('\t')));
+    lines.push('编号\t文件名\tUUID\t创建时间\t提示词');
+    rows.forEach(row => lines.push(
+        row[0] + '\t' + row[1] + '\t' + row[2] + '\t' + (row[3] || '—') + '\t' +
+        promptLineText(promptMap.get(row[2]) || '（没有保存提示词）')
+    ));
 
     await zip.addText('提示词.txt', lines.join('\n') + '\n');
 
