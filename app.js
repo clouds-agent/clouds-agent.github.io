@@ -4596,7 +4596,9 @@ async function exportCreationsZip(st, sink, token) {
         }
 
         const displayName = (detail && detail.name) || meta.name || '未命名';
-        const folder = uniqueZipName(sanitizeZipName(displayName), usedFolders);
+        // 文件夹带角色/元素前缀，一眼区分两类造物
+        const typeLabel = CREATION_TYPE_LABEL[meta.type] || '造物';
+        const folder = uniqueZipName(sanitizeZipName(typeLabel + '-' + displayName), usedFolders);
 
         try {
             const coverCandidates = [];
@@ -4618,7 +4620,7 @@ async function exportCreationsZip(st, sink, token) {
         } catch (error) {
             console.error('打包造物失败:', uuid, error);
             failed++;
-            failedNames.push(displayName);
+            failedNames.push(typeLabel + '-' + displayName);
         }
     }
 
